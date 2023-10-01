@@ -9,8 +9,9 @@ struct HomeModule {}
 #[Injectable]
 struct HomeService {}
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let controller = HomeController {};
 
-    rupring::run_app();
+    rupring::run_app().await;
 }
