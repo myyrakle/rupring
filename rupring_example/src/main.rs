@@ -1,4 +1,4 @@
-use rupring_macro::{Controller, Injectable, Module};
+use rupring::{Controller, Injectable, Module};
 
 #[Controller]
 struct HomeController {}
