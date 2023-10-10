@@ -1,4 +1,4 @@
-use rupring::{Controller, Get, Injectable, Module};
+use rupring::{Controller, Get, IModule, Injectable, Module, Rupring};
 
 #[Controller]
 struct HomeController {
@@ -17,6 +17,8 @@ impl HomeController {
 )]
 struct HomeModule {}
 
+impl IModule for HomeModule {}
+
 #[Injectable]
 struct HomeService {}
 
@@ -24,5 +26,6 @@ struct HomeService {}
 async fn main() {
     let root_module = HomeModule {};
 
-    rupring::run_app().await;
+    let app = Rupring::create(root_module);
+    app.listen(8080).await;
 }

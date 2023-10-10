@@ -4,3 +4,4 @@ members = [
     "rupring_macro", 
     "rupring_example"
 ]
+resolver = "2"
