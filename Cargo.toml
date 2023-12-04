@@ -2,7 +2,6 @@
 members = [
     "rupring",
     "rupring_macro", 
-    "rupring_core",
     "rupring_example"
 ]
 resolver = "2"
