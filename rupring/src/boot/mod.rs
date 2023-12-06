@@ -1,3 +1,5 @@
+mod route;
+
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
@@ -11,7 +13,7 @@ use tokio::net::TcpListener;
 
 use crate::IModule;
 
-async fn route(
+async fn manage_route(
     request: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
     Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
@@ -39,7 +41,7 @@ pub async fn run_server(
             // Finally, we bind the incoming connection to our `hello` service
             if let Err(err) = http1::Builder::new()
                 // `service_fn` converts our function in a `Service`
-                .serve_connection(io, service_fn(route))
+                .serve_connection(io, service_fn(manage_route))
                 .await
             {
                 println!("Error serving connection: {:?}", err);
