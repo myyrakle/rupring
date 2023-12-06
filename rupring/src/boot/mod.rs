@@ -9,6 +9,8 @@ use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 
+use crate::IModule;
+
 async fn route(
     request: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
@@ -17,6 +19,7 @@ async fn route(
 
 pub async fn run_server(
     socker_addr: SocketAddr,
+    root_module: impl IModule,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let addr = socker_addr;
 
