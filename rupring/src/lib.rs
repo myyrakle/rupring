@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
-mod boot;
+pub mod boot;
+use http_body_util::Full;
+use hyper::{body::Bytes, Method};
 pub use rupring_macro::{Controller, Delete, Get, Injectable, Module, Patch, Post, Put};
 
 pub struct Request {
-    pub method: String,
+    pub method: Method,
     pub path: String,
     pub body: String,
     pub headers: HashMap<String, Vec<String>>,
@@ -15,6 +17,24 @@ pub struct Response {
     pub status: u16,
     pub body: String,
     pub headers: HashMap<String, Vec<String>>,
+}
+
+impl From<Response> for hyper::Response<Full<Bytes>> {
+    fn from(response: Response) -> Self {
+        let mut builder = hyper::Response::builder();
+
+        builder = builder.status(response.status);
+
+        for (header_name, header_values) in response.headers {
+            for header_value in header_values {
+                builder = builder.header(header_name.clone(), header_value);
+            }
+        }
+
+        let response = builder.body(Full::new(Bytes::from(response.body))).unwrap();
+
+        return response;
+    }
 }
 
 pub trait IModule {
@@ -28,13 +48,13 @@ pub trait IController {
 }
 
 pub trait IRoute {
-    fn method(&self) -> String;
+    fn method(&self) -> Method;
     fn path(&self) -> String;
     fn handler(&self) -> Box<dyn IHandler>;
 }
 
 pub trait IHandler {
-    fn handle(&self, request: Request, controller: Box<dyn IController>) -> Response;
+    fn handle(&self, request: Request) -> Response;
 }
 
 #[derive(Debug, Clone)]
@@ -42,7 +62,7 @@ pub struct Rupring<T: IModule> {
     root_module: T,
 }
 
-impl<T: IModule> Rupring<T> {
+impl<T: IModule + Clone + Copy + Sync + Send + 'static> Rupring<T> {
     pub fn create(module: T) -> Self {
         Rupring {
             root_module: module,

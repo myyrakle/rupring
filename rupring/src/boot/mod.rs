@@ -13,15 +13,9 @@ use tokio::net::TcpListener;
 
 use crate::IModule;
 
-async fn manage_route(
-    request: Request<hyper::body::Incoming>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
-    Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
-}
-
 pub async fn run_server(
     socker_addr: SocketAddr,
-    root_module: impl IModule,
+    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let addr = socker_addr;
 
@@ -36,12 +30,47 @@ pub async fn run_server(
         // `hyper::rt` IO traits.
         let io = TokioIo::new(stream);
 
+        let root_module = root_module.clone();
         // Spawn a tokio task to serve multiple connections concurrently
         tokio::task::spawn(async move {
             // Finally, we bind the incoming connection to our `hello` service
             if let Err(err) = http1::Builder::new()
                 // `service_fn` converts our function in a `Service`
-                .serve_connection(io, service_fn(manage_route))
+                .serve_connection(
+                    io,
+                    service_fn(|req: Request<hyper::body::Incoming>| async move {
+                        let route = route::find_route(
+                            Box::new(root_module),
+                            req.uri().path().to_string(),
+                            req.method().to_owned(),
+                        );
+
+                        match route {
+                            Some(route) => {
+                                let handler = route.handler();
+
+                                let request = crate::Request {
+                                    method: req.method().to_owned(),
+                                    path: req.uri().path().to_string(),
+                                    body: "".to_string(),
+                                    headers: Default::default(),
+                                    query: Default::default(),
+                                    // headers: req.headers().clone(),
+                                    // query: req.uri().query().unwrap_or("").to_string(),
+                                };
+
+                                let response = handler.handle(request);
+
+                                return Ok::<Response<Full<Bytes>>, Infallible>(response.into());
+                            }
+                            None => {
+                                return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(
+                                    Full::new(Bytes::from("Not Found".to_string())),
+                                ));
+                            }
+                        }
+                    }),
+                )
                 .await
             {
                 println!("Error serving connection: {:?}", err);
