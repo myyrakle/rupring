@@ -1,3 +1,5 @@
+use hyper::Method;
+
 pub(crate) fn is_route_matching_request(route_path: String, request_path: String) -> bool {
     // remove query parameters
     let request_path = request_path.split("?").collect::<Vec<&str>>()[0];
@@ -20,6 +22,40 @@ pub(crate) fn is_route_matching_request(route_path: String, request_path: String
     }
 
     return true;
+}
+
+pub(crate) fn find_route(
+    root_module: Box<dyn crate::IModule>,
+    request_path: String,
+    request_method: Method,
+) -> Option<Box<dyn crate::IRoute>> {
+    for controller in root_module.controllers() {
+        let prefix = controller.prefix();
+
+        for route in controller.routes() {
+            if route.method() != request_method {
+                continue;
+            }
+
+            let route_path = format!("{}{}", prefix, route.path());
+
+            if !is_route_matching_request(route_path, request_path.clone()) {
+                continue;
+            }
+
+            return Some(route);
+        }
+    }
+
+    for child_module in root_module.child_modules() {
+        let result = find_route(child_module, request_path.clone(), request_method.clone());
+
+        if result.is_some() {
+            return result;
+        }
+    }
+
+    return None;
 }
 
 #[cfg(test)]
