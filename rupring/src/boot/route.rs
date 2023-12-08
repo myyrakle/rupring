@@ -24,6 +24,32 @@ pub(crate) fn is_route_matching_request(route_path: String, request_path: String
     return true;
 }
 
+pub(crate) fn normalize_path(prefix: String, path: String) -> String {
+    let mut normalized_path = "/".to_string();
+
+    if prefix.starts_with("/") {
+        normalized_path.push_str(&prefix[1..]);
+    } else {
+        normalized_path.push_str(&prefix);
+    }
+
+    if !normalized_path.ends_with("/") {
+        normalized_path.push_str("/");
+    }
+
+    if path.starts_with("/") {
+        normalized_path.push_str(&path[1..]);
+    } else {
+        normalized_path.push_str(&path);
+    }
+
+    if normalized_path.ends_with("/") && normalized_path.len() > 1 {
+        normalized_path.pop();
+    }
+
+    return normalized_path;
+}
+
 pub(crate) fn find_route(
     root_module: Box<dyn crate::IModule>,
     request_path: String,
@@ -120,6 +146,59 @@ mod tests {
                 result, test_case.expected,
                 "TC name: {}, route_path: {}, request_path: {}",
                 test_case.name, test_case.route_path, test_case.request_path
+            );
+        }
+    }
+
+    #[test]
+    fn test_normalize_path() {
+        struct TestCase {
+            name: String,
+            prefix: String,
+            path: String,
+            expected: String,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                name: "prefix and path are empty".to_string(),
+                prefix: "".to_string(),
+                path: "".to_string(),
+                expected: "/".to_string(),
+            },
+            TestCase {
+                name: "prefix is empty".to_string(),
+                prefix: "".to_string(),
+                path: "/hello".to_string(),
+                expected: "/hello".to_string(),
+            },
+            TestCase {
+                name: "path is empty".to_string(),
+                prefix: "/hello".to_string(),
+                path: "".to_string(),
+                expected: "/hello".to_string(),
+            },
+            TestCase {
+                name: "prefix and path are not empty".to_string(),
+                prefix: "/hello".to_string(),
+                path: "/world".to_string(),
+                expected: "/hello/world".to_string(),
+            },
+            TestCase {
+                name: "prefix and path are not empty and have trailing slashes".to_string(),
+                prefix: "/hello/".to_string(),
+                path: "/world/".to_string(),
+                expected: "/hello/world".to_string(),
+            },
+        ];
+
+        for test_case in test_cases.iter() {
+            let result = normalize_path(test_case.prefix.clone(), test_case.path.clone());
+
+            assert_eq!(
+                result, test_case.expected,
+                "TC name: {}, prefix: {}, path: {}",
+                test_case.name, test_case.prefix, test_case.path
             );
         }
     }
