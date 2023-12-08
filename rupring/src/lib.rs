@@ -9,7 +9,7 @@ pub struct Request {
     pub method: Method,
     pub path: String,
     pub body: String,
-    pub headers: HashMap<String, Vec<String>>,
+    pub headers: HashMap<String, String>,
     pub query: HashMap<String, Vec<String>>,
 }
 
