@@ -1,6 +1,7 @@
 mod parse;
 mod route;
 
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
@@ -45,6 +46,14 @@ pub async fn run_server(
                         let raw_querystring = uri.query().unwrap_or("");
                         let query_parameters = parse::parse_query_parameter(raw_querystring);
 
+                        let mut headers = HashMap::new();
+                        for (header_name, header_value) in req.headers() {
+                            let header_name = header_name.to_string();
+                            let header_value = header_value.to_str().unwrap_or("").to_string();
+
+                            headers.insert(header_name, header_value);
+                        }
+
                         let route = route::find_route(
                             Box::new(root_module),
                             uri.path().to_string(),
@@ -59,9 +68,8 @@ pub async fn run_server(
                                     method: req.method().to_owned(),
                                     path: req.uri().path().to_string(),
                                     body: "".to_string(),
-                                    headers: Default::default(),
                                     query: query_parameters,
-                                    // headers: req.headers().clone(),
+                                    headers: headers,
                                     // query: req.uri().query().unwrap_or("").to_string(),
                                 };
 
