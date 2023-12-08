@@ -42,35 +42,42 @@ pub async fn run_server(
                     io,
                     service_fn(|req: Request<hyper::body::Incoming>| async move {
                         let uri = req.uri();
-
-                        let raw_querystring = uri.query().unwrap_or("");
-                        let query_parameters = parse::parse_query_parameter(raw_querystring);
-
-                        let mut headers = HashMap::new();
-                        for (header_name, header_value) in req.headers() {
-                            let header_name = header_name.to_string();
-                            let header_value = header_value.to_str().unwrap_or("").to_string();
-
-                            headers.insert(header_name, header_value);
-                        }
+                        let request_path = uri.path().to_string();
+                        let request_method = req.method().to_owned();
 
                         let route = route::find_route(
                             Box::new(root_module),
-                            uri.path().to_string(),
-                            req.method().to_owned(),
+                            request_path.clone(),
+                            request_method,
                         );
 
                         match route {
-                            Some(route) => {
+                            Some((route, route_path)) => {
                                 let handler = route.handler();
+
+                                let raw_querystring = uri.query().unwrap_or("");
+                                let query_parameters =
+                                    parse::parse_query_parameter(raw_querystring);
+
+                                let mut headers = HashMap::new();
+                                for (header_name, header_value) in req.headers() {
+                                    let header_name = header_name.to_string();
+                                    let header_value =
+                                        header_value.to_str().unwrap_or("").to_string();
+
+                                    headers.insert(header_name, header_value);
+                                }
+
+                                let path_parameters =
+                                    parse::parse_path_parameter(route_path, request_path);
 
                                 let request = crate::Request {
                                     method: req.method().to_owned(),
                                     path: req.uri().path().to_string(),
                                     body: "".to_string(),
-                                    query: query_parameters,
-                                    headers: headers,
-                                    // query: req.uri().query().unwrap_or("").to_string(),
+                                    query_parameters,
+                                    headers,
+                                    path_parameters,
                                 };
 
                                 let response = handler.handle(request);

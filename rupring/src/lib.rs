@@ -10,7 +10,8 @@ pub struct Request {
     pub path: String,
     pub body: String,
     pub headers: HashMap<String, String>,
-    pub query: HashMap<String, Vec<String>>,
+    pub query_parameters: HashMap<String, Vec<String>>,
+    pub path_parameters: HashMap<String, String>,
 }
 
 pub struct Response {

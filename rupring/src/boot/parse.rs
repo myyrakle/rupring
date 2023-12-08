@@ -23,6 +23,27 @@ pub(crate) fn parse_query_parameter(raw_querystring: &str) -> HashMap<String, Ve
     return query_parameters;
 }
 
+pub(crate) fn parse_path_parameter(
+    route_path: String,
+    request_path: String,
+) -> HashMap<String, String> {
+    let mut path_parameters = HashMap::<String, String>::new();
+
+    let route_path = route_path.split("/").collect::<Vec<&str>>();
+    let request_path = request_path.split("/").collect::<Vec<&str>>();
+
+    for (route_path_part, request_path_part) in route_path.iter().zip(request_path.iter()) {
+        if route_path_part.starts_with(":") {
+            let key = route_path_part[1..].to_string();
+            let value = request_path_part.to_string();
+
+            path_parameters.insert(key, value);
+        }
+    }
+
+    return path_parameters;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,6 +86,79 @@ mod tests {
                 result, test_case.expected,
                 "TC name: {}, raw_querystring: {}",
                 test_case.name, test_case.raw_querystring
+            );
+        }
+    }
+
+    #[test]
+    fn test_parse_path_parameter() {
+        struct TestCase {
+            name: String,
+            route_path: String,
+            request_path: String,
+            expected: HashMap<String, String>,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                name: "route_path is empty".to_string(),
+                route_path: "".to_string(),
+                request_path: "".to_string(),
+                expected: HashMap::new(),
+            },
+            TestCase {
+                name: "route_path and request_path are the same".to_string(),
+                route_path: "/hello".to_string(),
+                request_path: "/hello".to_string(),
+                expected: HashMap::new(),
+            },
+            TestCase {
+                name: "route_path and request_path are different".to_string(),
+                route_path: "/hello".to_string(),
+                request_path: "/world".to_string(),
+                expected: HashMap::new(),
+            },
+            TestCase {
+                name: "route_path and request_path have different length".to_string(),
+                route_path: "/hello".to_string(),
+                request_path: "/hello/world".to_string(),
+                expected: HashMap::new(),
+            },
+            TestCase {
+                name: "single path parameter".to_string(),
+                route_path: "/hello/:name".to_string(),
+                request_path: "/hello/world".to_string(),
+                expected: {
+                    let mut path_parameters = HashMap::new();
+
+                    path_parameters.insert("name".to_string(), "world".to_string());
+
+                    path_parameters
+                },
+            },
+            TestCase {
+                name: "multiple path parameters".to_string(),
+                route_path: "/hello/:name/:age".to_string(),
+                request_path: "/hello/world/42".to_string(),
+                expected: {
+                    let mut path_parameters = HashMap::new();
+
+                    path_parameters.insert("name".to_string(), "world".to_string());
+                    path_parameters.insert("age".to_string(), "42".to_string());
+
+                    path_parameters
+                },
+            },
+        ];
+
+        for test_case in test_cases.iter() {
+            let result =
+                parse_path_parameter(test_case.route_path.clone(), test_case.request_path.clone());
+
+            assert_eq!(
+                result, test_case.expected,
+                "TC name: {}, route_path: {}, request_path: {}",
+                test_case.name, test_case.route_path, test_case.request_path
             );
         }
     }
