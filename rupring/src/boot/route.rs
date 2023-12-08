@@ -54,7 +54,7 @@ pub(crate) fn find_route(
     root_module: Box<dyn crate::IModule>,
     request_path: String,
     request_method: Method,
-) -> Option<(Box<dyn crate::IRoute>, String)> {
+) -> Option<(Box<dyn crate::IRoute + Send + 'static>, String)> {
     for controller in root_module.controllers() {
         let prefix = controller.prefix();
 

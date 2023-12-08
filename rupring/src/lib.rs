@@ -5,6 +5,7 @@ use http_body_util::Full;
 use hyper::{body::Bytes, Method};
 pub use rupring_macro::{Controller, Delete, Get, Injectable, Module, Patch, Post, Put};
 
+#[derive(Debug, Clone)]
 pub struct Request {
     pub method: Method,
     pub path: String,
@@ -14,6 +15,7 @@ pub struct Request {
     pub path_parameters: HashMap<String, String>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Response {
     pub status: u16,
     pub body: String,
@@ -45,13 +47,13 @@ pub trait IModule {
 
 pub trait IController {
     fn prefix(&self) -> String;
-    fn routes(&self) -> Vec<Box<dyn IRoute>>;
+    fn routes(&self) -> Vec<Box<dyn IRoute + Send + 'static>>;
 }
 
 pub trait IRoute {
     fn method(&self) -> Method;
     fn path(&self) -> String;
-    fn handler(&self) -> Box<dyn IHandler>;
+    fn handler(&self) -> Box<dyn IHandler + Send + 'static>;
 }
 
 pub trait IHandler {

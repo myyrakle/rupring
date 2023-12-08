@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
+use http_body_util::BodyExt;
 use http_body_util::Full;
 use hyper::body::Bytes;
 use hyper::server::conn::http1;
@@ -48,7 +49,7 @@ pub async fn run_server(
                         let route = route::find_route(
                             Box::new(root_module),
                             request_path.clone(),
-                            request_method,
+                            request_method.clone(),
                         );
 
                         match route {
@@ -69,12 +70,30 @@ pub async fn run_server(
                                 }
 
                                 let path_parameters =
-                                    parse::parse_path_parameter(route_path, request_path);
+                                    parse::parse_path_parameter(route_path, request_path.clone());
+
+                                let request_body = match req.collect().await {
+                                    Ok(body) => {
+                                        let body = body.to_bytes();
+                                        let body = String::from_utf8(body.to_vec())
+                                            .unwrap_or("".to_string());
+
+                                        body
+                                    }
+                                    Err(err) => {
+                                        return Ok::<Response<Full<Bytes>>, Infallible>(
+                                            Response::new(Full::new(Bytes::from(format!(
+                                                "Error reading request body: {:?}",
+                                                err
+                                            )))),
+                                        );
+                                    }
+                                };
 
                                 let request = crate::Request {
-                                    method: req.method().to_owned(),
-                                    path: req.uri().path().to_string(),
-                                    body: "".to_string(),
+                                    method: request_method,
+                                    path: request_path,
+                                    body: request_body,
                                     query_parameters,
                                     headers,
                                     path_parameters,
