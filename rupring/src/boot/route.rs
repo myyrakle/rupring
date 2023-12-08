@@ -54,7 +54,7 @@ pub(crate) fn find_route(
     root_module: Box<dyn crate::IModule>,
     request_path: String,
     request_method: Method,
-) -> Option<Box<dyn crate::IRoute>> {
+) -> Option<(Box<dyn crate::IRoute>, String)> {
     for controller in root_module.controllers() {
         let prefix = controller.prefix();
 
@@ -65,11 +65,11 @@ pub(crate) fn find_route(
 
             let route_path = normalize_path(prefix.clone(), route.path());
 
-            if !is_route_matching_request(route_path, request_path.clone()) {
+            if !is_route_matching_request(route_path.clone(), request_path.clone()) {
                 continue;
             }
 
-            return Some(route);
+            return Some((route, route_path));
         }
     }
 
