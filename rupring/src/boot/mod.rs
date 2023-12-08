@@ -42,6 +42,9 @@ pub async fn run_server(
                     service_fn(|req: Request<hyper::body::Incoming>| async move {
                         let uri = req.uri();
 
+                        let raw_querystring = uri.query().unwrap_or("");
+                        let query_parameters = parse::parse_query_parameter(raw_querystring);
+
                         let route = route::find_route(
                             Box::new(root_module),
                             uri.path().to_string(),
@@ -57,7 +60,7 @@ pub async fn run_server(
                                     path: req.uri().path().to_string(),
                                     body: "".to_string(),
                                     headers: Default::default(),
-                                    query: Default::default(),
+                                    query: query_parameters,
                                     // headers: req.headers().clone(),
                                     // query: req.uri().query().unwrap_or("").to_string(),
                                 };
