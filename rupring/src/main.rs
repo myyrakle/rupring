@@ -24,7 +24,7 @@ impl rupring::IController for HomeController {
         "".to_string()
     }
 
-    fn routes(&self) -> Vec<Box<dyn rupring::IRoute>> {
+    fn routes(&self) -> Vec<Box<dyn rupring::IRoute + Send + 'static>> {
         vec![Box::new(ARoute {}), Box::new(BRoute {})]
     }
 }
@@ -41,7 +41,7 @@ impl rupring::IRoute for ARoute {
         "/hello".to_string()
     }
 
-    fn handler(&self) -> Box<dyn rupring::IHandler> {
+    fn handler(&self) -> Box<dyn rupring::IHandler + Send + 'static> {
         Box::new(ARouteHandler {})
     }
 }
@@ -51,6 +51,8 @@ pub struct ARouteHandler {}
 
 impl rupring::IHandler for ARouteHandler {
     fn handle(&self, request: rupring::Request) -> rupring::Response {
+        println!("request {:?}", request);
+
         rupring::Response {
             status: 200,
             body: "Hello, World!".to_string(),
@@ -71,7 +73,7 @@ impl rupring::IRoute for BRoute {
         "/boom".to_string()
     }
 
-    fn handler(&self) -> Box<dyn rupring::IHandler> {
+    fn handler(&self) -> Box<dyn rupring::IHandler + Send + 'static> {
         Box::new(BRouteHandler {})
     }
 }
