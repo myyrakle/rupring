@@ -1,3 +1,4 @@
+mod parse;
 mod route;
 
 use std::convert::Infallible;
@@ -39,9 +40,11 @@ pub async fn run_server(
                 .serve_connection(
                     io,
                     service_fn(|req: Request<hyper::body::Incoming>| async move {
+                        let uri = req.uri();
+
                         let route = route::find_route(
                             Box::new(root_module),
-                            req.uri().path().to_string(),
+                            uri.path().to_string(),
                             req.method().to_owned(),
                         );
 
