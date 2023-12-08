@@ -63,7 +63,7 @@ pub(crate) fn find_route(
                 continue;
             }
 
-            let route_path = format!("{}{}", prefix, route.path());
+            let route_path = normalize_path(prefix.clone(), route.path());
 
             if !is_route_matching_request(route_path, request_path.clone()) {
                 continue;
