@@ -1,20 +1,10 @@
 use std::{collections::HashMap, net::SocketAddr};
 
 use hyper::Method;
-extern crate rupring;
 
 #[derive(Debug, Clone, Copy)]
+#[rupring::Module(controllers=[HomeController{}], modules=[])]
 pub struct RootModule {}
-
-impl rupring::IModule for RootModule {
-    fn child_modules(&self) -> Vec<Box<dyn rupring::IModule>> {
-        vec![]
-    }
-
-    fn controllers(&self) -> Vec<Box<dyn rupring::IController>> {
-        vec![Box::new(HomeController {})]
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct HomeController {}

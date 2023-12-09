@@ -5,6 +5,8 @@ use http_body_util::Full;
 use hyper::{body::Bytes, header::HeaderName, Method};
 pub use rupring_macro::{Controller, Delete, Get, Injectable, Module, Patch, Post, Put};
 
+extern crate rupring_macro;
+
 #[derive(Debug, Clone)]
 pub struct Request {
     pub method: Method,
