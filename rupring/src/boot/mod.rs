@@ -10,6 +10,7 @@ use http_body_util::Full;
 use hyper::body::Bytes;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
+use hyper::StatusCode;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
@@ -100,8 +101,22 @@ pub async fn run_server(
                                 };
 
                                 let response = handler.handle(request);
+                                let headers = response.headers.clone();
+                                let status = response.status.clone();
 
-                                return Ok::<Response<Full<Bytes>>, Infallible>(response.into());
+                                let mut response: hyper::Response<Full<Bytes>> = response.into();
+
+                                if let Ok(status) = StatusCode::from_u16(status) {
+                                    *response.status_mut() = status;
+                                }
+
+                                for (key, value) in headers.iter() {
+                                    if let Ok(value) = value.parse() {
+                                        response.headers_mut().insert(key, value);
+                                    }
+                                }
+
+                                return Ok::<Response<Full<Bytes>>, Infallible>(response);
                             }
                             None => {
                                 return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(

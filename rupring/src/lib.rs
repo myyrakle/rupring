@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 pub mod boot;
 use http_body_util::Full;
-use hyper::{body::Bytes, Method};
+use hyper::{body::Bytes, header::HeaderName, Method};
 pub use rupring_macro::{Controller, Delete, Get, Injectable, Module, Patch, Post, Put};
 
 #[derive(Debug, Clone)]
@@ -19,7 +19,7 @@ pub struct Request {
 pub struct Response {
     pub status: u16,
     pub body: String,
-    pub headers: HashMap<String, Vec<String>>,
+    pub headers: HashMap<HeaderName, String>,
 }
 
 impl From<Response> for hyper::Response<Full<Bytes>> {
@@ -28,10 +28,8 @@ impl From<Response> for hyper::Response<Full<Bytes>> {
 
         builder = builder.status(response.status);
 
-        for (header_name, header_values) in response.headers {
-            for header_value in header_values {
-                builder = builder.header(header_name.clone(), header_value);
-            }
+        for (header_name, header_value) in response.headers {
+            builder = builder.header(header_name.clone(), header_value);
         }
 
         let response = builder.body(Full::new(Bytes::from(response.body))).unwrap();
