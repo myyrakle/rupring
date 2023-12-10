@@ -1,3 +1,56 @@
 # rupring
 
-not completed
+![](https://img.shields.io/badge/language-Rust-red) ![](https://img.shields.io/badge/version-0.2.0-brightgreen) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/myyrakle/rupring/blob/master/LICENSE)
+
+spring on rust
+
+## Get Started
+
+There is only one dependency.
+```
+cargo add rupring
+```
+
+And you can write your server like this:
+```
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(controllers=[HomeController{}], modules=[])]
+pub struct RootModule {}
+
+#[derive(Debug, Clone)]
+#[rupring::Controller(prefix=/, routes=[hello, echo])]
+pub struct HomeController {}
+
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response {
+        status: 200,
+        body: "Hello, World!".to_string(),
+        headers: Default::default(),
+    }
+}
+
+#[rupring::Get(path = /echo)]
+pub fn echo(request: rupring::Request) -> rupring::Response {
+    rupring::Response {
+        status: 200,
+        body: request.body,
+        headers: Default::default(),
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use std::net::SocketAddr;
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+
+    let module = RootModule {};
+    rupring::boot::run_server(addr, module).await?;
+
+    Ok(())
+}
+```
+
+And if you run the program, it will work fine.  
+![Alt text](./example/hello_world.png)
