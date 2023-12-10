@@ -124,8 +124,6 @@ fn MapRoute(method: String, attr: TokenStream, mut item: TokenStream) -> TokenSt
         None => "".to_string(),
     };
 
-    println!("path = {}", path);
-
     let route_name = rule::make_route_name(function_name.as_str());
     let handler_name = rule::make_handler_name(function_name.as_str());
 
