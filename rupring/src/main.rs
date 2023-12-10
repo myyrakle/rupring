@@ -1,7 +1,5 @@
 use std::{collections::HashMap, net::SocketAddr};
 
-use hyper::Method;
-
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(controllers=[HomeController{}], modules=[])]
 pub struct RootModule {}
@@ -11,7 +9,7 @@ pub struct RootModule {}
 pub struct HomeController {}
 
 #[rupring::Get(path = /hello)]
-pub fn hello(request: rupring::Request) -> rupring::Response {
+pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response {
         status: 200,
         body: "Hello, World!".to_string(),
@@ -20,10 +18,19 @@ pub fn hello(request: rupring::Request) -> rupring::Response {
 }
 
 #[rupring::Get(path = /boom)]
-pub fn boom(request: rupring::Request) -> rupring::Response {
+pub fn boom(_request: rupring::Request) -> rupring::Response {
     rupring::Response {
         status: 400,
         body: "boom!".to_string(),
+        headers: HashMap::new(),
+    }
+}
+
+#[rupring::Get(path = /boom)]
+pub fn echo(request: rupring::Request) -> rupring::Response {
+    rupring::Response {
+        status: 200,
+        body: request.body,
         headers: HashMap::new(),
     }
 }

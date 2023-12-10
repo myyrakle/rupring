@@ -1,23 +1,19 @@
 use std::collections::HashMap;
 
 pub mod boot;
+pub mod request;
+
 use http_body_util::Full;
-use hyper::{body::Bytes, header::HeaderName, Method};
+use hyper::{body::Bytes, header::HeaderName};
 pub use rupring_macro::{Controller, Delete, Get, Injectable, Module, Patch, Post, Put};
 
 extern crate rupring_macro;
 
-#[derive(Debug, Clone)]
-pub struct Request {
-    pub method: Method,
-    pub path: String,
-    pub body: String,
-    pub headers: HashMap<String, String>,
-    pub query_parameters: HashMap<String, Vec<String>>,
-    pub path_parameters: HashMap<String, String>,
-}
+pub type Method = hyper::Method;
 
-#[derive(Debug, Clone)]
+pub use request::Request;
+
+#[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
     pub body: String,
