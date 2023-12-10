@@ -1,42 +1,33 @@
-use std::{collections::HashMap, net::SocketAddr};
-
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(controllers=[HomeController{}], modules=[])]
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello, boom])]
+#[rupring::Controller(prefix=/, routes=[hello, echo])]
 pub struct HomeController {}
 
-#[rupring::Get(path = /hello)]
+#[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response {
         status: 200,
         body: "Hello, World!".to_string(),
-        headers: HashMap::new(),
+        headers: Default::default(),
     }
 }
 
-#[rupring::Get(path = /boom)]
-pub fn boom(_request: rupring::Request) -> rupring::Response {
-    rupring::Response {
-        status: 400,
-        body: "boom!".to_string(),
-        headers: HashMap::new(),
-    }
-}
-
-#[rupring::Get(path = /boom)]
+#[rupring::Get(path = /echo)]
 pub fn echo(request: rupring::Request) -> rupring::Response {
     rupring::Response {
         status: 200,
         body: request.body,
-        headers: HashMap::new(),
+        headers: Default::default(),
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use std::net::SocketAddr;
+
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
     let module = RootModule {};

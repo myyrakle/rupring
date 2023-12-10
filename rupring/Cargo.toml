@@ -1,14 +1,20 @@
 [package]
 name = "rupring"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "rupring"
 license = "MIT"
+authors = ["myyrakle <sssang97@naver.com>"] 
+description = "Rupring" 
+keywords = ["server", "spring", "framework", "rupring"] 
+readme = "./../README.md"
+repository = "https://github.com/myyrakle/rupring" 
+documentation = "https://github.com/myyrakle/rupring/blob/master/README.md" 
+homepage = "https://github.com/myyrakle/rupring/blob/master/README.md" 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rupring_macro={ version="0.1.0", path="../rupring_macro" }
+rupring_macro={ version="0.2.0", path="../rupring_macro" }
 hyper = { version = "1", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
 http-body-util = "0.1.0"
