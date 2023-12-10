@@ -106,7 +106,7 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
-pub fn Injectable(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn Injectable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // ...
     return item;
 }
@@ -135,8 +135,8 @@ fn MapRoute(method: String, attr: TokenStream, mut item: TokenStream) -> TokenSt
 pub(crate) struct {route_name} {{}}
 
 impl rupring::IRoute for {route_name} {{
-    fn method(&self) -> Method {{
-        hyper::Method::{method}
+    fn method(&self) -> rupring::Method {{
+        rupring::Method::{method}
     }}
 
     fn path(&self) -> String {{

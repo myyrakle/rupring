@@ -2,10 +2,12 @@ use std::collections::HashMap;
 
 pub mod boot;
 use http_body_util::Full;
-use hyper::{body::Bytes, header::HeaderName, Method};
+use hyper::{body::Bytes, header::HeaderName};
 pub use rupring_macro::{Controller, Delete, Get, Injectable, Module, Patch, Post, Put};
 
 extern crate rupring_macro;
+
+pub type Method = hyper::Method;
 
 #[derive(Debug, Clone)]
 pub struct Request {
