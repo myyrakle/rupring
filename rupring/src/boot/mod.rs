@@ -23,6 +23,7 @@ pub async fn run_server(
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut di_context = di::DIContext::new();
+    di_context.initialize(Box::new(root_module.clone()));
 
     let addr = socker_addr;
 

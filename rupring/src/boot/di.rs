@@ -3,7 +3,7 @@ use std::{any::TypeId, collections::HashMap};
 
 pub struct DIContext {
     pub containers: HashMap<TypeId, Box<dyn Any>>,
-    wait_list: Vec<(Vec<TypeId>, Box<dyn Provider>)>,
+    wait_list: Vec<Box<dyn Provider>>,
 }
 
 impl DIContext {
@@ -22,12 +22,8 @@ impl DIContext {
         self.containers.insert(TypeId::of::<T>(), Box::new(value));
     }
 
-    pub fn register_lazy<T: 'static>(
-        &mut self,
-        dependencies: Vec<TypeId>,
-        injectable: Box<dyn Provider>,
-    ) {
-        self.wait_list.push((dependencies, injectable));
+    pub fn register_lazy<T: 'static>(&mut self, injectable: Box<dyn Provider>) {
+        self.wait_list.push(injectable);
     }
 
     pub fn resolve<T: 'static>(&self) -> Option<&T> {
@@ -38,8 +34,61 @@ impl DIContext {
     }
 }
 
-impl DIContext {}
+impl DIContext {
+    fn import_from_modules(&mut self, root_module: Box<dyn crate::IModule>) {
+        let providers = root_module.providers();
+
+        for provider in providers {
+            self.wait_list.push(provider);
+        }
+
+        let child_modules = root_module.child_modules();
+
+        for child_module in child_modules {
+            self.import_from_modules(child_module);
+        }
+    }
+
+    pub fn initialize(&mut self, root_module: Box<dyn crate::IModule>) {
+        self.import_from_modules(root_module);
+
+        while self.wait_list.len() > 0 {
+            let mut has_ready_provider = false;
+
+            let mut i = 0;
+            for provider in self.wait_list.iter() {
+                let dependencies = provider.dependencies();
+
+                let mut is_ready = true;
+
+                for dependency in dependencies {
+                    if !self.containers.contains_key(&dependency) {
+                        is_ready = false;
+                        break;
+                    }
+                }
+
+                if is_ready {
+                    let provided_value = provider.provide(self);
+                    self.register(provided_value);
+                    self.wait_list.remove(i);
+                    has_ready_provider = true;
+
+                    break;
+                }
+
+                i += 1;
+            }
+
+            if !has_ready_provider {
+                panic!("No provider is ready");
+            }
+        }
+    }
+}
 
 pub trait Provider {
+    fn dependencies(&self) -> Vec<TypeId>;
+
     fn provide(&self, di_context: &DIContext) -> Box<dyn Any>;
 }
