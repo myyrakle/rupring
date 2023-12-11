@@ -3,7 +3,19 @@ use std::{any::TypeId, collections::HashMap};
 
 pub struct DIContext {
     pub containers: HashMap<TypeId, Box<dyn Any>>,
-    wait_list: Vec<Box<dyn Provider>>,
+    wait_list: Vec<Box<dyn Provider + 'static>>,
+}
+
+unsafe impl Send for DIContext {}
+unsafe impl Sync for DIContext {}
+
+impl std::fmt::Debug for DIContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DIContext")
+            .field("containers", &self.containers)
+            .field("wait_list.len", &self.wait_list.len())
+            .finish()
+    }
 }
 
 impl DIContext {
@@ -14,19 +26,20 @@ impl DIContext {
         }
     }
 
-    pub fn register<T: 'static>(&mut self, value: T) {
-        if self.containers.contains_key(&TypeId::of::<T>()) {
+    pub fn register(&mut self, value: Box<dyn Any>) {
+        let type_id = (&*value).type_id();
+        if self.containers.contains_key(&type_id) {
             return;
         }
 
-        self.containers.insert(TypeId::of::<T>(), Box::new(value));
+        self.containers.insert(type_id, value);
     }
 
     pub fn register_lazy<T: 'static>(&mut self, injectable: Box<dyn Provider>) {
         self.wait_list.push(injectable);
     }
 
-    pub fn resolve<T: 'static>(&self) -> Option<&T> {
+    pub fn get<T: 'static>(&self) -> Option<&T> {
         match self.containers.get(&TypeId::of::<T>()) {
             Some(value) => value.downcast_ref::<T>(),
             None => None,
