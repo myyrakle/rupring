@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy)]
-#[rupring::Module(controllers=[HomeController{}], modules=[])]
+#[rupring::Module(controllers=[HomeController{}], modules=[], providers=[])]
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]

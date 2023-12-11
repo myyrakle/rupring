@@ -2,18 +2,21 @@ pub mod boot;
 pub mod request;
 pub mod response;
 
-pub use rupring_macro::{Controller, Delete, Get, Injectable, Module, Patch, Post, Put};
+pub use rupring_macro::{Controller, Delete, Get, Module, Patch, Post, Put};
 
 extern crate rupring_macro;
 
 pub type Method = hyper::Method;
 
+pub use boot::di::DIContext;
+pub use boot::di::Provider;
 pub use request::Request;
 pub use response::Response;
 
 pub trait IModule {
     fn child_modules(&self) -> Vec<Box<dyn IModule>>;
     fn controllers(&self) -> Vec<Box<dyn IController>>;
+    fn providers(&self) -> Vec<Box<dyn Provider>>;
 }
 
 pub trait IController {

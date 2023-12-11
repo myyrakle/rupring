@@ -27,6 +27,14 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
         None => vec![],
     };
 
+    let providers = match attribute_map.get("providers") {
+        Some(providers) => match providers {
+            parse::AttributeValue::ListOfString(providers) => providers.to_owned(),
+            parse::AttributeValue::String(provider) => vec![provider.to_owned()],
+        },
+        None => vec![],
+    };
+
     let controllers = controllers
         .iter()
         .map(|controller| format!("Box::new({})", controller.to_owned()))
@@ -39,6 +47,12 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
         .collect::<Vec<String>>()
         .join(", ");
 
+    let providers = providers
+        .iter()
+        .map(|provider| format!("Box::new({})", provider.to_owned()))
+        .collect::<Vec<String>>()
+        .join(", ");
+
     let new_code = format!(
         r#"impl rupring::IModule for {struct_name} {{
     fn child_modules(&self) -> Vec<Box<dyn rupring::IModule>> {{
@@ -48,7 +62,12 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     fn controllers(&self) -> Vec<Box<dyn rupring::IController>> {{
         vec![{controllers}]
     }}
-}}"#
+
+    fn providers(&self) -> Vec<Box<dyn rupring::Provider>> {{
+        vec![{providers}]
+    }}
+}}
+"#
     );
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
@@ -104,12 +123,12 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     return item;
 }
 
-#[proc_macro_attribute]
-#[allow(non_snake_case)]
-pub fn Injectable(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    // ...
-    return item;
-}
+// #[proc_macro_attribute]
+// #[allow(non_snake_case)]
+// pub fn Injectable(_attr: TokenStream, item: TokenStream) -> TokenStream {
+//     // ...
+//     return item;
+// }
 
 #[allow(non_snake_case)]
 fn MapRoute(method: String, attr: TokenStream, mut item: TokenStream) -> TokenStream {

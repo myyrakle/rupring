@@ -1,3 +1,4 @@
+pub mod di;
 mod parse;
 mod route;
 
@@ -21,6 +22,8 @@ pub async fn run_server(
     socker_addr: SocketAddr,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut di_context = di::DIContext::new();
+
     let addr = socker_addr;
 
     // We create a TcpListener and bind it to 127.0.0.1:3000
