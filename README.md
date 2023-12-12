@@ -41,16 +41,18 @@ pub fn echo(request: rupring::Request) -> rupring::Response {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use std::net::SocketAddr;
+    let app = rupring::RupringFactory::create(RootModule {});
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-
-    let module = RootModule {};
-    rupring::boot::run_server(addr, module).await?;
+    app.listen(3000).await?;
 
     Ok(())
 }
+
 ```
 
 And if you run the program, it will work fine.  
 ![Alt text](./example/hello_world.png)
+
+## More Details
+
+Please refer to [the documentation](https://docs.rs/rupring/latest/rupring) for more details.
