@@ -1,3 +1,175 @@
+/*! # Get Started
+There is only one dependency.
+```
+cargo add rupring
+```
+
+And you can write your server like this:
+```
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(controllers=[HomeController{}], modules=[])]
+pub struct RootModule {}
+
+#[derive(Debug, Clone)]
+#[rupring::Controller(prefix=/, routes=[hello, echo])]
+pub struct HomeController {}
+
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response {
+        status: 200,
+        body: "Hello, World!".to_string(),
+        headers: Default::default(),
+    }
+}
+
+#[rupring::Get(path = /echo)]
+pub fn echo(request: rupring::Request) -> rupring::Response {
+    rupring::Response {
+        status: 200,
+        body: request.body,
+        headers: Default::default(),
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let app = rupring::RupringFactory::create(RootModule {});
+
+    app.listen(3000).await?;
+
+    Ok(())
+}
+
+```
+
+# Dependency Injection
+
+rupring provides DI feature.
+
+If you want to implement and DI a Provider that contains simple functionality, you can do it like this:
+First, define the Provider.
+```
+#[derive(Debug, Clone, Default)]
+pub struct HomeService {}
+
+impl HomeService {
+    pub fn hello(&self) -> String {
+        "hello!!".to_string()
+    }
+}
+
+impl rupring::IProvider for HomeService {
+    fn provide(&self, di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
+        Box::new(HomeService {})
+    }
+}
+```
+
+Second, add it as a dependency to the module you want to use.
+```
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(controllers=[HomeController{}], modules=[], providers=[HomeService::default()])]
+pub struct RootModule {}
+```
+
+And, you can use it by getting it from the router through the request object.
+```
+#[rupring::Get(path = /)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    let home_service = request.get_provider::<HomeService>().unwrap();
+
+    rupring::Response {
+        status: 200,
+        body: home_service.hello(),
+        headers: Default::default(),
+    }
+}
+```
+
+If a provider requires another provider, you must specify the dependency cycle as follows:
+```
+impl rupring::IProvider for HomeService {
+    fn dependencies(&self) -> Vec<TypeId> {
+        vec![TypeId::of::<HomeRepository>()]
+    }
+
+    fn provide(&self, di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
+        Box::new(HomeService {
+            home_repository: di_context.get::<HomeRepository>().unwrap().to_owned(),
+        })
+    }
+}
+```
+
+If you need mutables within the provider, you must ensure thread safety through Mutex or Atomic as follows:
+```
+#[derive(Debug, Clone, Default)]
+pub struct CounterService {
+    counter: Arc<Mutex<i32>>,
+}
+
+impl CounterService {
+    pub fn new() -> Self {
+        CounterService {
+            counter: Arc::new(Mutex::new(0)),
+        }
+    }
+
+    pub fn increment(&self) {
+        let mut counter = self.counter.lock().unwrap();
+        *counter += 1;
+    }
+
+    pub fn get(&self) -> i32 {
+        let counter = self.counter.lock().unwrap();
+        *counter
+    }
+}
+```
+
+If you need to abstract based on a trait, you need to box it twice as follows:
+
+```
+pub trait IUserService {
+    fn get_user(&self) -> String;
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct UserService {}
+
+impl IUserService for UserService {
+    fn get_user(&self) -> String {
+        "user".to_string()
+    }
+}
+
+impl rupring::IProvider for UserService {
+    fn dependencies(&self) -> Vec<TypeId> {
+        vec![]
+    }
+
+    fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
+        let service: Box<dyn IUserService> = Box::new(UserService::default());
+        return Box::new(service);
+    }
+}
+
+// ...
+
+#[rupring::Get(path = /user)]
+pub fn get_user(request: rupring::Request) -> rupring::Response {
+    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
+
+    rupring::Response {
+        status: 200,
+        body: user_service.get_user(),
+        headers: Default::default(),
+    }
+}
+```
+*/
+
 pub(crate) mod boot;
 pub(crate) mod request;
 pub(crate) mod response;
