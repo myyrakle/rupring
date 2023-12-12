@@ -1,9 +1,11 @@
+pub mod di;
 mod parse;
 mod route;
 
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use http_body_util::BodyExt;
 use http_body_util::Full;
@@ -21,6 +23,10 @@ pub async fn run_server(
     socker_addr: SocketAddr,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut di_context = di::DIContext::new();
+    di_context.initialize(Box::new(root_module.clone()));
+    let di_context = Arc::new(di_context);
+
     let addr = socker_addr;
 
     // We create a TcpListener and bind it to 127.0.0.1:3000
@@ -34,6 +40,8 @@ pub async fn run_server(
         // `hyper::rt` IO traits.
         let io = TokioIo::new(stream);
 
+        let di_context = Arc::clone(&di_context);
+
         let root_module = root_module.clone();
         // Spawn a tokio task to serve multiple connections concurrently
         tokio::task::spawn(async move {
@@ -42,86 +50,96 @@ pub async fn run_server(
                 // `service_fn` converts our function in a `Service`
                 .serve_connection(
                     io,
-                    service_fn(|req: Request<hyper::body::Incoming>| async move {
-                        let uri = req.uri();
-                        let request_path = uri.path().to_string();
-                        let request_method = req.method().to_owned();
+                    service_fn(|req: Request<hyper::body::Incoming>| {
+                        let di_context = Arc::clone(&di_context);
 
-                        let route = route::find_route(
-                            Box::new(root_module),
-                            request_path.clone(),
-                            request_method.clone(),
-                        );
+                        async move {
+                            let di_context = Arc::clone(&di_context);
 
-                        match route {
-                            Some((route, route_path)) => {
-                                let handler = route.handler();
+                            let uri = req.uri();
+                            let request_path = uri.path().to_string();
+                            let request_method = req.method().to_owned();
 
-                                let raw_querystring = uri.query().unwrap_or("");
-                                let query_parameters =
-                                    parse::parse_query_parameter(raw_querystring);
+                            let route = route::find_route(
+                                Box::new(root_module),
+                                request_path.clone(),
+                                request_method.clone(),
+                            );
 
-                                let mut headers = HashMap::new();
-                                for (header_name, header_value) in req.headers() {
-                                    let header_name = header_name.to_string();
-                                    let header_value =
-                                        header_value.to_str().unwrap_or("").to_string();
+                            match route {
+                                Some((route, route_path)) => {
+                                    let handler = route.handler();
 
-                                    headers.insert(header_name, header_value);
-                                }
+                                    let raw_querystring = uri.query().unwrap_or("");
+                                    let query_parameters =
+                                        parse::parse_query_parameter(raw_querystring);
 
-                                let path_parameters =
-                                    parse::parse_path_parameter(route_path, request_path.clone());
+                                    let mut headers = HashMap::new();
+                                    for (header_name, header_value) in req.headers() {
+                                        let header_name = header_name.to_string();
+                                        let header_value =
+                                            header_value.to_str().unwrap_or("").to_string();
 
-                                let request_body = match req.collect().await {
-                                    Ok(body) => {
-                                        let body = body.to_bytes();
-                                        let body = String::from_utf8(body.to_vec())
-                                            .unwrap_or("".to_string());
-
-                                        body
+                                        headers.insert(header_name, header_value);
                                     }
-                                    Err(err) => {
-                                        return Ok::<Response<Full<Bytes>>, Infallible>(
-                                            Response::new(Full::new(Bytes::from(format!(
-                                                "Error reading request body: {:?}",
-                                                err
-                                            )))),
-                                        );
+
+                                    let path_parameters = parse::parse_path_parameter(
+                                        route_path,
+                                        request_path.clone(),
+                                    );
+
+                                    let request_body = match req.collect().await {
+                                        Ok(body) => {
+                                            let body = body.to_bytes();
+                                            let body = String::from_utf8(body.to_vec())
+                                                .unwrap_or("".to_string());
+
+                                            body
+                                        }
+                                        Err(err) => {
+                                            return Ok::<Response<Full<Bytes>>, Infallible>(
+                                                Response::new(Full::new(Bytes::from(format!(
+                                                    "Error reading request body: {:?}",
+                                                    err
+                                                )))),
+                                            );
+                                        }
+                                    };
+
+                                    let request = crate::Request {
+                                        method: request_method,
+                                        path: request_path,
+                                        body: request_body,
+                                        query_parameters,
+                                        headers,
+                                        path_parameters,
+                                        di_context: Arc::clone(&di_context),
+                                    };
+
+                                    let response = handler.handle(request);
+                                    let headers = response.headers.clone();
+                                    let status = response.status.clone();
+
+                                    let mut response: hyper::Response<Full<Bytes>> =
+                                        response.into();
+
+                                    if let Ok(status) = StatusCode::from_u16(status) {
+                                        *response.status_mut() = status;
                                     }
-                                };
 
-                                let request = crate::Request {
-                                    method: request_method,
-                                    path: request_path,
-                                    body: request_body,
-                                    query_parameters,
-                                    headers,
-                                    path_parameters,
-                                };
-
-                                let response = handler.handle(request);
-                                let headers = response.headers.clone();
-                                let status = response.status.clone();
-
-                                let mut response: hyper::Response<Full<Bytes>> = response.into();
-
-                                if let Ok(status) = StatusCode::from_u16(status) {
-                                    *response.status_mut() = status;
-                                }
-
-                                for (key, value) in headers.iter() {
-                                    if let Ok(value) = value.parse() {
-                                        response.headers_mut().insert(key, value);
+                                    for (key, value) in headers.iter() {
+                                        if let Ok(value) = value.parse() {
+                                            response.headers_mut().insert(key, value);
+                                        }
                                     }
-                                }
 
-                                return Ok::<Response<Full<Bytes>>, Infallible>(response);
-                            }
-                            None => {
-                                return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(
-                                    Full::new(Bytes::from("Not Found".to_string())),
-                                ));
+                                    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+                                }
+                                None => {
+                                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(
+                                        Full::new(Bytes::from("Not Found".to_string())),
+                                    ));
+                                }
                             }
                         }
                     }),
