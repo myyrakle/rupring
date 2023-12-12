@@ -63,7 +63,7 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
         vec![{controllers}]
     }}
 
-    fn providers(&self) -> Vec<Box<dyn rupring::Provider>> {{
+    fn providers(&self) -> Vec<Box<dyn rupring::IProvider>> {{
         vec![{providers}]
     }}
 }}

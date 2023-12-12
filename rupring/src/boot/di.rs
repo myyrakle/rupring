@@ -3,7 +3,7 @@ use std::{any::TypeId, collections::HashMap};
 
 pub struct DIContext {
     pub containers: HashMap<TypeId, Box<dyn Any>>,
-    wait_list: Vec<Box<dyn Provider + 'static>>,
+    wait_list: Vec<Box<dyn IProvider + 'static>>,
 }
 
 unsafe impl Send for DIContext {}
@@ -35,7 +35,7 @@ impl DIContext {
         self.containers.insert(type_id, value);
     }
 
-    pub fn register_lazy<T: 'static>(&mut self, injectable: Box<dyn Provider>) {
+    pub fn register_lazy<T: 'static>(&mut self, injectable: Box<dyn IProvider>) {
         self.wait_list.push(injectable);
     }
 
@@ -100,8 +100,10 @@ impl DIContext {
     }
 }
 
-pub trait Provider {
-    fn dependencies(&self) -> Vec<TypeId>;
+pub trait IProvider {
+    fn dependencies(&self) -> Vec<TypeId> {
+        vec![]
+    }
 
     fn provide(&self, di_context: &DIContext) -> Box<dyn Any>;
 }

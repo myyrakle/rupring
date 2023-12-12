@@ -1,6 +1,6 @@
-pub mod boot;
-pub mod request;
-pub mod response;
+pub(crate) mod boot;
+pub(crate) mod request;
+pub(crate) mod response;
 
 pub use rupring_macro::{Controller, Delete, Get, Module, Patch, Post, Put};
 
@@ -8,40 +8,48 @@ extern crate rupring_macro;
 
 pub type Method = hyper::Method;
 
+/// Dependency Injection Context for entire life cycle
 pub use boot::di::DIContext;
-pub use boot::di::Provider;
+/// Dependency Injection Provider
+pub use boot::di::IProvider;
+/// Request
 pub use request::Request;
+/// Response
 pub use response::Response;
 
+/// Module interface
 pub trait IModule {
     fn child_modules(&self) -> Vec<Box<dyn IModule>>;
     fn controllers(&self) -> Vec<Box<dyn IController>>;
-    fn providers(&self) -> Vec<Box<dyn Provider>>;
+    fn providers(&self) -> Vec<Box<dyn IProvider>>;
 }
 
+/// Controller interface
 pub trait IController {
     fn prefix(&self) -> String;
     fn routes(&self) -> Vec<Box<dyn IRoute + Send + 'static>>;
 }
 
+/// Route interface
 pub trait IRoute {
     fn method(&self) -> Method;
     fn path(&self) -> String;
     fn handler(&self) -> Box<dyn IHandler + Send + 'static>;
 }
 
+/// Handler interface
 pub trait IHandler {
     fn handle(&self, request: Request) -> Response;
 }
 
 #[derive(Debug, Clone)]
-pub struct Rupring<T: IModule> {
+pub struct RupringFactory<T: IModule> {
     root_module: T,
 }
 
-impl<T: IModule + Clone + Copy + Sync + Send + 'static> Rupring<T> {
+impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     pub fn create(module: T) -> Self {
-        Rupring {
+        RupringFactory {
             root_module: module,
         }
     }
