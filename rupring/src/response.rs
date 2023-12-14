@@ -23,6 +23,36 @@ impl Response {
             headers: Default::default(),
         }
     }
+
+    /// Set it to receive the value of a serializable object and return a json value.
+    /// ```
+    /// #[derive(serde::Serialize)]
+    /// struct User {
+    ///    name: String,
+    /// }
+    ///
+    /// let response = rupring::Response::new().json(User {
+    ///    name: "John".to_string(),
+    /// });
+    /// assert_eq!(response.body, r#"{"name":"John"}"#);
+    /// // ...
+    /// ```
+    pub fn json(mut self, body: impl serde::Serialize) -> Self {
+        self.headers.insert(
+            HeaderName::from_static("content-type"),
+            "application/json".to_string(),
+        );
+
+        self.body = match serde_json::to_string(&body) {
+            Ok(body) => body,
+            Err(err) => {
+                self.status = 500;
+                format!("Error serializing response body: {:?}", err)
+            }
+        };
+
+        return self;
+    }
 }
 
 pub trait IntoResponse {
