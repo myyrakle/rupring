@@ -10,6 +10,21 @@ pub struct Response {
     pub headers: HashMap<HeaderName, String>,
 }
 
+impl Response {
+    /// Create a new response with status code 200, empty body and empty headers.
+    /// ```
+    /// let response = rupring::Response::new();
+    /// // ...
+    /// ```
+    pub fn new() -> Self {
+        Self {
+            status: 200,
+            body: "".to_string(),
+            headers: Default::default(),
+        }
+    }
+}
+
 pub trait IntoResponse {
     fn into_response(self) -> Response;
 }
