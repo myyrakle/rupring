@@ -35,6 +35,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 ```
 
+# Response
+
+You can create a response like this:
+```
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+```
+
+You can also return a json value like this:
+```
+#[derive(serde::Serialize)]
+struct User {
+    name: String,
+}
+
+#[rupring::Get(path = /user)]
+pub fn get_user(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().json(User {
+        name: "John".to_string(),
+    })
+}
+```
+
+You can set the status code like this:
+```
+#[rupring::Get(path = /asdf)]
+pub fn not_found(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().text("not found".to_string()).status(404)
+}
+```
+
+You can set the header like this:
+```
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new()
+        .text("Hello, World!".to_string())
+        .header("content-type", "text/plain".to_string())
+}
+```
+
 # Dependency Injection
 
 rupring provides DI feature.
