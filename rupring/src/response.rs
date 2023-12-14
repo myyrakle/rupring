@@ -53,6 +53,15 @@ impl Response {
 
         return self;
     }
+
+    /// Set status code.
+    /// ```
+    /// let response = rupring::Response::new().status(404);
+    /// assert_eq!(response.status, 404);
+    pub fn status(mut self, status: u16) -> Self {
+        self.status = status;
+        return self;
+    }
 }
 
 pub trait IntoResponse {
