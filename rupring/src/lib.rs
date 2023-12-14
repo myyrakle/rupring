@@ -16,20 +16,12 @@ pub struct HomeController {}
 
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response {
-        status: 200,
-        body: "Hello, World!".to_string(),
-        headers: Default::default(),
-    }
+    rupring::Response::new().text("Hello, World!".to_string())
 }
 
 #[rupring::Get(path = /echo)]
 pub fn echo(request: rupring::Request) -> rupring::Response {
-    rupring::Response {
-        status: 200,
-        body: request.body,
-        headers: Default::default(),
-    }
+    rupring::Response::new().text(request.body)
 }
 
 #[tokio::main]
@@ -79,11 +71,7 @@ And, you can use it by getting it from the router through the request object.
 pub fn hello(request: rupring::Request) -> rupring::Response {
     let home_service = request.get_provider::<HomeService>().unwrap();
 
-    rupring::Response {
-        status: 200,
-        body: home_service.hello(),
-        headers: Default::default(),
-    }
+    rupring::Response::new().text(home_service.hello())
 }
 ```
 
@@ -161,11 +149,7 @@ impl rupring::IProvider for UserService {
 pub fn get_user(request: rupring::Request) -> rupring::Response {
     let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
 
-    rupring::Response {
-        status: 200,
-        body: user_service.get_user(),
-        headers: Default::default(),
-    }
+    rupring::Response::new().text(user_service.get_user())
 }
 ```
 */
