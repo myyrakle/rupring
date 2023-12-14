@@ -238,6 +238,9 @@ extern crate rupring_macro;
 /// HTTP method (from hyper crate)
 pub type Method = hyper::Method;
 
+/// HTTP Header Name (from hyper crate)
+pub type HeaderName = hyper::header::HeaderName;
+
 /// Dependency Injection Context for entire life cycle
 pub use boot::di::DIContext;
 /// Dependency Injection Provider

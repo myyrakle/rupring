@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
+use crate::HeaderName;
 use http_body_util::Full;
-use hyper::{body::Bytes, header::HeaderName};
+use hyper::body::Bytes;
 
 #[derive(Debug, Clone, Default)]
 pub struct Response {
@@ -39,7 +40,7 @@ impl Response {
     /// ```
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
         self.headers.insert(
-            HeaderName::from_static("content-type"),
+            crate::HeaderName::from_static("content-type"),
             "application/json".to_string(),
         );
 
@@ -60,6 +61,16 @@ impl Response {
     /// assert_eq!(response.status, 404);
     pub fn status(mut self, status: u16) -> Self {
         self.status = status;
+        return self;
+    }
+
+    /// Set a header.
+    /// ```
+    /// use rupring::HeaderName;
+    /// let response = rupring::Response::new().header("content-type", "application/json".to_string());
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
+    pub fn header(mut self, name: &'static str, value: String) -> Self {
+        self.headers.insert(HeaderName::from_static(name), value);
         return self;
     }
 }
