@@ -23,20 +23,12 @@ pub struct HomeController {}
 
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response {
-        status: 200,
-        body: "Hello, World!".to_string(),
-        headers: Default::default(),
-    }
+    rupring::Response::new().text("Hello, World!".to_string())
 }
 
 #[rupring::Get(path = /echo)]
 pub fn echo(request: rupring::Request) -> rupring::Response {
-    rupring::Response {
-        status: 200,
-        body: request.body,
-        headers: Default::default(),
-    }
+    rupring::Response::new().text(request.body)
 }
 
 #[tokio::main]

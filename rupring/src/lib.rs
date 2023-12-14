@@ -16,20 +16,12 @@ pub struct HomeController {}
 
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response {
-        status: 200,
-        body: "Hello, World!".to_string(),
-        headers: Default::default(),
-    }
+    rupring::Response::new().text("Hello, World!".to_string())
 }
 
 #[rupring::Get(path = /echo)]
 pub fn echo(request: rupring::Request) -> rupring::Response {
-    rupring::Response {
-        status: 200,
-        body: request.body,
-        headers: Default::default(),
-    }
+    rupring::Response::new().text(request.body)
 }
 
 #[tokio::main]
@@ -41,6 +33,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
+```
+
+# Response
+
+You can create a response like this:
+```
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+```
+
+You can also return a json value like this:
+```
+#[derive(serde::Serialize)]
+struct User {
+    name: String,
+}
+
+#[rupring::Get(path = /user)]
+pub fn get_user(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().json(User {
+        name: "John".to_string(),
+    })
+}
+```
+
+You can set the status code like this:
+```
+#[rupring::Get(path = /asdf)]
+pub fn not_found(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().text("not found".to_string()).status(404)
+}
+```
+
+You can set the header like this:
+```
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new()
+        .text("Hello, World!".to_string())
+        .header("content-type", "text/plain".to_string())
+}
 ```
 
 # Dependency Injection
@@ -79,11 +114,7 @@ And, you can use it by getting it from the router through the request object.
 pub fn hello(request: rupring::Request) -> rupring::Response {
     let home_service = request.get_provider::<HomeService>().unwrap();
 
-    rupring::Response {
-        status: 200,
-        body: home_service.hello(),
-        headers: Default::default(),
-    }
+    rupring::Response::new().text(home_service.hello())
 }
 ```
 
@@ -161,11 +192,7 @@ impl rupring::IProvider for UserService {
 pub fn get_user(request: rupring::Request) -> rupring::Response {
     let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
 
-    rupring::Response {
-        status: 200,
-        body: user_service.get_user(),
-        headers: Default::default(),
-    }
+    rupring::Response::new().text(user_service.get_user())
 }
 ```
 */
@@ -237,6 +264,9 @@ extern crate rupring_macro;
 
 /// HTTP method (from hyper crate)
 pub type Method = hyper::Method;
+
+/// HTTP Header Name (from hyper crate)
+pub type HeaderName = hyper::header::HeaderName;
 
 /// Dependency Injection Context for entire life cycle
 pub use boot::di::DIContext;

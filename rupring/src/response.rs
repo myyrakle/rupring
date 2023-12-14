@@ -1,13 +1,106 @@
 use std::collections::HashMap;
 
+use crate::HeaderName;
 use http_body_util::Full;
-use hyper::{body::Bytes, header::HeaderName};
+use hyper::body::Bytes;
 
 #[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
     pub body: String,
     pub headers: HashMap<HeaderName, String>,
+}
+
+impl Response {
+    /// Create a new response with status code 200, empty body and empty headers.
+    /// ```
+    /// let response = rupring::Response::new();
+    /// // ...
+    /// ```
+    pub fn new() -> Self {
+        Self {
+            status: 200,
+            body: "".to_string(),
+            headers: Default::default(),
+        }
+    }
+
+    /// Set it to receive the value of a serializable object and return a json value.
+    /// ```
+    /// #[derive(serde::Serialize)]
+    /// struct User {
+    ///    name: String,
+    /// }
+    ///
+    /// let response = rupring::Response::new().json(User {
+    ///    name: "John".to_string(),
+    /// });
+    /// assert_eq!(response.body, r#"{"name":"John"}"#);
+    /// // ...
+    /// ```
+    pub fn json(mut self, body: impl serde::Serialize) -> Self {
+        self.headers.insert(
+            crate::HeaderName::from_static("content-type"),
+            "application/json".to_string(),
+        );
+
+        self.body = match serde_json::to_string(&body) {
+            Ok(body) => body,
+            Err(err) => {
+                self.status = 500;
+                format!("Error serializing response body: {:?}", err)
+            }
+        };
+
+        return self;
+    }
+
+    /// Set to return a text value.
+    /// ```
+    /// let response = rupring::Response::new().text("Hello World".to_string());
+    /// assert_eq!(response.body, "Hello World".to_string());
+    pub fn text(mut self, body: String) -> Self {
+        self.headers.insert(
+            crate::HeaderName::from_static("content-type"),
+            "text/plain".to_string(),
+        );
+
+        self.body = body;
+
+        return self;
+    }
+
+    /// Set status code.
+    /// ```
+    /// let response = rupring::Response::new().status(404);
+    /// assert_eq!(response.status, 404);
+    pub fn status(mut self, status: u16) -> Self {
+        self.status = status;
+        return self;
+    }
+
+    /// Set a header.
+    /// ```
+    /// use rupring::HeaderName;
+    /// let response = rupring::Response::new().header("content-type", "application/json".to_string());
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
+    pub fn header(mut self, name: &'static str, value: String) -> Self {
+        self.headers.insert(HeaderName::from_static(name), value);
+        return self;
+    }
+
+    /// overwrite headers.
+    /// ```
+    /// use rupring::HeaderName;
+    /// use std::collections::HashMap;
+    /// let mut headers = HashMap::new();
+    /// headers.insert(HeaderName::from_static("content-type"), "application/json".to_string());
+    /// let response = rupring::Response::new().headers(headers);
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
+    pub fn headers(mut self, headers: HashMap<HeaderName, String>) -> Self {
+        self.headers = headers;
+        return self;
+    }
 }
 
 pub trait IntoResponse {
