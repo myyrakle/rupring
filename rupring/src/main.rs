@@ -109,11 +109,11 @@ impl rupring::IProvider for HomeRepository {
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello, echo, get_user, count])]
+#[rupring::Controller(prefix=/, routes=[hello,])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
-pub fn hello(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+pub fn hello(request: rupring::Request) -> rupring::Response {
     let home_service = request.get_provider::<HomeService>().unwrap();
 
     rupring::Response::new().text(home_service.hello())
