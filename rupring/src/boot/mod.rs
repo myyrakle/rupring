@@ -116,7 +116,9 @@ pub async fn run_server(
                                         di_context: Arc::clone(&di_context),
                                     };
 
-                                    let response = handler.handle(request);
+                                    let response = crate::Response::new();
+
+                                    let response = handler.handle(request, response);
                                     let headers = response.headers.clone();
                                     let status = response.status.clone();
 

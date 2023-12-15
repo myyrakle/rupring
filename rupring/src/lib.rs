@@ -299,7 +299,7 @@ pub trait IRoute {
 
 /// Handler interface
 pub trait IHandler {
-    fn handle(&self, request: Request) -> Response;
+    fn handle(&self, request: Request, response: Response) -> Response;
 }
 
 /// Rupring Factory for creating server
