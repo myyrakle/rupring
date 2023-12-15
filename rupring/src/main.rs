@@ -109,7 +109,7 @@ impl rupring::IProvider for HomeRepository {
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello, echo, get_user, count])]
+#[rupring::Controller(prefix=/, routes=[hello,])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
@@ -120,19 +120,19 @@ pub fn hello(request: rupring::Request) -> rupring::Response {
 }
 
 #[rupring::Get(path = /user)]
-pub fn get_user(request: rupring::Request) -> rupring::Response {
+pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
     let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
 
     rupring::Response::new().text(user_service.get_user())
 }
 
 #[rupring::Get(path = /echo)]
-pub fn echo(request: rupring::Request) -> rupring::Response {
+pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
     rupring::Response::new().text(request.body)
 }
 
 #[rupring::Get(path = /count)]
-pub fn count(request: rupring::Request) -> rupring::Response {
+pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Response {
     let counter_service = request.get_provider::<CounterService>().unwrap();
     counter_service.increment();
     let count = counter_service.get();

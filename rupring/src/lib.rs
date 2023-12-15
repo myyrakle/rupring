@@ -78,6 +78,18 @@ pub fn hello(_request: rupring::Request) -> rupring::Response {
 }
 ```
 
+If you want, you can receive it as a parameter instead of creating the response directly.
+```
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request, response: rupring::Response) -> rupring::Response {
+    response
+        .text("Hello, World!".to_string())
+        .header("content-type", "text/plain".to_string())
+}
+```
+This is especially useful when you need to inherit and use Response through middleware.
+
+
 # Dependency Injection
 
 rupring provides DI feature.
@@ -299,7 +311,7 @@ pub trait IRoute {
 
 /// Handler interface
 pub trait IHandler {
-    fn handle(&self, request: Request) -> Response;
+    fn handle(&self, request: Request, response: Response) -> Response;
 }
 
 /// Rupring Factory for creating server
