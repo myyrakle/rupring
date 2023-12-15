@@ -213,6 +213,8 @@ pub(crate) mod boot;
 pub(crate) mod request;
 pub(crate) mod response;
 
+use std::panic::UnwindSafe;
+
 /// Controller Annotation
 /// ```
 /// #[derive(Debug, Clone)]
@@ -310,7 +312,7 @@ pub trait IRoute {
 }
 
 /// Handler interface
-pub trait IHandler {
+pub trait IHandler: UnwindSafe {
     fn handle(&self, request: Request, response: Response) -> Response;
 }
 
