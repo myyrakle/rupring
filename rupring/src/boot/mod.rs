@@ -118,7 +118,19 @@ pub async fn run_server(
 
                                     let response = crate::Response::new();
 
-                                    let response = handler.handle(request, response);
+                                    let response = std::panic::catch_unwind(move || {
+                                        handler.handle(request, response)
+                                    });
+
+                                    let response = match response {
+                                        Ok(response) => response,
+                                        Err(_err) => crate::Response {
+                                            status: 500,
+                                            headers: HashMap::new(),
+                                            body: "Internal Server Error".to_string(),
+                                        },
+                                    };
+
                                     let headers = response.headers.clone();
                                     let status = response.status.clone();
 

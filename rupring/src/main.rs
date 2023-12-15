@@ -109,7 +109,7 @@ impl rupring::IProvider for HomeRepository {
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello,])]
+#[rupring::Controller(prefix=/, routes=[hello, get_user, echo, count])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
