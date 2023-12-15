@@ -169,8 +169,8 @@ impl rupring::IRoute for {route_name} {{
 pub(crate) struct {handler_name}{{}}
 
 impl rupring::IHandler for {handler_name} {{
-    fn handle(&self, request: rupring::Request) -> rupring::Response {{
-        {function_name}(request)
+    fn handle(&self, request: rupring::Request, response: rupring::Response) -> rupring::Response {{
+        {function_name}(request, response)
     }}
 }}
 "#,
