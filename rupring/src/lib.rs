@@ -306,6 +306,7 @@ pub type MiddlewareFunction =
 pub trait IController {
     fn prefix(&self) -> String;
     fn routes(&self) -> Vec<Box<dyn IRoute + Send + 'static>>;
+    fn middlewares(&self) -> Vec<MiddlewareFunction>;
 }
 
 /// Route interface

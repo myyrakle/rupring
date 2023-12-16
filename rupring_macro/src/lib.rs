@@ -124,6 +124,20 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
         .collect::<Vec<String>>()
         .join(", ");
 
+    let middlewares = match attribute_map.get("middlewares") {
+        Some(middlewares) => match middlewares {
+            parse::AttributeValue::ListOfString(middlewares) => middlewares.to_owned(),
+            parse::AttributeValue::String(middleware) => vec![middleware.to_owned()],
+        },
+        None => vec![],
+    };
+
+    let middlewares = middlewares
+        .iter()
+        .map(|middleware| format!("Box::new({})", middleware.to_owned()))
+        .collect::<Vec<String>>()
+        .join(", ");
+
     let new_code = format!(
         r#"impl rupring::IController for {struct_name} {{
             fn prefix(&self) -> String {{
@@ -132,6 +146,10 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
         
             fn routes(&self) -> Vec<Box<dyn rupring::IRoute + Send + 'static>> {{
                 vec![{routes}]
+            }}
+
+            fn middlewares(&self) -> Vec<rupring::MiddlewareFunction> {{
+                vec![{middlewares}]
             }}
         }}"#
     );

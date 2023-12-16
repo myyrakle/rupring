@@ -125,16 +125,17 @@ pub fn logger_middleware(
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(
     controllers=[HomeController{}], 
-    modules=[], 
+    modules=[UserModule{}], 
     providers=[
-        HomeService::default(), HomeRepository::default(), UserService::default(), CounterService::default()
+        HomeService::default(), HomeRepository::default(), CounterService::default()
     ], 
     middlewares=[logger_middleware]
 )]
 pub struct RootModule {}
 
+
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello, get_user, echo, count])]
+#[rupring::Controller(prefix=/, routes=[hello, echo, count])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
@@ -164,6 +165,21 @@ pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Respon
 
     rupring::Response::new().text(format!("{}", count))
 }
+
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[UserController{}], 
+    modules=[], 
+    providers=[
+        UserService::default()
+    ], 
+    middlewares=[]
+)]
+pub struct UserModule {}
+
+#[derive(Debug, Clone)]
+#[rupring::Controller(prefix=/, routes=[get_user], middlewares=[logger_middleware])]
+pub struct UserController {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

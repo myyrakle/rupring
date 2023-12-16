@@ -73,7 +73,12 @@ pub(crate) fn find_route(
                 continue;
             }
 
-            return Some((route, route_path, root_module.middlewares()));
+            let middlewares = root_module
+                .middlewares()
+                .into_iter()
+                .chain(controller.middlewares().into_iter())
+                .collect();
+            return Some((route, route_path, middlewares));
         }
     }
 
