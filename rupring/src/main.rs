@@ -115,10 +115,6 @@ pub fn logger_middleware(
         request.path.to_string()
     );
 
-    if request.path == "/count" {
-        return response.text("asdsf".into())
-    }
-
     next(request, response)
 }
 
@@ -126,9 +122,7 @@ pub fn logger_middleware(
 #[rupring::Module(
     controllers=[HomeController{}], 
     modules=[UserModule{}], 
-    providers=[
-        HomeService::default(), HomeRepository::default(), CounterService::default()
-    ], 
+    providers=[], 
     middlewares=[logger_middleware]
 )]
 pub struct RootModule {}
