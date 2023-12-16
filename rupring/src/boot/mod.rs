@@ -67,7 +67,7 @@ pub async fn run_server(
                             );
 
                             match route {
-                                Some((route, route_path)) => {
+                                Some((route, route_path, middlewares)) => {
                                     let handler = route.handler();
 
                                     let raw_querystring = uri.query().unwrap_or("");
@@ -106,19 +106,46 @@ pub async fn run_server(
                                         }
                                     };
 
-                                    let request = crate::Request {
-                                        method: request_method,
-                                        path: request_path,
-                                        body: request_body,
-                                        query_parameters,
-                                        headers,
-                                        path_parameters,
-                                        di_context: Arc::clone(&di_context),
-                                    };
-
-                                    let response = crate::Response::new();
-
                                     let response = std::panic::catch_unwind(move || {
+                                        let mut request = crate::Request {
+                                            method: request_method,
+                                            path: request_path,
+                                            body: request_body,
+                                            query_parameters,
+                                            headers,
+                                            path_parameters,
+                                            di_context: Arc::clone(&di_context),
+                                        };
+
+                                        let mut response = crate::Response::new();
+
+                                        for middleware in middlewares {
+                                            let middleware_result = middleware(
+                                                request,
+                                                response.clone(),
+                                                move |request, response| {
+                                                    let next = Some(Box::new((request, response)));
+
+                                                    let mut response = crate::Response::new();
+                                                    response.next = next;
+
+                                                    response
+                                                },
+                                            );
+
+                                            match middleware_result.next {
+                                                Some(next) => {
+                                                    let (next_request, next_response) = *next;
+
+                                                    request = next_request;
+                                                    response = next_response;
+                                                }
+                                                None => {
+                                                    return middleware_result;
+                                                }
+                                            }
+                                        }
+
                                         handler.handle(request, response)
                                     });
 

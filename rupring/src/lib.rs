@@ -296,7 +296,11 @@ pub trait IModule {
     fn child_modules(&self) -> Vec<Box<dyn IModule>>;
     fn controllers(&self) -> Vec<Box<dyn IController>>;
     fn providers(&self) -> Vec<Box<dyn IProvider>>;
+    fn middlewares(&self) -> Vec<MiddlewareFunction>;
 }
+
+pub type MiddlewareFunction =
+    Box<dyn Fn(Request, Response, NextFunction) -> Response + Send + Sync + UnwindSafe + 'static>;
 
 /// Controller interface
 pub trait IController {
@@ -317,7 +321,7 @@ pub trait IHandler: UnwindSafe {
 }
 
 /// Next function type for middleware
-pub type NextFunction = Box<dyn Fn(Request, Response) -> Response + Send + Sync + 'static>;
+pub type NextFunction = fn(Request, Response) -> Response;
 
 /// Rupring Factory for creating server
 #[derive(Debug, Clone)]

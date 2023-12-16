@@ -3,6 +3,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use rupring::NextFunction;
+
 #[derive(Debug, Clone, Default)]
 pub struct CounterService {
     counter: Arc<Mutex<i32>>,
@@ -102,10 +104,33 @@ impl rupring::IProvider for HomeRepository {
     }
 }
 
+pub fn logger_middleware(
+    request: rupring::Request,
+    response: rupring::Response,
+    next: NextFunction,
+) -> rupring::Response {
+    println!(
+        "Request: {} {}",
+        request.method.to_string(),
+        request.path.to_string()
+    );
+
+    if request.path == "/count" {
+        return response.text("asdsf".into())
+    }
+
+    next(request, response)
+}
+
 #[derive(Debug, Clone, Copy)]
-#[rupring::Module(controllers=[HomeController{}], modules=[], providers=[
-    HomeService::default(), HomeRepository::default(), UserService::default(), CounterService::default()
-])]
+#[rupring::Module(
+    controllers=[HomeController{}], 
+    modules=[], 
+    providers=[
+        HomeService::default(), HomeRepository::default(), UserService::default(), CounterService::default()
+    ], 
+    middlewares=[logger_middleware]
+)]
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]

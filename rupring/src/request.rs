@@ -2,6 +2,7 @@ use std::{collections::HashMap, panic::UnwindSafe, sync::Arc};
 
 use crate::Method;
 
+#[derive(Debug, Clone)]
 pub struct Request {
     pub method: Method,
     pub path: String,
