@@ -54,7 +54,11 @@ pub(crate) fn find_route(
     root_module: Box<dyn crate::IModule>,
     request_path: String,
     request_method: Method,
-) -> Option<(Box<dyn crate::IRoute + Send + 'static>, String)> {
+) -> Option<(
+    Box<dyn crate::IRoute + Send + 'static>,
+    String,
+    Vec<crate::MiddlewareFunction>,
+)> {
     for controller in root_module.controllers() {
         let prefix = controller.prefix();
 
@@ -69,15 +73,28 @@ pub(crate) fn find_route(
                 continue;
             }
 
-            return Some((route, route_path));
+            let middlewares = root_module
+                .middlewares()
+                .into_iter()
+                .chain(controller.middlewares().into_iter())
+                .collect();
+            return Some((route, route_path, middlewares));
         }
     }
 
     for child_module in root_module.child_modules() {
         let result = find_route(child_module, request_path.clone(), request_method.clone());
 
-        if result.is_some() {
-            return result;
+        match result {
+            Some((route, route_path, middlewares)) => {
+                let middlewares = root_module
+                    .middlewares()
+                    .into_iter()
+                    .chain(middlewares.into_iter())
+                    .collect();
+                return Some((route, route_path, middlewares));
+            }
+            None => {}
         }
     }
 

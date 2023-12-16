@@ -3,6 +3,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use rupring::NextFunction;
+
 #[derive(Debug, Clone, Default)]
 pub struct CounterService {
     counter: Arc<Mutex<i32>>,
@@ -102,14 +104,32 @@ impl rupring::IProvider for HomeRepository {
     }
 }
 
+pub fn logger_middleware(
+    request: rupring::Request,
+    response: rupring::Response,
+    next: NextFunction,
+) -> rupring::Response {
+    println!(
+        "Request: {} {}",
+        request.method.to_string(),
+        request.path.to_string()
+    );
+
+    next(request, response)
+}
+
 #[derive(Debug, Clone, Copy)]
-#[rupring::Module(controllers=[HomeController{}], modules=[], providers=[
-    HomeService::default(), HomeRepository::default(), UserService::default(), CounterService::default()
-])]
+#[rupring::Module(
+    controllers=[HomeController{}], 
+    modules=[UserModule{}], 
+    providers=[], 
+    middlewares=[logger_middleware]
+)]
 pub struct RootModule {}
 
+
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello, get_user, echo, count])]
+#[rupring::Controller(prefix=/, routes=[hello, echo, count])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
@@ -139,6 +159,21 @@ pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Respon
 
     rupring::Response::new().text(format!("{}", count))
 }
+
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[UserController{}], 
+    modules=[], 
+    providers=[
+        UserService::default()
+    ], 
+    middlewares=[]
+)]
+pub struct UserModule {}
+
+#[derive(Debug, Clone)]
+#[rupring::Controller(prefix=/, routes=[get_user], middlewares=[logger_middleware])]
+pub struct UserController {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

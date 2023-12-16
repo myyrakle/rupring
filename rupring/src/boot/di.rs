@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 use std::{any::TypeId, collections::HashMap};
 
 pub struct DIContext {
@@ -8,6 +9,8 @@ pub struct DIContext {
 
 unsafe impl Send for DIContext {}
 unsafe impl Sync for DIContext {}
+impl UnwindSafe for DIContext {}
+impl RefUnwindSafe for DIContext {}
 
 impl std::fmt::Debug for DIContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, panic::UnwindSafe};
 
-use crate::HeaderName;
+use crate::{HeaderName, Request};
 use http_body_util::Full;
 use hyper::body::Bytes;
 
@@ -9,7 +9,10 @@ pub struct Response {
     pub status: u16,
     pub body: String,
     pub headers: HashMap<HeaderName, String>,
+    pub(crate) next: Option<Box<(Request, Response)>>,
 }
+
+impl UnwindSafe for Response {}
 
 impl Response {
     /// Create a new response with status code 200, empty body and empty headers.
@@ -22,6 +25,7 @@ impl Response {
             status: 200,
             body: "".to_string(),
             headers: Default::default(),
+            next: None,
         }
     }
 

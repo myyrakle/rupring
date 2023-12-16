@@ -89,6 +89,56 @@ pub fn hello(_request: rupring::Request, response: rupring::Response) -> rupring
 ```
 This is especially useful when you need to inherit and use Response through middleware.
 
+# Middleware
+rupring provides middleware features for common logic processing.
+
+If you want to log requests for all APIs that exist in a module, you can apply middleware in the form below.
+
+First, define a middleware function.
+```
+pub fn logger_middleware(
+    request: rupring::Request,
+    response: rupring::Response,
+    next: NextFunction,
+) -> rupring::Response {
+    println!(
+        "Request: {} {}",
+        request.method.to_string(),
+        request.path.to_string()
+    );
+
+    next(request, response)
+}
+```
+The above function only records logs and forwards them to the next middleware or route function.
+If you want to return a response immediately without forwarding, just return the response without calling the next function.
+
+
+And you can register the middleware function just defined in the module or controller unit.
+```
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[HomeController{}],
+    modules=[UserModule{}],
+    providers=[],
+    middlewares=[logger_middleware]
+)]
+pub struct RootModule {}
+
+// or Controller
+#[derive(Debug, Clone)]
+#[rupring::Controller(prefix=/, routes=[get_user], middlewares=[logger_middleware])]
+pub struct UserController {}
+```
+Middleware registered in a module is recursively applied to the routes of controllers registered in that module and to child modules.
+On the other hand, middleware registered in a controller applies only to the routes of that controller.
+
+The priorities in which middleware is applied are as follows:
+
+1. Middleware of the same unit is executed in the order defined in the array.
+2. If module middleware and controller middleware exist at the same time, module middleware is executed first.
+3. If the parent module's middleware and the child module's middleware exist at the same time, the parent module middleware is executed first.
+
 
 # Dependency Injection
 
@@ -296,12 +346,17 @@ pub trait IModule {
     fn child_modules(&self) -> Vec<Box<dyn IModule>>;
     fn controllers(&self) -> Vec<Box<dyn IController>>;
     fn providers(&self) -> Vec<Box<dyn IProvider>>;
+    fn middlewares(&self) -> Vec<MiddlewareFunction>;
 }
+
+pub type MiddlewareFunction =
+    Box<dyn Fn(Request, Response, NextFunction) -> Response + Send + Sync + UnwindSafe + 'static>;
 
 /// Controller interface
 pub trait IController {
     fn prefix(&self) -> String;
     fn routes(&self) -> Vec<Box<dyn IRoute + Send + 'static>>;
+    fn middlewares(&self) -> Vec<MiddlewareFunction>;
 }
 
 /// Route interface
@@ -315,6 +370,9 @@ pub trait IRoute {
 pub trait IHandler: UnwindSafe {
     fn handle(&self, request: Request, response: Response) -> Response;
 }
+
+/// Next function type for middleware
+pub type NextFunction = fn(Request, Response) -> Response;
 
 /// Rupring Factory for creating server
 #[derive(Debug, Clone)]
