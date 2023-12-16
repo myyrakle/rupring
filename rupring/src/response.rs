@@ -9,6 +9,7 @@ pub struct Response {
     pub status: u16,
     pub body: String,
     pub headers: HashMap<HeaderName, String>,
+    pub(crate) next: bool,
 }
 
 impl Response {
@@ -22,6 +23,7 @@ impl Response {
             status: 200,
             body: "".to_string(),
             headers: Default::default(),
+            next: false,
         }
     }
 

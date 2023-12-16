@@ -316,6 +316,9 @@ pub trait IHandler: UnwindSafe {
     fn handle(&self, request: Request, response: Response) -> Response;
 }
 
+/// Next function type for middleware
+pub type NextFunction = Box<dyn Fn(Request, Response) -> Response + Send + Sync + 'static>;
+
 /// Rupring Factory for creating server
 #[derive(Debug, Clone)]
 pub struct RupringFactory<T: IModule> {

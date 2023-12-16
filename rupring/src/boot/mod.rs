@@ -124,11 +124,9 @@ pub async fn run_server(
 
                                     let response = match response {
                                         Ok(response) => response,
-                                        Err(_err) => crate::Response {
-                                            status: 500,
-                                            headers: HashMap::new(),
-                                            body: "Internal Server Error".to_string(),
-                                        },
+                                        Err(_err) => crate::Response::new()
+                                            .status(500)
+                                            .text("Internal Server Error".to_string()),
                                     };
 
                                     let headers = response.headers.clone();
