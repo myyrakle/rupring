@@ -105,6 +105,20 @@ impl Response {
         self.headers = headers;
         return self;
     }
+
+    /// redirect to url.
+    /// ```
+    /// use rupring::HeaderName;
+    /// use std::collections::HashMap;
+    /// let response = rupring::Response::new().redirect("https://naver.com".to_string());
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("location")).unwrap(), &"https://naver.com".to_string());
+    pub fn redirect(mut self, url: String) -> Self {
+        if self.status < 300 || self.status > 308 {
+            self.status = 302;
+        }
+
+        self.header("location", url)
+    }
 }
 
 pub trait IntoResponse {

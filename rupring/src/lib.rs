@@ -89,6 +89,15 @@ pub fn hello(_request: rupring::Request, response: rupring::Response) -> rupring
 ```
 This is especially useful when you need to inherit and use Response through middleware.
 
+If you want to redirect, you can use Response’s redirect method.
+```
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().redirect("/hello")
+}
+```
+This method automatically sets status to 302 unless you set it to 300-308.
+
 # Middleware
 rupring provides middleware features for common logic processing.
 

@@ -133,10 +133,8 @@ pub struct RootModule {}
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
-pub fn hello(request: rupring::Request) -> rupring::Response {
-    let home_service = request.get_provider::<HomeService>().unwrap();
-
-    rupring::Response::new().text(home_service.hello())
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().redirect("https://naver.com".into())
 }
 
 #[rupring::Get(path = /user)]
