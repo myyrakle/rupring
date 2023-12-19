@@ -304,8 +304,20 @@ pub fn Get(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
+pub fn GetMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Get(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
 pub fn Post(attr: TokenStream, item: TokenStream) -> TokenStream {
     return MapRoute("POST".to_string(), attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn PostMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Post(attr, item);
 }
 
 #[proc_macro_attribute]
@@ -316,12 +328,30 @@ pub fn Put(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
+pub fn PutMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Put(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
 pub fn Delete(attr: TokenStream, item: TokenStream) -> TokenStream {
     return MapRoute("DELETE".to_string(), attr, item);
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
+pub fn DeleteMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Delete(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
 pub fn Patch(attr: TokenStream, item: TokenStream) -> TokenStream {
     return MapRoute("PATCH".to_string(), attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Patch(attr, item);
 }
