@@ -292,6 +292,9 @@ pub use rupring_macro::Module;
 /// }
 pub use rupring_macro::Get;
 
+/// This is an alias for [Get].
+pub use rupring_macro::GetMapping;
+
 /// Post Route Annotation
 /// ```
 /// #[rupring::Post(path = /)]
@@ -299,6 +302,9 @@ pub use rupring_macro::Get;
 ///   // ...
 /// }
 pub use rupring_macro::Post;
+
+/// This is an alias for [Post].
+pub use rupring_macro::PostMapping;
 
 /// Patch Route Annotation
 /// ```
@@ -308,6 +314,9 @@ pub use rupring_macro::Post;
 /// }
 pub use rupring_macro::Patch;
 
+/// This is an alias for [Patch].
+pub use rupring_macro::PatchMapping;
+
 /// Put Route Annotation
 /// ```
 /// #[rupring::Put(path = /)]
@@ -316,6 +325,9 @@ pub use rupring_macro::Patch;
 /// }
 pub use rupring_macro::Put;
 
+/// This is an alias for [Put].
+pub use rupring_macro::PutMapping;
+
 /// Delete Route Annotation
 /// ```
 /// #[rupring::Delete(path = /)]
@@ -323,6 +335,9 @@ pub use rupring_macro::Put;
 ///     // ...
 /// }
 pub use rupring_macro::Delete;
+
+/// This is an alias for [Delete].
+pub use rupring_macro::DeleteMapping;
 
 extern crate rupring_macro;
 
