@@ -269,6 +269,7 @@ pub fn get_user(request: rupring::Request) -> rupring::Response {
 */
 
 pub(crate) mod boot;
+mod logger;
 pub(crate) mod request;
 pub(crate) mod response;
 

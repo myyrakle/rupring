@@ -123,7 +123,7 @@ pub fn logger_middleware(
     controllers=[HomeController{}], 
     modules=[UserModule{}], 
     providers=[], 
-    middlewares=[logger_middleware]
+    middlewares=[]
 )]
 pub struct RootModule {}
 
@@ -170,7 +170,7 @@ pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Respon
 pub struct UserModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[get_user], middlewares=[logger_middleware])]
+#[rupring::Controller(prefix=/, routes=[get_user], middlewares=[])]
 pub struct UserController {}
 
 #[tokio::main]

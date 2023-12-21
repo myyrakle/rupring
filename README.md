@@ -1,17 +1,19 @@
 # rupring
 
-![](https://img.shields.io/badge/language-Rust-red) ![](https://img.shields.io/badge/version-0.4.0-brightgreen) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/myyrakle/rupring/blob/master/LICENSE)
+![](https://img.shields.io/badge/language-Rust-red) ![](https://img.shields.io/badge/version-0.5.0-brightgreen) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/myyrakle/rupring/blob/master/LICENSE)
 
 spring on rust
 
 ## Get Started
 
 There is only one dependency.
+
 ```
 cargo add rupring
 ```
 
 And you can write your server like this:
+
 ```
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(controllers=[HomeController{}], modules=[])]
