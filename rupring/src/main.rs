@@ -127,9 +127,8 @@ pub fn logger_middleware(
 )]
 pub struct RootModule {}
 
-
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello, echo, count])]
+#[rupring::Controller(prefix=/, routes=[hello, echo, count, go_to_naver])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
@@ -160,14 +159,19 @@ pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Respon
 
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(
-    controllers=[UserController{}], 
-    modules=[], 
+    controllers=[UserController{}],
+    modules=[],
     providers=[
         UserService::default()
-    ], 
+    ],
     middlewares=[]
 )]
 pub struct UserModule {}
+
+#[rupring::Get(path = /go-to-naver)]
+pub fn go_to_naver(_: rupring::Request, _: rupring::Response) -> rupring::Response {
+    rupring::Response::new().redirect("https://naver.com".into())
+}
 
 #[derive(Debug, Clone)]
 #[rupring::Controller(prefix=/, routes=[get_user], middlewares=[])]
