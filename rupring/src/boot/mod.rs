@@ -34,7 +34,7 @@ pub async fn run_server(
 
     print_system_log(
         Level::Info,
-        format!("--- Starting Application on {}", socker_addr).as_str(),
+        format!("Starting Application on {}", socker_addr).as_str(),
     );
 
     let addr = socker_addr;
@@ -69,6 +69,11 @@ pub async fn run_server(
                             let uri = req.uri();
                             let request_path = uri.path().to_string();
                             let request_method = req.method().to_owned();
+
+                            print_system_log(
+                                Level::Info,
+                                format!("[Request] {} {}", request_method, request_path).as_str(),
+                            );
 
                             let route = route::find_route(
                                 Box::new(root_module),
