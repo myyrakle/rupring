@@ -1,3 +1,4 @@
+mod banner;
 pub mod di;
 mod parse;
 mod route;
@@ -26,6 +27,8 @@ pub async fn run_server(
     let mut di_context = di::DIContext::new();
     di_context.initialize(Box::new(root_module.clone()));
     let di_context = Arc::new(di_context);
+
+    banner::print_banner();
 
     let addr = socker_addr;
 
