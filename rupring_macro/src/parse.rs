@@ -81,8 +81,6 @@ pub(crate) fn parse_attribute(item: TokenStream) -> HashMap<String, AttributeVal
                     }
 
                     attribute_value.push_str(&token_string);
-
-                    break;
                 }
 
                 AttributeValue::String(attribute_value)
