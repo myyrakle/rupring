@@ -128,7 +128,7 @@ pub fn logger_middleware(
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello, echo, count, go_to_naver])]
+#[rupring::Controller(prefix=/, routes=[hello,  count, go_to_naver, foo::echo, echo])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
@@ -141,6 +141,13 @@ pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Res
     let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
 
     rupring::Response::new().text(user_service.get_user())
+}
+
+mod foo {
+    #[rupring::Get(path = /echo2)]
+    pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+        rupring::Response::new().text(request.body)
+    }
 }
 
 #[rupring::Get(path = /echo)]
