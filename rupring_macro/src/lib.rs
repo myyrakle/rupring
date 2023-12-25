@@ -118,8 +118,19 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     let routes = routes
         .iter()
         .map(|route| {
+            let mut scopes = route.split("::").map(|e| e.trim()).collect::<Vec<&str>>();
+
+            let route = scopes.pop().unwrap();
+
             let route_name = rule::make_route_name(route);
-            format!("Box::new({route_name}{{}})")
+
+            let scopes = scopes.join("::");
+
+            if scopes.len() > 0 {
+                format!("Box::new({scopes}::{route_name}{{}})")
+            } else {
+                format!("Box::new({route_name}{{}})")
+            }
         })
         .collect::<Vec<String>>()
         .join(", ");
