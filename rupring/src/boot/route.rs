@@ -1,8 +1,6 @@
 use hyper::Method;
 
 pub(crate) fn is_route_matching_request(route_path: String, request_path: String) -> bool {
-    println!("route_path: {}", route_path);
-
     // remove query parameters
     let request_path = request_path.split("?").collect::<Vec<&str>>()[0];
 
