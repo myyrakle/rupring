@@ -19,6 +19,7 @@ use hyper_util::rt::TokioIo;
 use log::Level;
 use tokio::net::TcpListener;
 
+use crate::header::preprocess_headers;
 use crate::logger::print_system_log;
 use crate::IModule;
 
@@ -97,6 +98,8 @@ pub async fn run_server(
 
                                         headers.insert(header_name, header_value);
                                     }
+
+                                    preprocess_headers(&mut headers);
 
                                     let path_parameters = parse::parse_path_parameter(
                                         route_path,
