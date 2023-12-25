@@ -50,6 +50,7 @@ pub(crate) fn normalize_path(prefix: String, path: String) -> String {
     return normalized_path;
 }
 
+// return (route, route_path, middlewares)
 pub(crate) fn find_route(
     root_module: Box<dyn crate::IModule>,
     request_path: String,
@@ -217,6 +218,110 @@ mod tests {
                 "TC name: {}, prefix: {}, path: {}",
                 test_case.name, test_case.prefix, test_case.path
             );
+        }
+    }
+
+    #[test]
+    fn test_find_route() {
+        use crate as rupring;
+
+        #[derive(Debug, Clone, Copy)]
+        #[rupring::Module(
+            controllers=[HomeController{}], 
+            modules=[UserModule{}], 
+            providers=[], 
+            middlewares=[]
+        )]
+        pub struct RootModule {}
+        
+        #[derive(Debug, Clone)]
+        #[rupring::Controller(prefix=/, routes=[hello, echo])]
+        pub struct HomeController {}
+        
+        #[rupring::Get(path = /)]
+        pub fn hello(_request: rupring::Request) -> rupring::Response {
+            rupring::Response::new().redirect("https://naver.com".into())
+        }
+        
+        #[rupring::Get(path = /user)]
+        pub fn get_user(_: rupring::Request, _: rupring::Response) -> rupring::Response {
+            rupring::Response::new().text("asdf".into())
+        }
+        
+        #[rupring::Get(path = /echo)]
+        pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+            rupring::Response::new().text(request.body)
+        }
+      
+        #[derive(Debug, Clone, Copy)]
+        #[rupring::Module(
+            controllers=[UserController{}],
+            modules=[],
+            providers=[
+            ],
+            middlewares=[]
+        )]
+        pub struct UserModule {}
+        
+        #[derive(Debug, Clone)]
+        #[crate::Controller(prefix=/, routes=[get_user], middlewares=[])]
+        pub struct UserController {}
+
+        struct Argument {
+            request_path: String,
+            request_method: Method,
+        }
+
+        struct TestCase {
+            name: String,
+            argument: Argument,
+            expected: Option<String>,
+        }
+
+        let test_cases: Vec<TestCase> = vec![
+            TestCase {
+                name: "route not found (존재하지 않는 경로)".to_string(),
+                argument: Argument {
+                    request_path: "/asdf".to_string(),
+                    request_method: Method::GET,
+                },
+                expected: None,
+            },
+            TestCase {
+                name: "route found (/)".to_string(),
+                argument: Argument {
+                    request_path: "/".to_string(),
+                    request_method: Method::GET,
+                },
+                expected: Some("/".to_string()),
+            },
+            TestCase {
+                name: "route not found (METHOD가 다름)".to_string(),
+                argument: Argument {
+                    request_path: "/user".to_string(),
+                    request_method: Method::POST,
+                },
+                expected: None,
+            },
+            TestCase {
+                name: "route found (echo)".to_string(),
+                argument: Argument {
+                    request_path: "/echo".to_string(),
+                    request_method: Method::GET,
+                },
+                expected: Some("/echo".to_string()),
+            },
+        ];
+
+        for test_case in test_cases.iter() {
+            let result = find_route(
+                Box::new(RootModule {}),
+                test_case.argument.request_path.clone(),
+                test_case.argument.request_method.clone(),
+            )
+            .map(|(_, route_path, _)| route_path);
+
+            assert_eq!(result, test_case.expected, "TC name: {}", test_case.name,);
         }
     }
 }
