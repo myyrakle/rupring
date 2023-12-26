@@ -295,6 +295,8 @@ pub use rupring_macro::Controller;
 /// pub struct RootModule {}
 pub use rupring_macro::Module;
 
+pub use rupring_macro::Injectable;
+
 /// Get Route Annotation
 /// ```
 /// #[rupring::Get(path = /)]

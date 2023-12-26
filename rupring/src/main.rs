@@ -38,6 +38,11 @@ impl rupring::IProvider for CounterService {
     }
 }
 
+#[rupring_macro::Injectable]
+fn inject_( _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
+    Box::new(CounterService::new())
+}
+
 pub trait IUserService {
     fn get_user(&self) -> String;
 }

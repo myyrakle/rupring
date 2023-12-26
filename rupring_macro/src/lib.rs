@@ -170,12 +170,23 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     return item;
 }
 
-// #[proc_macro_attribute]
-// #[allow(non_snake_case)]
-// pub fn Injectable(_attr: TokenStream, item: TokenStream) -> TokenStream {
-//     // ...
-//     return item;
-// }
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Injectable(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    // ...
+    let spp = r#"
+impl rupring::IProvider for CounterService {
+    fn dependencies(&self) -> Vec<TypeId> {
+        vec![]
+    }
+
+    fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
+        Box::new(CounterService::new())
+    }
+}"#;
+
+    return item;
+}
 
 #[allow(non_snake_case)]
 fn ManipulateRouteFunctionParameters(item: TokenStream) -> TokenStream {
