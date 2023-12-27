@@ -38,12 +38,8 @@ impl CounterService {
 //     }
 // }
 
-fn inject_counter_service2() -> CounterService {
-    CounterService::new()
-}
-
 #[rupring_macro::Injectable]
-fn inject_counter_service(a: i32, b:&i32) -> CounterService {
+fn inject_counter_service() -> CounterService {
     CounterService::new()
 }
 
@@ -131,7 +127,7 @@ pub fn logger_middleware(
 #[rupring::Module(
     controllers=[HomeController{}], 
     modules=[UserModule{}], 
-    providers=[], 
+    providers=[inject_counter_service{}], 
     middlewares=[]
 )]
 pub struct RootModule {}

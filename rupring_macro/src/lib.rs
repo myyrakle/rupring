@@ -173,21 +173,33 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Injectable(_attr: TokenStream, mut item: TokenStream) -> TokenStream {
-    // ...
-    let provider_type = parse::find_function_return_type(item.clone());
-
+    let _provider_type = parse::find_function_return_type(item.clone());
     let parameters_types = parse::find_function_parameter_types(item.clone());
-    println!("parameters_types: {:?}", parameters_types);
+
+    let mut dependencies = vec![];
+    let mut arguments = vec![];
+    for parameter_type in parameters_types {
+        dependencies.push(format!("std::any::TypeId::of::<{parameter_type}>()",));
+
+        if parameter_type.contains("&") {
+            arguments.push(format!("di_context.get::<{parameter_type}>().unwrap()",));
+        } else {
+            arguments.push(format!(
+                "di_context.get::<{parameter_type}>().unwrap().to_owned()"
+            ));
+        }
+    }
 
     let function_name = parse::find_function_name(item.clone());
 
-    let function_call = format!("{}()", function_name);
-    let dependencies = "".to_string();
+    let function_call = format!("{function_name}({})", arguments.join(", "));
+    let dependencies = dependencies.join(", ");
 
     let new_code = format!(
         r#"
-impl rupring::IProvider for {provider_type} {{
-    fn dependencies(&self) -> Vec<TypeId> {{
+struct {function_name}{{}}
+impl rupring::IProvider for {function_name} {{
+    fn dependencies(&self) -> Vec<std::any::TypeId> {{
         vec![{dependencies}]
     }}
 
