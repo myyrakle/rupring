@@ -172,6 +172,30 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
+pub fn Service(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Injectable(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Repository(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Injectable(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Component(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Injectable(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Bean(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Injectable(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
 pub fn Injectable(_attr: TokenStream, mut item: TokenStream) -> TokenStream {
     let _provider_type = parse::find_function_return_type(item.clone());
     let parameters_types = parse::find_function_parameter_types(item.clone());
