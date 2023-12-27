@@ -60,6 +60,21 @@ pub(crate) fn find_function_parameter_types(item: TokenStream) -> Vec<String> {
     return parameter_types;
 }
 
+// Find the return type of the function.
+pub(crate) fn find_function_return_type(item: TokenStream) -> String {
+    let mut tokens = item.into_iter();
+    let mut return_type = String::new();
+
+    while let Some(token) = tokens.next() {
+        if token.to_string() == "-" && tokens.next().unwrap().to_string() == ">" {
+            return_type = tokens.next().unwrap().to_string();
+            break;
+        }
+    }
+
+    return return_type;
+}
+
 #[derive(Debug, PartialEq)]
 pub enum AttributeValue {
     ListOfString(Vec<String>),

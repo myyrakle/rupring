@@ -174,20 +174,19 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 #[allow(non_snake_case)]
 pub fn Injectable(_attr: TokenStream, mut item: TokenStream) -> TokenStream {
     // ...
-    let provider_type = "".to_string();
+    let provider_type = parse::find_function_return_type(item.clone());
 
     let parameters_types = parse::find_function_parameter_types(item.clone());
     println!("parameters_types: {:?}", parameters_types);
 
     let function_name = parse::find_function_name(item.clone());
-    let function_name = "inject_counter_service2".to_string();
 
     let function_call = format!("{}()", function_name);
     let dependencies = "".to_string();
 
     let new_code = format!(
         r#"
-impl rupring::IProvider for CounterService {{
+impl rupring::IProvider for {provider_type} {{
     fn dependencies(&self) -> Vec<TypeId> {{
         vec![{dependencies}]
     }}
