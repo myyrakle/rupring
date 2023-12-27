@@ -170,12 +170,73 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     return item;
 }
 
-// #[proc_macro_attribute]
-// #[allow(non_snake_case)]
-// pub fn Injectable(_attr: TokenStream, item: TokenStream) -> TokenStream {
-//     // ...
-//     return item;
-// }
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Service(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Injectable(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Repository(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Injectable(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Component(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Injectable(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Bean(attr: TokenStream, item: TokenStream) -> TokenStream {
+    return Injectable(attr, item);
+}
+
+#[proc_macro_attribute]
+#[allow(non_snake_case)]
+pub fn Injectable(_attr: TokenStream, mut item: TokenStream) -> TokenStream {
+    let _provider_type = parse::find_function_return_type(item.clone());
+    let parameters_types = parse::find_function_parameter_types(item.clone());
+
+    let mut dependencies = vec![];
+    let mut arguments = vec![];
+    for parameter_type in parameters_types {
+        dependencies.push(format!("std::any::TypeId::of::<{parameter_type}>()",));
+
+        if parameter_type.contains("&") {
+            arguments.push(format!("di_context.get::<{parameter_type}>().unwrap()",));
+        } else {
+            arguments.push(format!(
+                "di_context.get::<{parameter_type}>().unwrap().to_owned()"
+            ));
+        }
+    }
+
+    let function_name = parse::find_function_name(item.clone());
+
+    let function_call = format!("{function_name}({})", arguments.join(", "));
+    let dependencies = dependencies.join(", ");
+
+    let new_code = format!(
+        r#"
+struct {function_name}{{}}
+impl rupring::IProvider for {function_name} {{
+    fn dependencies(&self) -> Vec<std::any::TypeId> {{
+        vec![{dependencies}]
+    }}
+
+    fn provide(&self, di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {{
+        Box::new({function_call})
+    }}
+}}"#
+    );
+
+    item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
+
+    return item;
+}
 
 #[allow(non_snake_case)]
 fn ManipulateRouteFunctionParameters(item: TokenStream) -> TokenStream {
