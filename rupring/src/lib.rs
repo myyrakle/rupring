@@ -305,7 +305,35 @@ pub use rupring_macro::Controller;
 /// pub struct RootModule {}
 pub use rupring_macro::Module;
 
+/// This is a shortcut annotation for creating an IProvider object.
+/// ```
+/// #[rupring_macro::Injectable]
+/// fn inject_counter_service() -> CounterService {
+///    CounterService::new()
+/// }
+/// ...
+/// #[derive(Debug, Clone, Copy)]
+/// #[rupring::Module(
+///    controllers=[HomeController{}],
+///    modules=[UserModule{}],
+///    providers=[inject_counter_service{}],
+///    middlewares=[]
+/// )]
+/// pub struct RootModule {}
+/// ```
 pub use rupring_macro::Injectable;
+
+/// This is an alias for [Injectable].
+pub use rupring_macro::Bean;
+
+/// This is an alias for [Injectable].
+pub use rupring_macro::Component;
+
+/// This is an alias for [Injectable].
+pub use rupring_macro::Service;
+
+/// This is an alias for [Injectable].
+pub use rupring_macro::Repository;
 
 /// Get Route Annotation
 /// ```
