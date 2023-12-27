@@ -172,18 +172,33 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
-pub fn Injectable(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn Injectable(_attr: TokenStream, mut item: TokenStream) -> TokenStream {
     // ...
-    let spp = r#"
-impl rupring::IProvider for CounterService {
-    fn dependencies(&self) -> Vec<TypeId> {
-        vec![]
-    }
+    let provider_type = "".to_string();
 
-    fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
-        Box::new(CounterService::new())
-    }
-}"#;
+    let parameters_types = parse::find_function_parameter_types(item.clone());
+    println!("parameters_types: {:?}", parameters_types);
+
+    let function_name = parse::find_function_name(item.clone());
+    let function_name = "inject_counter_service2".to_string();
+
+    let function_call = format!("{}()", function_name);
+    let dependencies = "".to_string();
+
+    let new_code = format!(
+        r#"
+impl rupring::IProvider for CounterService {{
+    fn dependencies(&self) -> Vec<TypeId> {{
+        vec![{dependencies}]
+    }}
+
+    fn provide(&self, di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {{
+        Box::new({function_call})
+    }}
+}}"#
+    );
+
+    item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
     return item;
 }

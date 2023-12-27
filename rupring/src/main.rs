@@ -28,19 +28,23 @@ impl CounterService {
     }
 }
 
-impl rupring::IProvider for CounterService {
-    fn dependencies(&self) -> Vec<TypeId> {
-        vec![]
-    }
+// impl rupring::IProvider for CounterService {
+//     fn dependencies(&self) -> Vec<TypeId> {
+//         vec![]
+//     }
 
-    fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
-        Box::new(CounterService::new())
-    }
+//     fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
+//         Box::new(CounterService::new())
+//     }
+// }
+
+fn inject_counter_service2() -> CounterService {
+    CounterService::new()
 }
 
 #[rupring_macro::Injectable]
-fn inject_( _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
-    Box::new(CounterService::new())
+fn inject_counter_service(a: i32, b:&i32) -> CounterService {
+    CounterService::new()
 }
 
 pub trait IUserService {

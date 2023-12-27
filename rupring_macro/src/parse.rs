@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use proc_macro::TokenStream;
+use proc_macro::{TokenStream, TokenTree};
 
 // Find the structure name immediately to the right of the struct keyword.
 pub(crate) fn find_struct_name(item: TokenStream) -> String {
@@ -30,6 +30,34 @@ pub(crate) fn find_function_name(item: TokenStream) -> String {
     }
 
     return function_name;
+}
+
+// Returns the types of function parameters as an array.
+pub(crate) fn find_function_parameter_types(item: TokenStream) -> Vec<String> {
+    let mut tokens = item.into_iter();
+    let mut parameter_types = Vec::new();
+
+    while let Some(token) = tokens.next() {
+        if let TokenTree::Group(group) = token {
+            let mut group_tokens = group.stream().into_iter();
+
+            while let Some(group_token) = group_tokens.next() {
+                if group_token.to_string() == ":" {
+                    let mut parameter_type = group_tokens.next().unwrap().to_string();
+
+                    if parameter_type == "&" {
+                        parameter_type += group_tokens.next().unwrap().to_string().as_str();
+                    }
+
+                    parameter_types.push(parameter_type.clone());
+                }
+            }
+
+            break;
+        }
+    }
+
+    return parameter_types;
 }
 
 #[derive(Debug, PartialEq)]

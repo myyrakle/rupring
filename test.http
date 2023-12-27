@@ -6,3 +6,21 @@ Content-Type: application/json
     "message": "Hello World!"
 }
 ###
+
+
+TokenStream [
+    Ident { ident: "fn", span: #0 bytes(915..917) }, 
+    Ident { ident: "inject_counter_service", span: #0 bytes(918..940) }, 
+    Group { 
+        delimiter: Parenthesis, 
+        stream: TokenStream [
+            Ident { ident: "a", span: #0 bytes(941..942) }, 
+            Punct { ch: ':', spacing: Alone, span: #0 bytes(942..943) }, 
+            Ident { ident: "i32", span: #0 bytes(944..947) }, 
+            Punct { ch: ',', spacing: Alone, span: #0 bytes(947..948) }, 
+            Ident { ident: "b", span: #0 bytes(949..950) }, 
+            Punct { ch: ':', spacing: Alone, span: #0 bytes(950..951) }, 
+            Ident { ident: "i32", span: #0 bytes(951..954) }
+        ], 
+        span: #0 bytes(940..955) 
+    }, Punct { ch: '-', spacing: Joint, span: #0 bytes(956..957) }, Punct { ch: '>', spacing: Alone, span: #0 bytes(957..958) }, Ident { ident: "CounterService", span: #0 bytes(959..973) }, Group { delimiter: Brace, stream: TokenStream [Ident { ident: "CounterService", span: #0 bytes(980..994) }, Punct { ch: ':', spacing: Joint, span: #0 bytes(994..995) }, Punct { ch: ':', spacing: Alone, span: #0 bytes(995..996) }, Ident { ident: "new", span: #0 bytes(996..999) }, Group { delimiter: Parenthesis, stream: TokenStream [], span: #0 bytes(999..1001) }], span: #0 bytes(974..1003) }]
