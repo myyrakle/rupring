@@ -196,7 +196,7 @@ pub fn Bean(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
-pub fn Injectable(_attr: TokenStream, mut item: TokenStream) -> TokenStream {
+pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     let _provider_type = parse::find_function_return_type(item.clone());
     let parameters_types = parse::find_function_parameter_types(item.clone());
 
@@ -216,13 +216,29 @@ pub fn Injectable(_attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     let function_name = parse::find_function_name(item.clone());
 
+    let struct_name = if attr.is_empty() {
+        function_name.clone()
+    } else if attr.clone().into_iter().count() == 1 {
+        attr.into_iter().next().unwrap().to_string()
+    } else {
+        let attribute_map = parse::parse_attribute(attr.clone());
+
+        match attribute_map.get("name") {
+            Some(name) => match name {
+                parse::AttributeValue::String(name) => name.to_owned(),
+                _ => function_name.clone(),
+            },
+            None => function_name.clone(),
+        }
+    };
+
     let function_call = format!("{function_name}({})", arguments.join(", "));
     let dependencies = dependencies.join(", ");
 
     let new_code = format!(
         r#"
-struct {function_name}{{}}
-impl rupring::IProvider for {function_name} {{
+struct {struct_name}{{}}
+impl rupring::IProvider for {struct_name} {{
     fn dependencies(&self) -> Vec<std::any::TypeId> {{
         vec![{dependencies}]
     }}
