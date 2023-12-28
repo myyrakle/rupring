@@ -274,8 +274,32 @@ For example, the code below automatically creates an IProvider object "inject_co
 fn inject_counter_service(something: SomethingRepository) -> CounterService {
     CounterService::new(something)
 }
+...
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[HomeController{}],
+    modules=[UserModule{}],
+    providers=[inject_counter_service{}],
+    middlewares=[]
+)]
 ```
 It automatically receives DI based on parameters.
+
+The injectable annotation can also be explicitly named.
+```
+#[rupring_macro::Injectable(CounterServiceFactory)] // or #[rupring_macro::Injectable(name=CounterServiceFactory)]
+fn inject_counter_service(something: SomethingRepository) -> CounterService {
+    CounterService::new(something)
+}
+...
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[HomeController{}],
+    modules=[UserModule{}],
+    providers=[CounterServiceFactory{}],
+    middlewares=[]
+)]
+```
 */
 
 pub(crate) mod boot;
@@ -307,7 +331,7 @@ pub use rupring_macro::Module;
 
 /// This is a shortcut annotation for creating an IProvider object.
 /// ```
-/// #[rupring_macro::Injectable]
+/// #[rupring_macro::Injectable(CounterServiceFactory)]
 /// fn inject_counter_service() -> CounterService {
 ///    CounterService::new()
 /// }
@@ -316,7 +340,7 @@ pub use rupring_macro::Module;
 /// #[rupring::Module(
 ///    controllers=[HomeController{}],
 ///    modules=[UserModule{}],
-///    providers=[inject_counter_service{}],
+///    providers=[CounterServiceFactory{}],
 ///    middlewares=[]
 /// )]
 /// pub struct RootModule {}
