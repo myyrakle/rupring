@@ -307,6 +307,7 @@ mod header;
 mod logger;
 pub(crate) mod request;
 pub(crate) mod response;
+pub(crate) mod swagger;
 
 use std::panic::UnwindSafe;
 
