@@ -75,5 +75,12 @@ pub fn get_favicon16(_: rupring::Request) -> rupring::Response {
 pub fn get_jsbundle(_: rupring::Request) -> rupring::Response {
     rupring::Response::new()
         .text(super::js_bundle::JS_BUNDLE.into())
-        .header("content-type", "image/png".into())
+        .header("content-type", "text/javascript".into())
+}
+
+#[rupring_macro::GetMapping(path = /swagger-ui-standalone-preset.js)]
+pub fn get_jspreset(_: rupring::Request) -> rupring::Response {
+    rupring::Response::new()
+        .text(super::js_preset::JS_PRESET.into())
+        .header("content-type", "text/javascript".into())
 }
