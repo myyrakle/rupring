@@ -126,7 +126,7 @@ pub fn logger_middleware(
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(
     controllers=[HomeController{}], 
-    modules=[UserModule{}], 
+    modules=[UserModule{}, rupring::swagger::module::SwaggerModule{}], 
     providers=[CounterServiceFactory{}], 
     middlewares=[]
 )]

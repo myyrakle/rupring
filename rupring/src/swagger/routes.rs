@@ -8,17 +8,17 @@ pub fn get_docs(_: rupring::Request) -> rupring::Response {
       <head>
         <meta charset="UTF-8">
         <title>Swagger UI</title>
-        <link rel="stylesheet" type="text/css" href="./swagger-ui.css" />
-        <link rel="stylesheet" type="text/css" href="./index.css" />
-        <link rel="icon" type="image/png" href="./favicon-32x32.png" sizes="32x32" />
-        <link rel="icon" type="image/png" href="./favicon-16x16.png" sizes="16x16" />
+        <link rel="stylesheet" type="text/css" href="/docs/swagger-ui.css" />
+        <link rel="stylesheet" type="text/css" href="/docs/index.css" />
+        <link rel="icon" type="image/png" href="/docs/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" type="image/png" href="/docs/favicon-16x16.png" sizes="16x16" />
       </head>
     
       <body>
         <div id="swagger-ui"></div>
-        <script src="./swagger-ui-bundle.js" charset="UTF-8"> </script>
-        <script src="./swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
-        <script src="./swagger-initializer.js" charset="UTF-8"> </script>
+        <script src="/docs/swagger-ui-bundle.js" charset="UTF-8"> </script>
+        <script src="/docs/swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
+        <script src="/docs/swagger-initializer.js" charset="UTF-8"> </script>
       </body>
     </html>
     "#;
@@ -28,8 +28,8 @@ pub fn get_docs(_: rupring::Request) -> rupring::Response {
         .header("content-type", "text/html".into())
 }
 
-#[rupring_macro::GetMapping(path = /swagger-ui.css)]
-pub fn get_css(_: rupring::Request) -> rupring::Response {
+#[rupring_macro::GetMapping(path = /index.css)]
+pub fn get_index_css(_: rupring::Request) -> rupring::Response {
     let index_html = r#"html {
         box-sizing: border-box;
         overflow: -moz-scrollbars-vertical;
@@ -50,6 +50,13 @@ pub fn get_css(_: rupring::Request) -> rupring::Response {
 
     rupring::Response::new()
         .text(index_html.into())
+        .header("content-type", "text/css".into())
+}
+
+#[rupring_macro::GetMapping(path = /swagger-ui.css)]
+pub fn get_swagger_css(_: rupring::Request) -> rupring::Response {
+    rupring::Response::new()
+        .text(super::css::CSS.into())
         .header("content-type", "text/css".into())
 }
 
@@ -89,7 +96,7 @@ pub fn get_jspreset(_: rupring::Request) -> rupring::Response {
 pub fn get_jsinitializer(_: rupring::Request) -> rupring::Response {
     let js = r###"window.onload = function() {
         window.ui = SwaggerUIBundle({
-          url: "./swagger.json",
+          url: "/docs/swagger.json",
           dom_id: '#swagger-ui',
           deepLinking: true,
           presets: [
