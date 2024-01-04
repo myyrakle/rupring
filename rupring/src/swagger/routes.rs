@@ -84,3 +84,27 @@ pub fn get_jspreset(_: rupring::Request) -> rupring::Response {
         .text(super::js_preset::JS_PRESET.into())
         .header("content-type", "text/javascript".into())
 }
+
+#[rupring_macro::GetMapping(path = /swagger-initializer.js)]
+pub fn get_jsinitializer(_: rupring::Request) -> rupring::Response {
+    let js = r###"window.onload = function() {
+        window.ui = SwaggerUIBundle({
+          url: "./swagger.json",
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+          ],
+          plugins: [
+            SwaggerUIBundle.plugins.DownloadUrl
+          ],
+          layout: "StandaloneLayout"
+        });
+      };
+      "###;
+
+    rupring::Response::new()
+        .text(js.into())
+        .header("content-type", "text/javascript".into())
+}
