@@ -12,6 +12,7 @@ use crate as rupring;
         routes::get_jsbundle,
         routes::get_jspreset,
         routes::get_jsinitializer,
+        routes::get_json,
     ]
 )]
 pub struct SwaggerController {}
