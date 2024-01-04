@@ -7,6 +7,8 @@ use crate as rupring;
     routes=[
         routes::get_docs, 
         routes::get_css,
+        routes::get_favicon32,
+        routes::get_favicon16,
     ]
 )]
 pub struct SwaggerController {}
