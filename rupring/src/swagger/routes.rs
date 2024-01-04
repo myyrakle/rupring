@@ -27,3 +27,28 @@ pub fn get_docs(_: rupring::Request) -> rupring::Response {
         .text(index_html.into())
         .header("content-type", "text/html".into())
 }
+
+#[rupring_macro::GetMapping(path = /swagger-ui.css)]
+pub fn get_css(_: rupring::Request) -> rupring::Response {
+    let index_html = r#"html {
+        box-sizing: border-box;
+        overflow: -moz-scrollbars-vertical;
+        overflow-y: scroll;
+    }
+    
+    *,
+    *:before,
+    *:after {
+        box-sizing: inherit;
+    }
+    
+    body {
+        margin: 0;
+        background: #fafafa;
+    }
+    "#;
+
+    rupring::Response::new()
+        .text(index_html.into())
+        .header("content-type", "text/css".into())
+}
