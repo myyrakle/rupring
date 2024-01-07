@@ -134,3 +134,48 @@ pub struct SwaggerOperation {
     #[serde(rename = "security")]
     security: Vec<SwaggerSecurity>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerParameter {
+    #[serde(rename = "name")]
+    name: String,
+
+    #[serde(rename = "in")]
+    in_: SwaggerParameterCategory,
+
+    #[serde(rename = "description")]
+    description: String,
+
+    #[serde(rename = "required")]
+    required: bool,
+
+    #[serde(rename = "type")]
+    type_: Option<String>,
+
+    #[serde(rename = "schema")]
+    schema: Option<SwaggerReference>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SwaggerParameterCategory {
+    #[serde(rename = "path")]
+    Path,
+
+    #[serde(rename = "query")]
+    Query,
+
+    #[serde(rename = "body")]
+    Body,
+
+    #[serde(rename = "header")]
+    Header,
+
+    #[serde(rename = "formData")]
+    FormData,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerReference {
+    #[serde(rename = "$ref")]
+    reference: String,
+}
