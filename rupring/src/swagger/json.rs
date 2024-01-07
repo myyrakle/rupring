@@ -26,7 +26,7 @@ pub struct SwaggerSchema {
     paths: Vec<SwaggerPath>,
 
     #[serde(rename = "definitions")]
-    definitions: Vec<SwaggerDefinition>,
+    definitions: SwaggerDefinitions,
 
     #[serde(rename = "securityDefinitions")]
     security_definitions: SwaggerSecurityDefinitions,
@@ -229,3 +229,58 @@ pub struct SwaggerOauth2 {
 }
 
 pub type SwaggerOauth2Scopes = HashMap<String, String>;
+
+pub type SwaggerDefinitions = HashMap<String, SwaggerDefinition>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerDefinition {
+    #[serde(rename = "type")]
+    type_: String,
+
+    #[serde(rename = "properties")]
+    properties: SwaggerProperties,
+}
+
+pub type SwaggerProperties = HashMap<String, SwaggerProperty>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SwaggerProperty {
+    Array(SwaggerArrayProperty),
+    Single(SwaggerSingleProperty),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerArrayProperty {
+    #[serde(rename = "type")]
+    type_: String,
+
+    #[serde(rename = "items")]
+    items: SwaggerTypeOrReference,
+
+    #[serde(rename = "description")]
+    description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerSingleProperty {
+    #[serde(rename = "type")]
+    type_: String,
+
+    #[serde(rename = "description")]
+    description: String,
+
+    #[serde(rename = "example")]
+    example: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerType {
+    #[serde(rename = "type")]
+    pub type_: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SwaggerTypeOrReference {
+    Type(SwaggerType),
+    Reference(SwaggerReference),
+}
