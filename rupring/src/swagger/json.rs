@@ -77,3 +77,15 @@ pub struct SwaggerContact {
     #[serde(rename = "email")]
     email: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerTag {
+    #[serde(rename = "name")]
+    name: String,
+
+    #[serde(rename = "description")]
+    description: String,
+
+    #[serde(rename = "externalDocs")]
+    external_docs: SwaggerExternalDoc,
+}
