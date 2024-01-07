@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -97,4 +99,38 @@ pub struct SwaggerExternalDoc {
 
     #[serde(rename = "url")]
     url: String,
+}
+
+pub type SwaggerPaths = HashMap<String, SwaggerPath>;
+
+pub type SwaggerPath = HashMap<String, SwaggerOperation>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerOperation {
+    #[serde(rename = "tags")]
+    tags: Vec<String>,
+
+    #[serde(rename = "summary")]
+    summary: String,
+
+    #[serde(rename = "description")]
+    description: String,
+
+    #[serde(rename = "operationId")]
+    operation_id: String,
+
+    #[serde(rename = "consumes")]
+    consumes: Vec<String>,
+
+    #[serde(rename = "produces")]
+    produces: Vec<String>,
+
+    #[serde(rename = "parameters")]
+    parameters: Vec<SwaggerParameter>,
+
+    #[serde(rename = "responses")]
+    responses: Vec<SwaggerResponse>,
+
+    #[serde(rename = "security")]
+    security: Vec<SwaggerSecurity>,
 }
