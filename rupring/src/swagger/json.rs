@@ -71,3 +71,9 @@ pub struct SwaggerInfo {
     #[serde(rename = "contact")]
     contact: SwaggerContact,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerContact {
+    #[serde(rename = "email")]
+    email: String,
+}
