@@ -32,3 +32,21 @@ pub struct SwaggerSchema {
     #[serde(rename = "externalDocs")]
     external_docs: Vec<SwaggerExternalDoc>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerLicense {
+    #[serde(rename = "name")]
+    name: String,
+
+    #[serde(rename = "url")]
+    url: String,
+}
+
+impl Default for SwaggerLicense {
+    fn default() -> Self {
+        SwaggerLicense {
+            name: "Apache 2.0".to_string(),
+            url: "http://www.apache.org/licenses/LICENSE-2.0.html".to_string(),
+        }
+    }
+}
