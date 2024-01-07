@@ -50,3 +50,24 @@ impl Default for SwaggerLicense {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerInfo {
+    #[serde(rename = "title")]
+    title: String,
+
+    #[serde(rename = "version")]
+    version: String,
+
+    #[serde(rename = "description")]
+    description: String,
+
+    #[serde(rename = "license")]
+    license: SwaggerLicense,
+
+    #[serde(rename = "termsOfService")]
+    terms_of_service: String,
+
+    #[serde(rename = "contact")]
+    contact: SwaggerContact,
+}
