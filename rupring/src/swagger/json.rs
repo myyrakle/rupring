@@ -129,7 +129,7 @@ pub struct SwaggerOperation {
     parameters: Vec<SwaggerParameter>,
 
     #[serde(rename = "responses")]
-    responses: Vec<SwaggerResponse>,
+    responses: SwaggerResponses,
 
     #[serde(rename = "security")]
     security: Vec<SwaggerSecurity>,
@@ -179,3 +179,16 @@ pub struct SwaggerReference {
     #[serde(rename = "$ref")]
     reference: String,
 }
+
+pub type SwaggerResponses = HashMap<String, SwaggerResponse>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerResponse {
+    #[serde(rename = "description")]
+    description: String,
+
+    #[serde(rename = "schema")]
+    schema: Option<SwaggerReference>,
+}
+
+pub type SwaggerSecurity = HashMap<String, Vec<String>>;
