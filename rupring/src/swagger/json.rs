@@ -30,7 +30,7 @@ pub struct SwaggerSchema {
     security_definitions: Vec<SwaggerSecurityDefinition>,
 
     #[serde(rename = "externalDocs")]
-    external_docs: Vec<SwaggerExternalDoc>,
+    external_docs: SwaggerExternalDoc,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -88,4 +88,13 @@ pub struct SwaggerTag {
 
     #[serde(rename = "externalDocs")]
     external_docs: SwaggerExternalDoc,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerExternalDoc {
+    #[serde(rename = "description")]
+    description: String,
+
+    #[serde(rename = "url")]
+    url: String,
 }
