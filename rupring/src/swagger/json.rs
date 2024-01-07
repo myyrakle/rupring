@@ -29,7 +29,7 @@ pub struct SwaggerSchema {
     definitions: Vec<SwaggerDefinition>,
 
     #[serde(rename = "securityDefinitions")]
-    security_definitions: Vec<SwaggerSecurityDefinition>,
+    security_definitions: SwaggerSecurityDefinitions,
 
     #[serde(rename = "externalDocs")]
     external_docs: SwaggerExternalDoc,
@@ -192,3 +192,40 @@ pub struct SwaggerResponse {
 }
 
 pub type SwaggerSecurity = HashMap<String, Vec<String>>;
+
+pub type SwaggerSecurityDefinitions = HashMap<String, SwaggerSecurityDefinition>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SwaggerSecurityDefinition {
+    APIKey(SwaggerAPIKey),
+    Oauth2(SwaggerOauth2),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerAPIKey {
+    #[serde(rename = "type")]
+    type_: String,
+
+    #[serde(rename = "name")]
+    name: String,
+
+    #[serde(rename = "in")]
+    in_: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerOauth2 {
+    #[serde(rename = "type")]
+    type_: String,
+
+    #[serde(rename = "flow")]
+    flow: String,
+
+    #[serde(rename = "authorizationUrl")]
+    authorization_url: String,
+
+    #[serde(rename = "scopes")]
+    scopes: SwaggerOauth2Scopes,
+}
+
+pub type SwaggerOauth2Scopes = HashMap<String, String>;
