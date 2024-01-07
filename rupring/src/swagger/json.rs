@@ -32,7 +32,24 @@ pub struct SwaggerSchema {
     security_definitions: SwaggerSecurityDefinitions,
 
     #[serde(rename = "externalDocs")]
-    external_docs: SwaggerExternalDoc,
+    external_docs: Option<SwaggerExternalDoc>,
+}
+
+impl Default for SwaggerSchema {
+    fn default() -> Self {
+        SwaggerSchema {
+            version: "2.0".to_string(),
+            info: Default::default(),
+            host: "localhost:8080".to_string(),
+            base_path: r#""#.to_string(),
+            schemes: vec!["http".to_string(), "https".to_string()],
+            tags: Default::default(),
+            paths: Default::default(),
+            definitions: Default::default(),
+            security_definitions: Default::default(),
+            external_docs: Default::default(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -74,10 +91,31 @@ pub struct SwaggerInfo {
     contact: SwaggerContact,
 }
 
+impl Default for SwaggerInfo {
+    fn default() -> Self {
+        SwaggerInfo {
+            title: "".to_string(),
+            version: "".to_string(),
+            description: "".to_string(),
+            license: Default::default(),
+            terms_of_service: "http://swagger.io/terms/".to_string(),
+            contact: Default::default(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerContact {
     #[serde(rename = "email")]
     email: String,
+}
+
+impl Default for SwaggerContact {
+    fn default() -> Self {
+        SwaggerContact {
+            email: "".to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -99,6 +137,15 @@ pub struct SwaggerExternalDoc {
 
     #[serde(rename = "url")]
     url: String,
+}
+
+impl Default for SwaggerExternalDoc {
+    fn default() -> Self {
+        SwaggerExternalDoc {
+            description: "".to_string(),
+            url: "".to_string(),
+        }
+    }
 }
 
 pub type SwaggerPaths = HashMap<String, SwaggerPath>;
