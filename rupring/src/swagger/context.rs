@@ -48,6 +48,20 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
         for route in controller.routes() {
             let normalized_path = crate::boot::route::normalize_path(prefix.clone(), route.path());
 
+            // TODO: 추후에는 swagger ignore 속성을 추가해서 그걸로 처리
+            match normalized_path.as_str() {
+                "/docs/swagger.json"
+                | "/docs"
+                | "/docs/index.css"
+                | "/docs/favicon-16x16.png"
+                | "/docs/favicon-32x32.png"
+                | "/docs/swagger-initializer.js"
+                | "/docs/swagger-ui.css"
+                | "/docs/swagger-ui-standalone-preset.js"
+                | "/docs/swagger-ui-bundle.js" => continue,
+                _ => {}
+            }
+
             let method = to_string(route.method());
 
             let operation = SwaggerOperation::default();
