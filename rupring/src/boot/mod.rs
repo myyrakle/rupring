@@ -1,7 +1,7 @@
 mod banner;
 pub mod di;
 mod parse;
-mod route;
+pub(crate) mod route;
 
 use std::collections::HashMap;
 use std::convert::Infallible;
@@ -21,6 +21,7 @@ use tokio::net::TcpListener;
 
 use crate::header::preprocess_headers;
 use crate::logger::print_system_log;
+use crate::swagger::context::SwaggerContext;
 use crate::IModule;
 
 pub async fn run_server(
@@ -30,6 +31,10 @@ pub async fn run_server(
     let mut di_context = di::DIContext::new();
     di_context.initialize(Box::new(root_module.clone()));
     let di_context = Arc::new(di_context);
+
+    if let Some(swagger_context) = di_context.get::<SwaggerContext>() {
+        swagger_context.initialize_from_module(root_module.clone());
+    }
 
     banner::print_banner();
 
