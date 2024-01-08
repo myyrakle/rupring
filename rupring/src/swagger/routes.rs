@@ -117,12 +117,15 @@ pub fn get_jsinitializer(_: rupring::Request) -> rupring::Response {
 }
 
 #[rupring_macro::GetMapping(path = /swagger.json)]
-pub fn get_json(_: rupring::Request) -> rupring::Response {
-    let schema = super::json::SwaggerSchema::default();
+pub fn get_json(request: rupring::Request) -> rupring::Response {
+    let swagger_context = request
+        .di_context
+        .get::<super::context::SwaggerContext>()
+        .unwrap();
 
-    let json = serde_json::to_string_pretty(&schema).unwrap();
+    let json = swagger_context.openapi_json.read().unwrap().to_owned();
 
     rupring::Response::new()
-        .text(json.into())
+        .text(json)
         .header("content-type", "application/json".into())
 }

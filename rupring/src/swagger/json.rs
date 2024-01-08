@@ -5,34 +5,34 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerSchema {
     #[serde(rename = "swagger")]
-    version: String,
+    pub version: String,
 
     #[serde(rename = "info")]
-    info: SwaggerInfo,
+    pub info: SwaggerInfo,
 
     #[serde(rename = "host")]
-    host: String,
+    pub host: Option<String>,
 
     #[serde(rename = "basePath")]
-    base_path: String,
+    pub base_path: String,
 
     #[serde(rename = "schemes")]
-    schemes: Vec<String>,
+    pub schemes: Vec<String>,
 
     #[serde(rename = "tags")]
-    tags: Vec<SwaggerTag>,
+    pub tags: Vec<SwaggerTag>,
 
     #[serde(rename = "paths")]
-    paths: Vec<SwaggerPath>,
+    pub paths: SwaggerPaths,
 
     #[serde(rename = "definitions")]
-    definitions: SwaggerDefinitions,
+    pub definitions: SwaggerDefinitions,
 
     #[serde(rename = "securityDefinitions")]
-    security_definitions: SwaggerSecurityDefinitions,
+    pub security_definitions: SwaggerSecurityDefinitions,
 
     #[serde(rename = "externalDocs")]
-    external_docs: Option<SwaggerExternalDoc>,
+    pub external_docs: Option<SwaggerExternalDoc>,
 }
 
 impl Default for SwaggerSchema {
@@ -40,7 +40,7 @@ impl Default for SwaggerSchema {
         SwaggerSchema {
             version: "2.0".to_string(),
             info: Default::default(),
-            host: "localhost:8080".to_string(),
+            host: None,
             base_path: r#""#.to_string(),
             schemes: vec!["http".to_string(), "https".to_string()],
             tags: Default::default(),
@@ -55,10 +55,10 @@ impl Default for SwaggerSchema {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerLicense {
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
 
     #[serde(rename = "url")]
-    url: String,
+    pub url: String,
 }
 
 impl Default for SwaggerLicense {
@@ -73,22 +73,22 @@ impl Default for SwaggerLicense {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerInfo {
     #[serde(rename = "title")]
-    title: String,
+    pub title: String,
 
     #[serde(rename = "version")]
-    version: String,
+    pub version: String,
 
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 
     #[serde(rename = "license")]
-    license: SwaggerLicense,
+    pub license: SwaggerLicense,
 
     #[serde(rename = "termsOfService")]
-    terms_of_service: String,
+    pub terms_of_service: String,
 
     #[serde(rename = "contact")]
-    contact: SwaggerContact,
+    pub contact: SwaggerContact,
 }
 
 impl Default for SwaggerInfo {
@@ -107,7 +107,7 @@ impl Default for SwaggerInfo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerContact {
     #[serde(rename = "email")]
-    email: String,
+    pub email: String,
 }
 
 impl Default for SwaggerContact {
@@ -121,22 +121,22 @@ impl Default for SwaggerContact {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerTag {
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
 
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 
     #[serde(rename = "externalDocs")]
-    external_docs: SwaggerExternalDoc,
+    pub external_docs: SwaggerExternalDoc,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerExternalDoc {
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 
     #[serde(rename = "url")]
-    url: String,
+    pub url: String,
 }
 
 impl Default for SwaggerExternalDoc {
@@ -155,52 +155,68 @@ pub type SwaggerPath = HashMap<String, SwaggerOperation>;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerOperation {
     #[serde(rename = "tags")]
-    tags: Vec<String>,
+    pub tags: Vec<String>,
 
     #[serde(rename = "summary")]
-    summary: String,
+    pub summary: String,
 
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 
     #[serde(rename = "operationId")]
-    operation_id: String,
+    pub operation_id: String,
 
     #[serde(rename = "consumes")]
-    consumes: Vec<String>,
+    pub consumes: Vec<String>,
 
     #[serde(rename = "produces")]
-    produces: Vec<String>,
+    pub produces: Vec<String>,
 
     #[serde(rename = "parameters")]
-    parameters: Vec<SwaggerParameter>,
+    pub parameters: Vec<SwaggerParameter>,
 
     #[serde(rename = "responses")]
-    responses: SwaggerResponses,
+    pub responses: SwaggerResponses,
 
     #[serde(rename = "security")]
-    security: Vec<SwaggerSecurity>,
+    pub security: Vec<SwaggerSecurity>,
+}
+
+impl Default for SwaggerOperation {
+    fn default() -> Self {
+        SwaggerOperation {
+            tags: Default::default(),
+            summary: "".to_string(),
+            description: "".to_string(),
+            operation_id: "".to_string(),
+            consumes: vec!["application/json".to_string()],
+            produces: vec!["application/json".to_string()],
+            parameters: Default::default(),
+            responses: Default::default(),
+            security: Default::default(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerParameter {
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
 
     #[serde(rename = "in")]
-    in_: SwaggerParameterCategory,
+    pub in_: SwaggerParameterCategory,
 
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 
     #[serde(rename = "required")]
-    required: bool,
+    pub required: bool,
 
     #[serde(rename = "type")]
-    type_: Option<String>,
+    pub type_: Option<String>,
 
     #[serde(rename = "schema")]
-    schema: Option<SwaggerReference>,
+    pub schema: Option<SwaggerReference>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -224,7 +240,7 @@ pub enum SwaggerParameterCategory {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerReference {
     #[serde(rename = "$ref")]
-    reference: String,
+    pub reference: String,
 }
 
 pub type SwaggerResponses = HashMap<String, SwaggerResponse>;
@@ -232,10 +248,10 @@ pub type SwaggerResponses = HashMap<String, SwaggerResponse>;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerResponse {
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 
     #[serde(rename = "schema")]
-    schema: Option<SwaggerReference>,
+    pub schema: Option<SwaggerReference>,
 }
 
 pub type SwaggerSecurity = HashMap<String, Vec<String>>;
@@ -251,28 +267,28 @@ pub enum SwaggerSecurityDefinition {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerAPIKey {
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
 
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
 
     #[serde(rename = "in")]
-    in_: String,
+    pub in_: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerOauth2 {
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
 
     #[serde(rename = "flow")]
-    flow: String,
+    pub flow: String,
 
     #[serde(rename = "authorizationUrl")]
-    authorization_url: String,
+    pub authorization_url: String,
 
     #[serde(rename = "scopes")]
-    scopes: SwaggerOauth2Scopes,
+    pub scopes: SwaggerOauth2Scopes,
 }
 
 pub type SwaggerOauth2Scopes = HashMap<String, String>;
@@ -282,10 +298,10 @@ pub type SwaggerDefinitions = HashMap<String, SwaggerDefinition>;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerDefinition {
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
 
     #[serde(rename = "properties")]
-    properties: SwaggerProperties,
+    pub properties: SwaggerProperties,
 }
 
 pub type SwaggerProperties = HashMap<String, SwaggerProperty>;
@@ -299,25 +315,25 @@ pub enum SwaggerProperty {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerArrayProperty {
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
 
     #[serde(rename = "items")]
-    items: SwaggerTypeOrReference,
+    pub items: SwaggerTypeOrReference,
 
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerSingleProperty {
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
 
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 
     #[serde(rename = "example")]
-    example: Option<String>,
+    pub example: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
