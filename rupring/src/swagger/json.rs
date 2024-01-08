@@ -11,7 +11,7 @@ pub struct SwaggerSchema {
     pub info: SwaggerInfo,
 
     #[serde(rename = "host")]
-    pub host: String,
+    pub host: Option<String>,
 
     #[serde(rename = "basePath")]
     pub base_path: String,
@@ -40,7 +40,7 @@ impl Default for SwaggerSchema {
         SwaggerSchema {
             version: "2.0".to_string(),
             info: Default::default(),
-            host: "localhost:8080".to_string(),
+            host: None,
             base_path: r#""#.to_string(),
             schemes: vec!["http".to_string(), "https".to_string()],
             tags: Default::default(),
