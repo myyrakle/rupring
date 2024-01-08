@@ -237,7 +237,7 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     let new_code = format!(
         r#"
-struct {struct_name}{{}}
+pub struct {struct_name}{{}}
 impl rupring::IProvider for {struct_name} {{
     fn dependencies(&self) -> Vec<std::any::TypeId> {{
         vec![{dependencies}]

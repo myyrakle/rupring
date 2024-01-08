@@ -182,6 +182,22 @@ pub struct SwaggerOperation {
     pub security: Vec<SwaggerSecurity>,
 }
 
+impl Default for SwaggerOperation {
+    fn default() -> Self {
+        SwaggerOperation {
+            tags: Default::default(),
+            summary: "".to_string(),
+            description: "".to_string(),
+            operation_id: "".to_string(),
+            consumes: vec!["application/json".to_string()],
+            produces: vec!["application/json".to_string()],
+            parameters: Default::default(),
+            responses: Default::default(),
+            security: Default::default(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwaggerParameter {
     #[serde(rename = "name")]

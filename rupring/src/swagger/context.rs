@@ -1,14 +1,9 @@
-use std::borrow::Borrow;
-use std::sync::Mutex;
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
+use crate as rupring;
 use crate::IModule;
 
-use super::json::{SwaggerPath, SwaggerSchema};
+use super::json::{SwaggerOperation, SwaggerPath, SwaggerSchema};
 
 #[derive(Debug, Clone, Default)]
 pub struct SwaggerContext {
@@ -24,6 +19,11 @@ impl SwaggerContext {
         let mut openapi_json = self.openapi_json.write().unwrap();
         *openapi_json = serde_json::to_string(&swagger).unwrap();
     }
+}
+
+#[rupring::Component(name=InjectSwaggerContext)]
+pub fn inject_swagger_context() -> SwaggerContext {
+    SwaggerContext::default()
 }
 
 fn to_string(method: hyper::Method) -> String {
@@ -50,7 +50,20 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
 
             let method = to_string(route.method());
 
-            swagger.paths.contains_key(&normalized_path)
+            let operation = SwaggerOperation::default();
+
+            if let Some(path) = swagger.paths.get_mut(&normalized_path) {
+                if let Some(_) = path.get(&method) {
+                    continue;
+                }
+
+                path.insert(method, operation);
+                continue;
+            }
+
+            let mut path = SwaggerPath::default();
+            path.insert(method, operation);
+            swagger.paths.insert(normalized_path, path);
         }
     }
 
