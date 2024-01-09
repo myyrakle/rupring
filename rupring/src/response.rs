@@ -1,6 +1,6 @@
 use std::{collections::HashMap, panic::UnwindSafe};
 
-use crate::{HeaderName, Request};
+use crate::{meme, HeaderName, Request};
 use http_body_util::Full;
 use hyper::body::Bytes;
 
@@ -45,7 +45,7 @@ impl Response {
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static("content-type"),
-            "application/json".to_string(),
+            meme::JSON.into(),
         );
 
         self.body = match serde_json::to_string(&body) {
@@ -66,7 +66,7 @@ impl Response {
     pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static("content-type"),
-            "text/plain".to_string(),
+            meme::TEXT.to_string(),
         );
 
         self.body = body.to_string();

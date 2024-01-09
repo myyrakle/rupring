@@ -1,4 +1,4 @@
-use crate as rupring;
+use crate::{self as rupring, meme};
 
 #[rupring_macro::GetMapping(path = /)]
 pub fn get_docs(_: rupring::Request) -> rupring::Response {
@@ -25,7 +25,7 @@ pub fn get_docs(_: rupring::Request) -> rupring::Response {
 
     rupring::Response::new()
         .text(index_html)
-        .header("content-type", "text/html")
+        .header("content-type", meme::HTML)
 }
 
 #[rupring_macro::GetMapping(path = /index.css)]
@@ -50,14 +50,14 @@ pub fn get_index_css(_: rupring::Request) -> rupring::Response {
 
     rupring::Response::new()
         .text(index_html)
-        .header("content-type", "text/css")
+        .header("content-type", meme::CSS)
 }
 
 #[rupring_macro::GetMapping(path = /swagger-ui.css)]
 pub fn get_swagger_css(_: rupring::Request) -> rupring::Response {
     rupring::Response::new()
         .text(super::css::CSS)
-        .header("content-type", "text/css")
+        .header("content-type", meme::CSS)
 }
 
 #[rupring_macro::GetMapping(path = /favicon-32x32.png)]
@@ -66,7 +66,7 @@ pub fn get_favicon32(_: rupring::Request) -> rupring::Response {
 
     rupring::Response::new()
         .text(base64)
-        .header("content-type", "image/png")
+        .header("content-type", meme::PNG)
 }
 
 #[rupring_macro::GetMapping(path = /favicon-16x16.png)]
@@ -75,21 +75,21 @@ pub fn get_favicon16(_: rupring::Request) -> rupring::Response {
 
     rupring::Response::new()
         .text(base64)
-        .header("content-type", "image/png")
+        .header("content-type", meme::PNG)
 }
 
 #[rupring_macro::GetMapping(path = /swagger-ui-bundle.js)]
 pub fn get_jsbundle(_: rupring::Request) -> rupring::Response {
     rupring::Response::new()
         .text(super::js_bundle::JS_BUNDLE)
-        .header("content-type", "text/javascript")
+        .header("content-type", meme::JAVASCRIPT)
 }
 
 #[rupring_macro::GetMapping(path = /swagger-ui-standalone-preset.js)]
 pub fn get_jspreset(_: rupring::Request) -> rupring::Response {
     rupring::Response::new()
         .text(super::js_preset::JS_PRESET)
-        .header("content-type", "text/javascript")
+        .header("content-type", meme::JAVASCRIPT)
 }
 
 #[rupring_macro::GetMapping(path = /swagger-initializer.js)]
@@ -113,7 +113,7 @@ pub fn get_jsinitializer(_: rupring::Request) -> rupring::Response {
 
     rupring::Response::new()
         .text(js)
-        .header("content-type", "text/javascript")
+        .header("content-type", meme::JAVASCRIPT)
 }
 
 #[rupring_macro::GetMapping(path = /swagger.json)]
@@ -127,5 +127,5 @@ pub fn get_json(request: rupring::Request) -> rupring::Response {
 
     rupring::Response::new()
         .text(json)
-        .header("content-type", "application/json")
+        .header("content-type", meme::JAVASCRIPT)
 }
