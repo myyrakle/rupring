@@ -28,3 +28,9 @@ pub const BZIP2: &str = "application/x-bzip2";
 pub const XML: &str = "application/xml";
 pub const FORM: &str = "application/x-www-form-urlencoded";
 pub const OCTET_STREAM: &str = "application/octet-stream";
+
+// font 계열 MEME 타입
+pub const WOFF: &str = "font/woff";
+pub const WOFF2: &str = "font/woff2";
+pub const TTF: &str = "font/ttf";
+pub const OTF: &str = "font/otf";
