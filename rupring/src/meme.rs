@@ -34,3 +34,7 @@ pub const WOFF: &str = "font/woff";
 pub const WOFF2: &str = "font/woff2";
 pub const TTF: &str = "font/ttf";
 pub const OTF: &str = "font/otf";
+
+// video 계열 MEME 타입
+pub const MP4: &str = "video/mp4";
+pub const WEBM: &str = "video/webm";
