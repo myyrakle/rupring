@@ -1,6 +1,6 @@
 use std::{collections::HashMap, panic::UnwindSafe};
 
-use crate::{HeaderName, Request};
+use crate::{meme, HeaderName, Request};
 use http_body_util::Full;
 use hyper::body::Bytes;
 
@@ -45,7 +45,7 @@ impl Response {
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static("content-type"),
-            "application/json".to_string(),
+            meme::JSON.into(),
         );
 
         self.body = match serde_json::to_string(&body) {
@@ -63,13 +63,13 @@ impl Response {
     /// ```
     /// let response = rupring::Response::new().text("Hello World".to_string());
     /// assert_eq!(response.body, "Hello World".to_string());
-    pub fn text(mut self, body: String) -> Self {
+    pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static("content-type"),
-            "text/plain".to_string(),
+            meme::TEXT.to_string(),
         );
 
-        self.body = body;
+        self.body = body.to_string();
 
         return self;
     }
@@ -88,8 +88,9 @@ impl Response {
     /// use rupring::HeaderName;
     /// let response = rupring::Response::new().header("content-type", "application/json".to_string());
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
-    pub fn header(mut self, name: &'static str, value: String) -> Self {
-        self.headers.insert(HeaderName::from_static(name), value);
+    pub fn header(mut self, name: &'static str, value: impl ToString) -> Self {
+        self.headers
+            .insert(HeaderName::from_static(name), value.to_string());
         return self;
     }
 
@@ -98,7 +99,7 @@ impl Response {
     /// use rupring::HeaderName;
     /// use std::collections::HashMap;
     /// let mut headers = HashMap::new();
-    /// headers.insert(HeaderName::from_static("content-type"), "application/json".to_string());
+    /// headers.insert(HeaderName::from_static("content-type"), "application/json");
     /// let response = rupring::Response::new().headers(headers);
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
     pub fn headers(mut self, headers: HashMap<HeaderName, String>) -> Self {
@@ -110,9 +111,9 @@ impl Response {
     /// ```
     /// use rupring::HeaderName;
     /// use std::collections::HashMap;
-    /// let response = rupring::Response::new().redirect("https://naver.com".to_string());
+    /// let response = rupring::Response::new().redirect("https://naver.com");
     /// assert_eq!(response.headers.get(&HeaderName::from_static("location")).unwrap(), &"https://naver.com".to_string());
-    pub fn redirect(mut self, url: String) -> Self {
+    pub fn redirect(mut self, url: impl ToString) -> Self {
         if self.status < 300 || self.status > 308 {
             self.status = 302;
         }
