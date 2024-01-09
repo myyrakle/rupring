@@ -88,8 +88,9 @@ impl Response {
     /// use rupring::HeaderName;
     /// let response = rupring::Response::new().header("content-type", "application/json".to_string());
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
-    pub fn header(mut self, name: &'static str, value: String) -> Self {
-        self.headers.insert(HeaderName::from_static(name), value);
+    pub fn header(mut self, name: &'static str, value: impl ToString) -> Self {
+        self.headers
+            .insert(HeaderName::from_static(name), value.to_string());
         return self;
     }
 
