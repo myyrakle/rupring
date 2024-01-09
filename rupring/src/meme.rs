@@ -38,3 +38,8 @@ pub const OTF: &str = "font/otf";
 // video 계열 MEME 타입
 pub const MP4: &str = "video/mp4";
 pub const WEBM: &str = "video/webm";
+
+// audio 계열 MEME 타입
+pub const MP3: &str = "audio/mpeg";
+pub const WAV: &str = "audio/x-wav";
+pub const OGG: &str = "audio/ogg";
