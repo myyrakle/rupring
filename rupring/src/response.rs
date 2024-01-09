@@ -63,13 +63,13 @@ impl Response {
     /// ```
     /// let response = rupring::Response::new().text("Hello World".to_string());
     /// assert_eq!(response.body, "Hello World".to_string());
-    pub fn text(mut self, body: String) -> Self {
+    pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static("content-type"),
             "text/plain".to_string(),
         );
 
-        self.body = body;
+        self.body = body.to_string();
 
         return self;
     }

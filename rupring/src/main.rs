@@ -138,7 +138,7 @@ pub struct HomeController {}
 
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().text("123214".into())
+    rupring::Response::new().text("123214")
 }
 
 #[rupring::Get(path = /user)]
