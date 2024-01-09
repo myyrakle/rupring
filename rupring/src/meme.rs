@@ -16,3 +16,15 @@ pub const TIF: &str = "image/tiff";
 pub const PSD: &str = "image/vnd.adobe.photoshop";
 pub const DWG: &str = "image/vnd.dwg";
 pub const DXF: &str = "image/vnd.dxf";
+
+// application 계열 MEME 타입
+pub const JSON: &str = "application/json";
+pub const PDF: &str = "application/pdf";
+pub const ZIP: &str = "application/zip";
+pub const TAR: &str = "application/x-tar";
+pub const GZIP: &str = "application/gzip";
+pub const BZIP: &str = "application/x-bzip";
+pub const BZIP2: &str = "application/x-bzip2";
+pub const XML: &str = "application/xml";
+pub const FORM: &str = "application/x-www-form-urlencoded";
+pub const OCTET_STREAM: &str = "application/octet-stream";
