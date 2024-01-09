@@ -305,6 +305,7 @@ fn inject_counter_service(something: SomethingRepository) -> CounterService {
 pub(crate) mod boot;
 mod header;
 mod logger;
+pub(crate) mod meme;
 pub(crate) mod request;
 pub(crate) mod response;
 pub mod swagger;
