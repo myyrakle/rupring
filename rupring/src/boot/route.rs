@@ -240,12 +240,12 @@ mod tests {
         
         #[rupring::Get(path = /)]
         pub fn hello(_request: rupring::Request) -> rupring::Response {
-            rupring::Response::new().redirect("https://naver.com".into())
+            rupring::Response::new().redirect("https://naver.com")
         }
         
         #[rupring::Get(path = /user)]
         pub fn get_user(_: rupring::Request, _: rupring::Response) -> rupring::Response {
-            rupring::Response::new().text("asdf".into())
+            rupring::Response::new().text("asdf")
         }
         
         #[rupring::Get(path = /echo)]

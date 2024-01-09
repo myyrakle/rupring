@@ -182,7 +182,7 @@ pub struct UserModule {}
 
 #[rupring::Get(path = /go-to-naver)]
 pub fn go_to_naver(_: rupring::Request, _: rupring::Response) -> rupring::Response {
-    rupring::Response::new().redirect("https://naver.com".into())
+    rupring::Response::new().redirect("https://naver.com")
 }
 
 #[derive(Debug, Clone)]
