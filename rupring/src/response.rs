@@ -1,6 +1,6 @@
 use std::{collections::HashMap, panic::UnwindSafe};
 
-use crate::{meme, HeaderName, Request};
+use crate::{header, meme, HeaderName, Request};
 use http_body_util::Full;
 use hyper::body::Bytes;
 
@@ -118,7 +118,7 @@ impl Response {
             self.status = 302;
         }
 
-        self.header("location", url)
+        self.header(header::LOCATION, url)
     }
 }
 

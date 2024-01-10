@@ -12,6 +12,9 @@ pub const USER_AGENT: &'static str = "user-agent";
 pub const HOST: &'static str = "host";
 pub const CONNECTION: &'static str = "connection";
 
+// response only headers
+pub const LOCATION: &'static str = "location";
+
 // custum headers
 pub const REQUEST_ID: &'static str = "request-id";
 
