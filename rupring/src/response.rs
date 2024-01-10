@@ -44,7 +44,7 @@ impl Response {
     /// ```
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
         self.headers.insert(
-            crate::HeaderName::from_static("content-type"),
+            crate::HeaderName::from_static(header::CONTENT_TYPE),
             meme::JSON.into(),
         );
 
@@ -65,7 +65,7 @@ impl Response {
     /// assert_eq!(response.body, "Hello World".to_string());
     pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
-            crate::HeaderName::from_static("content-type"),
+            crate::HeaderName::from_static(header::CONTENT_TYPE),
             meme::TEXT.to_string(),
         );
 
