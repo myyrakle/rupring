@@ -432,6 +432,7 @@ pub use boot::di::IProvider;
 pub use request::Request;
 /// HTTP Response
 pub use response::Response;
+use swagger::json::SwaggerOperation;
 
 /// Module interface
 pub trait IModule {
@@ -456,6 +457,10 @@ pub trait IRoute {
     fn method(&self) -> Method;
     fn path(&self) -> String;
     fn handler(&self) -> Box<dyn IHandler + Send + 'static>;
+
+    fn swagger(&self) -> SwaggerOperation {
+        Default::default()
+    }
 }
 
 /// Handler interface
