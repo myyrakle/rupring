@@ -351,6 +351,16 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
 
     let mut swagger_code = "".to_string();
 
+    if let Some(summary) = attribute_map.get("summary") {
+        match summary {
+            parse::AttributeValue::String(summary) => {
+                swagger_code
+                    .push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
+            }
+            _ => {}
+        }
+    }
+
     let new_code = format!(
         r#"
 #[derive(Debug, Clone)]

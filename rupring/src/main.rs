@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use rupring::NextFunction;
+use rupring::{NextFunction, swagger::SwaggerOperation};
 
 #[derive(Debug, Clone, Default)]
 pub struct CounterService {
@@ -133,13 +133,16 @@ pub fn logger_middleware(
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello,  count, go_to_naver, foo::echo, echo])]
+#[rupring::Controller(prefix=/, routes=[hello, count, go_to_naver, foo::echo, echo])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text("123214")
 }
+
+
+static swagger_op: Option<SwaggerOperation> = None;
 
 #[rupring::Get(path = /user)]
 pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
