@@ -6,3 +6,5 @@ pub mod js_preset;
 pub mod json;
 pub mod module;
 pub mod routes;
+
+pub use json::*;

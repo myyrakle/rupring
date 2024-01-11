@@ -349,6 +349,8 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let route_name = rule::make_route_name(function_name.as_str());
     let handler_name = rule::make_handler_name(function_name.as_str());
 
+    let mut swagger_code = "".to_string();
+
     let new_code = format!(
         r#"
 #[derive(Debug, Clone)]
@@ -365,6 +367,12 @@ impl rupring::IRoute for {route_name} {{
 
     fn handler(&self) -> Box<dyn rupring::IHandler + Send + 'static> {{
         Box::new({handler_name}{{}})
+    }}
+
+    fn swagger(&self) -> rupring::swagger::SwaggerOperation {{
+        let mut swagger = Default::default();
+        {swagger_code}
+        swagger
     }}
 }}
 
