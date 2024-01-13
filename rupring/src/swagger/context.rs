@@ -5,7 +5,7 @@ use crate::IModule;
 
 use super::{
     json::{SwaggerPath, SwaggerSchema},
-    SwaggerTag,
+    SwaggerTags,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -16,7 +16,7 @@ pub struct SwaggerContext {
 impl SwaggerContext {
     pub fn initialize_from_module(&self, module: impl IModule + Clone + 'static) {
         let mut swagger = SwaggerSchema::default();
-        swagger.tags = unsafe { SWAGGER_TAGS.clone() };
+        swagger.tags = unsafe { SWAGGER_TAGS.0.clone() };
 
         generate_swagger(&mut swagger, Box::new(module));
 
@@ -45,7 +45,7 @@ fn to_string(method: hyper::Method) -> String {
     }
 }
 
-static mut SWAGGER_TAGS: Vec<SwaggerTag> = vec![];
+static mut SWAGGER_TAGS: SwaggerTags = SwaggerTags::new();
 
 fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IModule>) {
     for controller in root_module.controllers() {

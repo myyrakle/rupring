@@ -127,7 +127,36 @@ pub struct SwaggerTag {
     pub description: String,
 
     #[serde(rename = "externalDocs")]
-    pub external_docs: SwaggerExternalDoc,
+    pub external_docs: Option<SwaggerExternalDoc>,
+}
+
+pub struct SwaggerTags(pub(crate) Vec<SwaggerTag>);
+
+impl SwaggerTags {
+    pub const fn new() -> Self {
+        SwaggerTags(vec![])
+    }
+
+    // if exists, do nothing
+    // if not exists, add tag
+    pub fn add_tag(&mut self, tag: String) {
+        let mut exists = false;
+
+        for swagger_tag in self.0.iter() {
+            if swagger_tag.name == tag {
+                exists = true;
+                break;
+            }
+        }
+
+        if !exists {
+            self.0.push(SwaggerTag {
+                name: tag,
+                description: "".to_string(),
+                external_docs: None,
+            });
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
