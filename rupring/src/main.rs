@@ -139,11 +139,13 @@ pub struct HomeController {}
 #[rupring::Get(path = /)]
 #[summary = "기본 root API입니다."]
 #[description = "별다른 기능은 없습니다."]
+#[tags = [home]]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text("123214")
 }
 
 #[rupring::Get(path = /user)]
+#[tags = [user]]
 pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
     let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
 

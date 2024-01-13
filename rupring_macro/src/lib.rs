@@ -350,6 +350,27 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         .trim_end_matches("\"")
         .to_owned();
 
+    let tags = additional_attributes
+        .get("tags")
+        .map(|e| match e {
+            parse::AttributeValue::ListOfString(tags) => tags.to_owned(),
+            parse::AttributeValue::String(tag) => vec![tag.to_owned()],
+        })
+        .map(|e| {
+            e.iter()
+                .map(|e| e.trim_start_matches("\"").trim_end_matches("\"").to_owned())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let tags = format!(
+        "vec![{}]",
+        tags.iter()
+            .map(|e| format!("\"{}\".to_string()", e))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+
     let mut item = ManipulateRouteFunctionParameters(item);
 
     let function_name = parse::find_function_name(item.clone());
@@ -370,6 +391,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
 
     swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.description = \"{description}\".to_string();").as_str());
+    swagger_code.push_str(format!("swagger.tags = {tags};", tags = tags).as_str());
 
     let new_code = format!(
         r#"
