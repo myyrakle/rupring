@@ -333,6 +333,15 @@ fn ManipulateRouteFunctionParameters(item: TokenStream) -> TokenStream {
 
 #[allow(non_snake_case)]
 fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream {
+    let (item, additional_attributes) = parse::parse_additional_attributes(item);
+    let summary = additional_attributes
+        .get("summary")
+        .map(|e| e.as_string())
+        .unwrap_or_default()
+        .trim_start_matches("\"")
+        .trim_end_matches("\"")
+        .to_owned();
+
     let mut item = ManipulateRouteFunctionParameters(item);
 
     let function_name = parse::find_function_name(item.clone());
@@ -351,15 +360,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
 
     let mut swagger_code = "".to_string();
 
-    if let Some(summary) = attribute_map.get("summary") {
-        match summary {
-            parse::AttributeValue::String(summary) => {
-                swagger_code
-                    .push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
-            }
-            _ => {}
-        }
-    }
+    swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
 
     let new_code = format!(
         r#"
@@ -380,7 +381,7 @@ impl rupring::IRoute for {route_name} {{
     }}
 
     fn swagger(&self) -> rupring::swagger::SwaggerOperation {{
-        let mut swagger = Default::default();
+        let mut swagger = rupring::swagger::SwaggerOperation::default();
         {swagger_code}
         swagger
     }}
