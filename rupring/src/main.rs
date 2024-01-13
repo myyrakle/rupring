@@ -137,7 +137,8 @@ pub struct RootModule {}
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
-#[summary = "Hello, World!"]
+#[summary = "기본 root API입니다."]
+#[description = "별다른 기능은 없습니다."]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text("123214")
 }

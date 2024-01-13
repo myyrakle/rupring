@@ -342,6 +342,14 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         .trim_end_matches("\"")
         .to_owned();
 
+    let description = additional_attributes
+        .get("description")
+        .map(|e| e.as_string())
+        .unwrap_or_default()
+        .trim_start_matches("\"")
+        .trim_end_matches("\"")
+        .to_owned();
+
     let mut item = ManipulateRouteFunctionParameters(item);
 
     let function_name = parse::find_function_name(item.clone());
@@ -361,6 +369,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let mut swagger_code = "".to_string();
 
     swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
+    swagger_code.push_str(format!("swagger.description = \"{description}\".to_string();").as_str());
 
     let new_code = format!(
         r#"
