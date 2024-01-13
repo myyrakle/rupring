@@ -3,7 +3,10 @@ use std::sync::{Arc, RwLock};
 use crate as rupring;
 use crate::IModule;
 
-use super::json::{SwaggerPath, SwaggerSchema};
+use super::{
+    json::{SwaggerPath, SwaggerSchema},
+    SwaggerTag,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct SwaggerContext {
@@ -13,6 +16,7 @@ pub struct SwaggerContext {
 impl SwaggerContext {
     pub fn initialize_from_module(&self, module: impl IModule + Clone + 'static) {
         let mut swagger = SwaggerSchema::default();
+        swagger.tags = unsafe { SWAGGER_TAGS.clone() };
 
         generate_swagger(&mut swagger, Box::new(module));
 
@@ -40,6 +44,8 @@ fn to_string(method: hyper::Method) -> String {
         _ => "UNKNOWN".to_string(),
     }
 }
+
+static mut SWAGGER_TAGS: Vec<SwaggerTag> = vec![];
 
 fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IModule>) {
     for controller in root_module.controllers() {
