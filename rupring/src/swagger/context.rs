@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 use crate as rupring;
 use crate::IModule;
 
-use super::json::{SwaggerOperation, SwaggerPath, SwaggerSchema};
+use super::json::{SwaggerPath, SwaggerSchema};
 
 #[derive(Debug, Clone, Default)]
 pub struct SwaggerContext {
@@ -47,6 +47,7 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
 
         for route in controller.routes() {
             let normalized_path = crate::boot::route::normalize_path(prefix.clone(), route.path());
+            let operation = route.swagger();
 
             // TODO: 추후에는 swagger ignore 속성을 추가해서 그걸로 처리
             match normalized_path.as_str() {
@@ -63,8 +64,6 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
             }
 
             let method = to_string(route.method());
-
-            let operation = SwaggerOperation::default();
 
             if let Some(path) = swagger.paths.get_mut(&normalized_path) {
                 if let Some(_) = path.get(&method) {

@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use rupring::NextFunction;
+use rupring::{NextFunction};
 
 #[derive(Debug, Clone, Default)]
 pub struct CounterService {
@@ -133,10 +133,12 @@ pub fn logger_middleware(
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello,  count, go_to_naver, foo::echo, echo])]
+#[rupring::Controller(prefix=/, routes=[hello, count, go_to_naver, foo::echo, echo])]
 pub struct HomeController {}
 
 #[rupring::Get(path = /)]
+#[summary = "기본 root API입니다."]
+#[description = "별다른 기능은 없습니다."]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text("123214")
 }

@@ -81,6 +81,58 @@ pub enum AttributeValue {
     String(String),
 }
 
+impl AttributeValue {
+    pub fn as_string(&self) -> String {
+        match self {
+            AttributeValue::String(value) => value.clone(),
+            AttributeValue::ListOfString(value) => value.join(","),
+        }
+    }
+}
+
+pub(crate) fn parse_additional_attributes(
+    item: TokenStream,
+) -> (TokenStream, HashMap<String, AttributeValue>) {
+    let mut map = HashMap::new();
+
+    let mut code_without_attributes: Vec<proc_macro::TokenTree> = vec![];
+    let mut iter = item.into_iter();
+    let mut done = false;
+
+    while let Some(tree) = iter.next() {
+        if done {
+            code_without_attributes.push(tree);
+            continue;
+        }
+
+        match tree {
+            proc_macro::TokenTree::Punct(ref punct) => {
+                if punct.to_string().as_str() == "#" {
+                    // [Key1 = value1, key2, value2, ...] 형태의 attribute를 파싱해서 map에 할당한다.
+                    if let Some(group) = iter.next() {
+                        if let proc_macro::TokenTree::Group(group) = group {
+                            let attributes = parse_attribute(group.stream());
+
+                            for (key, value) in attributes {
+                                map.insert(key, value);
+                            }
+                        }
+                    }
+                } else {
+                    code_without_attributes.push(tree);
+                    done = true;
+                }
+            }
+            _ => {
+                code_without_attributes.push(tree);
+                done = true;
+            }
+        }
+    }
+
+    (code_without_attributes.into_iter().collect(), map)
+}
+
 // controllers = [HomeController {}], modules = [] => HashMap<String, AttributeValue>
 pub(crate) fn parse_attribute(item: TokenStream) -> HashMap<String, AttributeValue> {
     let mut tokens = item.into_iter();
