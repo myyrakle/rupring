@@ -135,3 +135,11 @@ impl TryFrom<ParamString> for f64 {
         value.0.parse::<f64>().map_err(|_| ())
     }
 }
+
+impl TryFrom<ParamString> for bool {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<bool>().map_err(|_| ())
+    }
+}
