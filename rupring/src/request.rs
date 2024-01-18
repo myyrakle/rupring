@@ -143,3 +143,11 @@ impl TryFrom<ParamString> for bool {
         value.0.parse::<bool>().map_err(|_| ())
     }
 }
+
+impl TryFrom<ParamString> for String {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        Ok(value.0)
+    }
+}
