@@ -119,3 +119,19 @@ impl TryFrom<ParamString> for usize {
         value.0.parse::<usize>().map_err(|_| ())
     }
 }
+
+impl TryFrom<ParamString> for f32 {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<f32>().map_err(|_| ())
+    }
+}
+
+impl TryFrom<ParamString> for f64 {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<f64>().map_err(|_| ())
+    }
+}
