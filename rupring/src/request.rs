@@ -71,3 +71,51 @@ impl TryFrom<ParamString> for isize {
         value.0.parse::<isize>().map_err(|_| ())
     }
 }
+
+impl TryFrom<ParamString> for u8 {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<u8>().map_err(|_| ())
+    }
+}
+
+impl TryFrom<ParamString> for u16 {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<u16>().map_err(|_| ())
+    }
+}
+
+impl TryFrom<ParamString> for u32 {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<u32>().map_err(|_| ())
+    }
+}
+
+impl TryFrom<ParamString> for u64 {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<u64>().map_err(|_| ())
+    }
+}
+
+impl TryFrom<ParamString> for u128 {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<u128>().map_err(|_| ())
+    }
+}
+
+impl TryFrom<ParamString> for usize {
+    type Error = ();
+
+    fn try_from(value: ParamString) -> Result<Self, Self::Error> {
+        value.0.parse::<usize>().map_err(|_| ())
+    }
+}
