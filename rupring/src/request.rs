@@ -30,6 +30,21 @@ pub trait ParamStringDeserializer<T>: Sized {
     fn deserialize(&self) -> Result<T, Self::Error>;
 }
 
+impl<T> ParamStringDeserializer<Option<T>> for ParamString
+where
+    ParamString: ParamStringDeserializer<T>,
+{
+    type Error = ();
+
+    fn deserialize(&self) -> Result<Option<T>, Self::Error> {
+        let result = Self::deserialize(self);
+        match result {
+            Ok(v) => Ok(Some(v)),
+            Err(_) => Ok(None),
+        }
+    }
+}
+
 impl TryFrom<ParamString> for i8 {
     type Error = ();
 
