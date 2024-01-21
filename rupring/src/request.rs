@@ -24,6 +24,12 @@ impl Request {
 #[derive(Debug, Clone)]
 pub struct ParamString(String);
 
+pub trait ParamStringDeserializer<T>: Sized {
+    type Error;
+
+    fn deserialize(&self) -> Result<T, Self::Error>;
+}
+
 impl TryFrom<ParamString> for i8 {
     type Error = ();
 
