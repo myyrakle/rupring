@@ -1,6 +1,5 @@
 mod parse;
 mod rule;
-
 use std::str::FromStr;
 
 use proc_macro::TokenStream;
@@ -255,85 +254,8 @@ impl rupring::IProvider for {struct_name} {{
 }
 
 #[allow(non_snake_case)]
-fn ManipulateRouteFunctionParameters(item: TokenStream) -> TokenStream {
-    let mut new_item = vec![];
-
-    let mut iter = item.into_iter();
-
-    let mut fn_passed = false;
-    let mut out_of_parameter = false;
-
-    while let Some(mut token_tree) = iter.next() {
-        match token_tree.clone() {
-            proc_macro::TokenTree::Ident(ident) => match ident.to_string().as_str() {
-                "fn" => {
-                    if !out_of_parameter {
-                        fn_passed = true;
-                    }
-                }
-                _ => {}
-            },
-            proc_macro::TokenTree::Group(delimiter) => {
-                if fn_passed && !out_of_parameter {
-                    let mut iter = delimiter.stream().into_iter();
-
-                    let mut new_group = vec![];
-                    let mut comma_count = 0;
-
-                    while let Some(token_tree) = iter.next() {
-                        match token_tree.clone() {
-                            proc_macro::TokenTree::Punct(punct) => {
-                                if punct.to_string().as_str() == "," {
-                                    comma_count += 1;
-                                }
-
-                                new_group.push(token_tree);
-                            }
-                            _ => {
-                                new_group.push(token_tree);
-                            }
-                        }
-                    }
-
-                    if comma_count == 0 {
-                        let new_code =
-                            TokenStream::from_str(", response: rupring::Response").unwrap();
-
-                        for token_tree in new_code.into_iter() {
-                            new_group.push(token_tree);
-                        }
-                    }
-
-                    if comma_count == 1 && new_group.last().unwrap().to_string().as_str() == "," {
-                        let new_code =
-                            TokenStream::from_str(" response: rupring::Response").unwrap();
-
-                        for token_tree in new_code.into_iter() {
-                            new_group.push(token_tree);
-                        }
-                    }
-
-                    token_tree = proc_macro::TokenTree::Group(proc_macro::Group::new(
-                        delimiter.delimiter(),
-                        new_group.into_iter().collect(),
-                    ));
-
-                    out_of_parameter = true;
-                }
-            }
-
-            _ => {}
-        }
-
-        new_item.push(token_tree);
-    }
-
-    new_item.into_iter().collect()
-}
-
-#[allow(non_snake_case)]
 fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream {
-    let (item, additional_attributes) = parse::parse_additional_attributes(item);
+    let (item, additional_attributes) = parse::extract_additional_attributes(item);
     let summary = additional_attributes
         .get("summary")
         .map(|e| e.as_string())
@@ -371,7 +293,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             .join(", ")
     );
 
-    let mut item = ManipulateRouteFunctionParameters(item);
+    let mut item = parse::manipulate_route_function_parameters(item);
 
     let function_name = parse::find_function_name(item.clone());
     let attribute_map = parse::parse_attribute(attr.clone());

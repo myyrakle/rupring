@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use proc_macro::{TokenStream, TokenTree};
 
@@ -90,7 +91,7 @@ impl AttributeValue {
     }
 }
 
-pub(crate) fn parse_additional_attributes(
+pub(crate) fn extract_additional_attributes(
     item: TokenStream,
 ) -> (TokenStream, HashMap<String, AttributeValue>) {
     let mut map = HashMap::new();
@@ -188,4 +189,81 @@ pub(crate) fn parse_attribute(item: TokenStream) -> HashMap<String, AttributeVal
     }
 
     return attribute_map;
+}
+
+// 타입 일관성을 위해 Request와 Response 매개변수가 존재하지 않는다면 강제로 추가합니다.
+pub(crate) fn manipulate_route_function_parameters(item: TokenStream) -> TokenStream {
+    let mut new_item = vec![];
+
+    let mut iter = item.into_iter();
+
+    let mut fn_passed = false;
+    let mut out_of_parameter = false;
+
+    while let Some(mut token_tree) = iter.next() {
+        match token_tree.clone() {
+            proc_macro::TokenTree::Ident(ident) => match ident.to_string().as_str() {
+                "fn" => {
+                    if !out_of_parameter {
+                        fn_passed = true;
+                    }
+                }
+                _ => {}
+            },
+            proc_macro::TokenTree::Group(delimiter) => {
+                if fn_passed && !out_of_parameter {
+                    let mut iter = delimiter.stream().into_iter();
+
+                    let mut new_group = vec![];
+                    let mut comma_count = 0;
+
+                    while let Some(token_tree) = iter.next() {
+                        match token_tree.clone() {
+                            proc_macro::TokenTree::Punct(punct) => {
+                                if punct.to_string().as_str() == "," {
+                                    comma_count += 1;
+                                }
+
+                                new_group.push(token_tree);
+                            }
+                            _ => {
+                                new_group.push(token_tree);
+                            }
+                        }
+                    }
+
+                    if comma_count == 0 {
+                        let new_code =
+                            TokenStream::from_str(", response: rupring::Response").unwrap();
+
+                        for token_tree in new_code.into_iter() {
+                            new_group.push(token_tree);
+                        }
+                    }
+
+                    if comma_count == 1 && new_group.last().unwrap().to_string().as_str() == "," {
+                        let new_code =
+                            TokenStream::from_str(" response: rupring::Response").unwrap();
+
+                        for token_tree in new_code.into_iter() {
+                            new_group.push(token_tree);
+                        }
+                    }
+
+                    token_tree = proc_macro::TokenTree::Group(proc_macro::Group::new(
+                        delimiter.delimiter(),
+                        new_group.into_iter().collect(),
+                    ));
+
+                    out_of_parameter = true;
+                }
+            }
+
+            _ => {}
+        }
+
+        new_item.push(token_tree);
+    }
+
+    new_item.into_iter().collect()
 }
