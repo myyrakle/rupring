@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use proc_macro::{TokenStream, TokenTree};
 
@@ -75,7 +76,7 @@ pub(crate) fn find_function_return_type(item: TokenStream) -> String {
     return return_type;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum AttributeValue {
     ListOfString(Vec<String>),
     String(String),
@@ -90,7 +91,7 @@ impl AttributeValue {
     }
 }
 
-pub(crate) fn parse_additional_attributes(
+pub(crate) fn extract_additional_attributes(
     item: TokenStream,
 ) -> (TokenStream, HashMap<String, AttributeValue>) {
     let mut map = HashMap::new();
@@ -188,4 +189,196 @@ pub(crate) fn parse_attribute(item: TokenStream) -> HashMap<String, AttributeVal
     }
 
     return attribute_map;
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct AnnotatedParameter {
+    pub(crate) attributes: HashMap<String, AttributeValue>,
+    pub(crate) name: String,
+    pub(crate) type_: String,
+}
+
+// 1. 타입 일관성을 위해 Request와 Response 매개변수가 존재하지 않는다면 강제로 추가합니다.
+// 2. 어노테이션이 붙은 특수한 파라미터를 제거해서 반환합니다.
+pub(crate) fn manipulate_route_function_parameters(
+    item: TokenStream,
+) -> (TokenStream, Vec<AnnotatedParameter>) {
+    let mut new_item = vec![];
+    let mut parameters = vec![];
+
+    let mut iter = item.into_iter();
+
+    let mut fn_passed = false;
+    let mut out_of_parameter = false;
+
+    while let Some(mut token_tree) = iter.next() {
+        match token_tree.clone() {
+            proc_macro::TokenTree::Ident(ident) => match ident.to_string().as_str() {
+                "fn" => {
+                    if !out_of_parameter {
+                        fn_passed = true;
+                    }
+                }
+                _ => {}
+            },
+            proc_macro::TokenTree::Group(delimiter) => {
+                if fn_passed && !out_of_parameter {
+                    // 파라미터 영역을 분석합니다.
+                    let mut iter = delimiter.stream().into_iter();
+                    let mut annotation_removed = vec![];
+
+                    // annotation이 달린 특수한 파라미터들을 추출합니다.
+                    // ,를 기준으로 파라미터를 분리해서 분석합니다.
+                    while let Some(token_tree) = iter.next() {
+                        match token_tree.clone() {
+                            proc_macro::TokenTree::Punct(punct) => {
+                                let punct = punct.to_string();
+
+                                match punct.as_str() {
+                                    "#" => {
+                                        let group = iter.next().unwrap();
+
+                                        let attributes =
+                                            if let proc_macro::TokenTree::Group(group) = group {
+                                                parse_attribute(group.stream())
+                                            } else {
+                                                panic!("invalid annotation parameter");
+                                            };
+
+                                        let expect_name = iter.next().unwrap();
+                                        let name = if let proc_macro::TokenTree::Ident(ident) =
+                                            expect_name
+                                        {
+                                            ident.to_string()
+                                        } else {
+                                            panic!("invalid annotation parameter");
+                                        };
+
+                                        let expect_colon = iter.next().unwrap();
+                                        if expect_colon.to_string().as_str() != ":" {
+                                            panic!("invalid annotation parameter");
+                                        }
+
+                                        let mut type_ = "".to_string();
+                                        while let Some(token_tree) = iter.next() {
+                                            let token_tree = token_tree.clone();
+                                            let token_tree = token_tree.to_string();
+
+                                            if token_tree.as_str() == "," {
+                                                break;
+                                            }
+
+                                            type_.push_str(token_tree.as_str());
+                                        }
+
+                                        parameters.push(AnnotatedParameter {
+                                            attributes,
+                                            name,
+                                            type_,
+                                        });
+                                    }
+                                    _ => {
+                                        annotation_removed.push(token_tree);
+                                    }
+                                }
+                            }
+                            _ => annotation_removed.push(token_tree),
+                        }
+                    }
+
+                    let mut iter = annotation_removed.into_iter();
+
+                    let mut new_group = vec![];
+                    let mut comma_count = 0;
+
+                    // ,를 기준으로 파라미터를 분리해서 분석합니다.
+                    while let Some(token_tree) = iter.next() {
+                        match token_tree.clone() {
+                            proc_macro::TokenTree::Punct(punct) => {
+                                if punct.to_string().as_str() == "," {
+                                    comma_count += 1;
+                                }
+
+                                new_group.push(token_tree);
+                            }
+                            _ => {
+                                new_group.push(token_tree);
+                            }
+                        }
+                    }
+
+                    if comma_count == 0 {
+                        let new_code =
+                            TokenStream::from_str(", response: rupring::Response").unwrap();
+
+                        for token_tree in new_code.into_iter() {
+                            new_group.push(token_tree);
+                        }
+                    }
+
+                    if comma_count == 1 && new_group.last().unwrap().to_string().as_str() == "," {
+                        let new_code =
+                            TokenStream::from_str(" response: rupring::Response").unwrap();
+
+                        for token_tree in new_code.into_iter() {
+                            new_group.push(token_tree);
+                        }
+                    }
+
+                    token_tree = proc_macro::TokenTree::Group(proc_macro::Group::new(
+                        delimiter.delimiter(),
+                        new_group.into_iter().collect(),
+                    ));
+
+                    out_of_parameter = true;
+                }
+            }
+
+            _ => {}
+        }
+
+        new_item.push(token_tree);
+    }
+
+    (new_item.into_iter().collect(), parameters)
+}
+
+pub(crate) fn prepend_code_to_function_body(item: TokenStream, code: TokenStream) -> TokenStream {
+    let mut new_item = vec![];
+    let mut iter = item.into_iter();
+    let mut prepended = false;
+
+    while let Some(token_tree) = iter.next() {
+        if !prepended {
+            if let proc_macro::TokenTree::Group(group) = token_tree.clone() {
+                if group.delimiter() == proc_macro::Delimiter::Brace {
+                    let mut new_tokens = vec![];
+
+                    for token_tree in code.clone().into_iter() {
+                        new_tokens.push(token_tree);
+                    }
+
+                    let group_stream = group.stream();
+                    let mut group_iter = group_stream.into_iter();
+                    while let Some(group_token) = group_iter.next() {
+                        new_tokens.push(group_token);
+                    }
+
+                    let replaced_group = proc_macro::Group::new(
+                        proc_macro::Delimiter::Brace,
+                        new_tokens.into_iter().collect(),
+                    );
+
+                    new_item.push(proc_macro::TokenTree::Group(replaced_group));
+
+                    prepended = true;
+                    continue;
+                }
+            }
+        }
+
+        new_item.push(token_tree);
+    }
+
+    new_item.into_iter().collect()
 }

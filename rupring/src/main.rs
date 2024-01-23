@@ -126,72 +126,78 @@ pub fn logger_middleware(
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(
     controllers=[HomeController{}], 
-    modules=[UserModule{}, rupring::swagger::module::SwaggerModule{}], 
+    modules=[rupring::swagger::module::SwaggerModule{}], 
     providers=[CounterServiceFactory{}], 
     middlewares=[]
 )]
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[hello, count, go_to_naver, foo::echo, echo])]
+#[rupring::Controller(prefix=/, routes=[echo])]
 pub struct HomeController {}
 
-#[rupring::Get(path = /)]
-#[summary = "기본 root API입니다."]
-#[description = "별다른 기능은 없습니다."]
-#[tags = [home]]
-pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().text("123214")
-}
+// #[rupring::Get(path = /)]
+// #[summary = "기본 root API입니다."]
+// #[description = "별다른 기능은 없습니다."]
+// #[tags = [home]]
+// pub fn hello(_request: rupring::Request) -> rupring::Response {
+//     rupring::Response::new().text("123214")
+// }
 
-#[rupring::Get(path = /user)]
-#[tags = [user]]
-pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
+// #[rupring::Get(path = /user)]
+// #[tags = [user]]
+// pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+//     let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
 
-    rupring::Response::new().text(user_service.get_user())
-}
+//     rupring::Response::new().text(user_service.get_user())
+// }
 
-mod foo {
-    #[rupring::Get(path = /echo2)]
-    pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-        rupring::Response::new().text(request.body)
-    }
-}
+// mod foo {
+//     #[rupring::Get(path = /echo2)]
+//     pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+//         rupring::Response::new().text(request.body)
+//     }
+// }
 
-#[rupring::Get(path = /echo)]
-pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+#[rupring::Get(path = /echo/:id)]
+pub fn echo(
+    request: rupring::Request, 
+    _: rupring::Response, 
+    #[path=id] id: i32
+) -> rupring::Response {
+println!("id: {}", id);
+
     rupring::Response::new().text(request.body)
 }
 
-#[rupring::Get(path = /count)]
-pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    let counter_service = request.get_provider::<CounterService>().unwrap();
-    counter_service.increment();
-    let count = counter_service.get();
+// #[rupring::Get(path = /count)]
+// pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+//     let counter_service = request.get_provider::<CounterService>().unwrap();
+//     counter_service.increment();
+//     let count = counter_service.get();
 
-    rupring::Response::new().text(format!("{}", count))
-}
+//     rupring::Response::new().text(format!("{}", count))
+// }
 
-#[derive(Debug, Clone, Copy)]
-#[rupring::Module(
-    controllers=[UserController{}],
-    modules=[],
-    providers=[
-        UserService::default()
-    ],
-    middlewares=[]
-)]
-pub struct UserModule {}
+// #[derive(Debug, Clone, Copy)]
+// #[rupring::Module(
+//     controllers=[UserController{}],
+//     modules=[],
+//     providers=[
+//         UserService::default()
+//     ],
+//     middlewares=[]
+// )]
+// pub struct UserModule {}
 
-#[rupring::Get(path = /go-to-naver)]
-pub fn go_to_naver(_: rupring::Request, _: rupring::Response) -> rupring::Response {
-    rupring::Response::new().redirect("https://naver.com")
-}
+// #[rupring::Get(path = /go-to-naver)]
+// pub fn go_to_naver(_: rupring::Request, _: rupring::Response) -> rupring::Response {
+//     rupring::Response::new().redirect("https://naver.com")
+// }
 
-#[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[get_user], middlewares=[])]
-pub struct UserController {}
+// #[derive(Debug, Clone)]
+// #[rupring::Controller(prefix=/, routes=[get_user], middlewares=[])]
+// pub struct UserController {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

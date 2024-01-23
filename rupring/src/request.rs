@@ -20,3 +20,155 @@ impl Request {
         return self.di_context.get::<T>();
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ParamString(pub String);
+
+pub trait ParamStringDeserializer<T>: Sized {
+    type Error;
+
+    fn deserialize(&self) -> Result<T, Self::Error>;
+}
+
+impl<T> ParamStringDeserializer<Option<T>> for ParamString
+where
+    ParamString: ParamStringDeserializer<T>,
+{
+    type Error = ();
+
+    fn deserialize(&self) -> Result<Option<T>, Self::Error> {
+        let result = Self::deserialize(self);
+        match result {
+            Ok(v) => Ok(Some(v)),
+            Err(_) => Ok(None),
+        }
+    }
+}
+
+impl ParamStringDeserializer<i8> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i8, Self::Error> {
+        self.0.parse::<i8>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<i16> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i16, Self::Error> {
+        self.0.parse::<i16>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<i32> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i32, Self::Error> {
+        self.0.parse::<i32>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<i64> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i64, Self::Error> {
+        self.0.parse::<i64>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<i128> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i128, Self::Error> {
+        self.0.parse::<i128>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<isize> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<isize, Self::Error> {
+        self.0.parse::<isize>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<u8> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u8, Self::Error> {
+        self.0.parse::<u8>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<u16> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u16, Self::Error> {
+        self.0.parse::<u16>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<u32> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u32, Self::Error> {
+        self.0.parse::<u32>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<u64> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u64, Self::Error> {
+        self.0.parse::<u64>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<u128> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u128, Self::Error> {
+        self.0.parse::<u128>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<usize> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<usize, Self::Error> {
+        self.0.parse::<usize>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<f32> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<f32, Self::Error> {
+        self.0.parse::<f32>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<f64> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<f64, Self::Error> {
+        self.0.parse::<f64>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<bool> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<bool, Self::Error> {
+        self.0.parse::<bool>().map_err(|_| ())
+    }
+}
+
+impl ParamStringDeserializer<String> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<String, Self::Error> {
+        Ok(self.0.clone())
+    }
+}

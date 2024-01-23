@@ -1,6 +1,6 @@
+mod generate;
 mod parse;
 mod rule;
-
 use std::str::FromStr;
 
 use proc_macro::TokenStream;
@@ -254,86 +254,25 @@ impl rupring::IProvider for {struct_name} {{
     return item;
 }
 
-#[allow(non_snake_case)]
-fn ManipulateRouteFunctionParameters(item: TokenStream) -> TokenStream {
-    let mut new_item = vec![];
-
-    let mut iter = item.into_iter();
-
-    let mut fn_passed = false;
-    let mut out_of_parameter = false;
-
-    while let Some(mut token_tree) = iter.next() {
-        match token_tree.clone() {
-            proc_macro::TokenTree::Ident(ident) => match ident.to_string().as_str() {
-                "fn" => {
-                    if !out_of_parameter {
-                        fn_passed = true;
-                    }
-                }
-                _ => {}
-            },
-            proc_macro::TokenTree::Group(delimiter) => {
-                if fn_passed && !out_of_parameter {
-                    let mut iter = delimiter.stream().into_iter();
-
-                    let mut new_group = vec![];
-                    let mut comma_count = 0;
-
-                    while let Some(token_tree) = iter.next() {
-                        match token_tree.clone() {
-                            proc_macro::TokenTree::Punct(punct) => {
-                                if punct.to_string().as_str() == "," {
-                                    comma_count += 1;
-                                }
-
-                                new_group.push(token_tree);
-                            }
-                            _ => {
-                                new_group.push(token_tree);
-                            }
-                        }
-                    }
-
-                    if comma_count == 0 {
-                        let new_code =
-                            TokenStream::from_str(", response: rupring::Response").unwrap();
-
-                        for token_tree in new_code.into_iter() {
-                            new_group.push(token_tree);
-                        }
-                    }
-
-                    if comma_count == 1 && new_group.last().unwrap().to_string().as_str() == "," {
-                        let new_code =
-                            TokenStream::from_str(" response: rupring::Response").unwrap();
-
-                        for token_tree in new_code.into_iter() {
-                            new_group.push(token_tree);
-                        }
-                    }
-
-                    token_tree = proc_macro::TokenTree::Group(proc_macro::Group::new(
-                        delimiter.delimiter(),
-                        new_group.into_iter().collect(),
-                    ));
-
-                    out_of_parameter = true;
-                }
-            }
-
-            _ => {}
+fn convert_rust_type_to_js_type(rust_type: &str) -> String {
+    match rust_type {
+        "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64" | "u128" => {
+            "integer".to_string()
         }
-
-        new_item.push(token_tree);
+        "Option<i8>" | "Option<i16>" | "Option<i32>" | "Option<i64>" | "Option<i128>"
+        | "Option<isize>" | "Option<u8>" | "Option<u16>" | "Option<u32>" | "Option<u64>"
+        | "Option<u128>" => "integer".to_string(),
+        "f32" | "f64" => "number".to_string(),
+        "Option<f32>" | "Option<f64>" => "number".to_string(),
+        "bool" => "boolean".to_string(),
+        "Option<bool>" => "boolean".to_string(),
+        _ => "string".to_string(),
     }
-
-    new_item.into_iter().collect()
 }
 
 #[allow(non_snake_case)]
 fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream {
-    let (item, additional_attributes) = parse::parse_additional_attributes(item);
+    let (item, additional_attributes) = parse::extract_additional_attributes(item);
     let summary = additional_attributes
         .get("summary")
         .map(|e| e.as_string())
@@ -371,7 +310,70 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             .join(", ")
     );
 
-    let mut item = ManipulateRouteFunctionParameters(item);
+    let (item, annotated_parameters) = parse::manipulate_route_function_parameters(item);
+
+    let mut swagger_code = "".to_string();
+    let mut variables_code = "".to_string();
+
+    // 함수 최상단에 코드를 주입합니다.
+
+    for anotated_parameter in annotated_parameters {
+        if anotated_parameter.attributes.contains_key("path") {
+            let parameter_name = anotated_parameter.name;
+            let parameter_type = anotated_parameter.type_;
+            let path_name = anotated_parameter.attributes["path"].as_string();
+            let description = anotated_parameter
+                .attributes
+                .get("description")
+                .map(|e| e.as_string())
+                .unwrap_or_default();
+            let path_name = path_name.trim_start_matches("\"").trim_end_matches("\"");
+            let required = !parameter_type.starts_with("Option<");
+            let type_ = convert_rust_type_to_js_type(parameter_type.as_str());
+
+            let variable_expression = format!(
+                r###"
+                use rupring::ParamStringDeserializer;
+                let ___{parameter_name} = rupring::ParamString(request.path_parameters["{path_name}"].clone());
+                let {parameter_name}: {parameter_type} = match ___{parameter_name}.deserialize() {{
+                    Ok(v) => v,
+                    Err(_) => return rupring::Response::new().status(400).text("Invalid parameter: {parameter_name}"),
+                }};
+                "###
+            );
+
+            variables_code.push_str(&variable_expression);
+
+            swagger_code.push_str(
+                format!(
+                    r##"
+                swagger.parameters.push(
+                    rupring::swagger::SwaggerParameter {{
+                        name: "{parameter_name}".to_string(),
+                        in_: rupring::swagger::SwaggerParameterCategory::Path,
+                        description: "{description}".to_string(),
+                        required: {required},
+                        schema: Some(rupring::swagger::SwaggerTypeOrReference::Type(
+                            rupring::swagger::SwaggerType {{
+                                type_: "{type_}".to_string(),
+                            }} 
+                        )),
+                        type_: None,
+                    }}
+                );
+            "##
+                )
+                .as_str(),
+            );
+
+            continue;
+        }
+    }
+
+    let mut item = parse::prepend_code_to_function_body(
+        item,
+        TokenStream::from_str(variables_code.as_str()).unwrap(),
+    );
 
     let function_name = parse::find_function_name(item.clone());
     let attribute_map = parse::parse_attribute(attr.clone());
@@ -386,8 +388,6 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
 
     let route_name = rule::make_route_name(function_name.as_str());
     let handler_name = rule::make_handler_name(function_name.as_str());
-
-    let mut swagger_code = "".to_string();
 
     swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.description = \"{description}\".to_string();").as_str());
