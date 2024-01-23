@@ -254,6 +254,22 @@ impl rupring::IProvider for {struct_name} {{
     return item;
 }
 
+fn convert_rust_type_to_js_type(rust_type: &str) -> String {
+    match rust_type {
+        "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64" | "u128" => {
+            "integer".to_string()
+        }
+        "Option<i8>" | "Option<i16>" | "Option<i32>" | "Option<i64>" | "Option<i128>"
+        | "Option<isize>" | "Option<u8>" | "Option<u16>" | "Option<u32>" | "Option<u64>"
+        | "Option<u128>" => "integer".to_string(),
+        "f32" | "f64" => "number".to_string(),
+        "Option<f32>" | "Option<f64>" => "number".to_string(),
+        "bool" => "boolean".to_string(),
+        "Option<bool>" => "boolean".to_string(),
+        _ => "string".to_string(),
+    }
+}
+
 #[allow(non_snake_case)]
 fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream {
     let (item, additional_attributes) = parse::extract_additional_attributes(item);
@@ -306,7 +322,14 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             let parameter_name = anotated_parameter.name;
             let parameter_type = anotated_parameter.type_;
             let path_name = anotated_parameter.attributes["path"].as_string();
+            let description = anotated_parameter
+                .attributes
+                .get("description")
+                .map(|e| e.as_string())
+                .unwrap_or_default();
             let path_name = path_name.trim_start_matches("\"").trim_end_matches("\"");
+            let required = !parameter_type.starts_with("Option<");
+            let type_ = convert_rust_type_to_js_type(parameter_type.as_str());
 
             let variable_expression = format!(
                 r###"
@@ -320,6 +343,28 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             );
 
             variables_code.push_str(&variable_expression);
+
+            swagger_code.push_str(
+                format!(
+                    r##"
+                swagger.parameters.push(
+                    rupring::swagger::SwaggerParameter {{
+                        name: "{parameter_name}".to_string(),
+                        in_: rupring::swagger::SwaggerParameterCategory::Path,
+                        description: "{description}".to_string(),
+                        required: {required},
+                        schema: Some(rupring::swagger::SwaggerTypeOrReference::Type(
+                            rupring::swagger::SwaggerType {{
+                                type_: "{type_}".to_string(),
+                            }} 
+                        )),
+                        type_: None,
+                    }}
+                );
+            "##
+                )
+                .as_str(),
+            );
 
             continue;
         }

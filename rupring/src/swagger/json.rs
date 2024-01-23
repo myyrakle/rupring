@@ -245,7 +245,7 @@ pub struct SwaggerParameter {
     pub type_: Option<String>,
 
     #[serde(rename = "schema")]
-    pub schema: Option<SwaggerReference>,
+    pub schema: Option<SwaggerTypeOrReference>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
