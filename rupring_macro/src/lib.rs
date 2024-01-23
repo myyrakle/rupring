@@ -1,3 +1,4 @@
+mod generate;
 mod parse;
 mod rule;
 use std::str::FromStr;
@@ -293,7 +294,41 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             .join(", ")
     );
 
-    let mut item = parse::manipulate_route_function_parameters(item);
+    let (item, annotated_parameters) = parse::manipulate_route_function_parameters(item);
+
+    let mut swagger_code = "".to_string();
+    let mut variables_code = "".to_string();
+
+    // 함수 최상단에 코드를 주입합니다.
+
+    for anotated_parameter in annotated_parameters {
+        if anotated_parameter.attributes.contains_key("path") {
+            let parameter_name = anotated_parameter.name;
+            let parameter_type = anotated_parameter.type_;
+            let path_name = anotated_parameter.attributes["path"].as_string();
+            let path_name = path_name.trim_start_matches("\"").trim_end_matches("\"");
+
+            let variable_expression = format!(
+                r###"
+                use rupring::ParamStringDeserializer;
+                let ___{parameter_name} = rupring::ParamString(request.path_parameters["{path_name}"].clone());
+                let {parameter_name}: {parameter_type} = match ___{parameter_name}.deserialize() {{
+                    Ok(v) => v,
+                    Err(_) => return rupring::Response::new().status(400).text("Invalid parameter: {parameter_name}"),
+                }};
+                "###
+            );
+
+            variables_code.push_str(&variable_expression);
+
+            continue;
+        }
+    }
+
+    let mut item = parse::prepend_code_to_function_body(
+        item,
+        TokenStream::from_str(variables_code.as_str()).unwrap(),
+    );
 
     let function_name = parse::find_function_name(item.clone());
     let attribute_map = parse::parse_attribute(attr.clone());
@@ -308,8 +343,6 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
 
     let route_name = rule::make_route_name(function_name.as_str());
     let handler_name = rule::make_handler_name(function_name.as_str());
-
-    let mut swagger_code = "".to_string();
 
     swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.description = \"{description}\".to_string();").as_str());

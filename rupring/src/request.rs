@@ -22,7 +22,7 @@ impl Request {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParamString(String);
+pub struct ParamString(pub String);
 
 pub trait ParamStringDeserializer<T>: Sized {
     type Error;

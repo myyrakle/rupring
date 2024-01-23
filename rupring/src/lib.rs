@@ -428,6 +428,8 @@ pub type HeaderName = hyper::header::HeaderName;
 pub use boot::di::DIContext;
 /// Dependency Injection Provider
 pub use boot::di::IProvider;
+pub use request::ParamString;
+pub use request::ParamStringDeserializer;
 /// HTTP Request
 pub use request::Request;
 /// HTTP Response
