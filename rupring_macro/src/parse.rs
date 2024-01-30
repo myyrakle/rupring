@@ -144,11 +144,15 @@ pub(crate) fn parse_attribute(item: TokenStream) -> HashMap<String, AttributeVal
         let token_string = token.to_string();
 
         if token_string == "=" {
-            let attribute_name = attribute_name.clone().unwrap();
+            let mut attribute_name = attribute_name.clone().unwrap();
             let mut attribute_value = tokens
                 .next()
                 .expect("key/value pair does not match")
                 .to_string();
+
+            if attribute_name == "path" || attribute_name == "Path" {
+                attribute_name = "PathVariable".into();
+            }
 
             let attribute_value = if attribute_value.starts_with("[") {
                 let attribute_value = attribute_value

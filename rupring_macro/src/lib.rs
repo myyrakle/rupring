@@ -1,4 +1,3 @@
-mod generate;
 mod parse;
 mod rule;
 use std::str::FromStr;
@@ -318,10 +317,10 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     // 함수 최상단에 코드를 주입합니다.
 
     for anotated_parameter in annotated_parameters {
-        if anotated_parameter.attributes.contains_key("path") {
+        if anotated_parameter.attributes.contains_key("PathVariable") {
             let parameter_name = anotated_parameter.name;
             let parameter_type = anotated_parameter.type_;
-            let path_name = anotated_parameter.attributes["path"].as_string();
+            let path_name = anotated_parameter.attributes["PathVariable"].as_string();
             let description = anotated_parameter
                 .attributes
                 .get("description")
