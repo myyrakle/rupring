@@ -8,7 +8,7 @@ use proc_macro::TokenStream;
 #[allow(non_snake_case)]
 pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     let struct_name = parse::find_struct_name(item.clone());
-    let attribute_map = parse::parse_attribute(attr.clone());
+    let attribute_map = parse::parse_attribute(attr.clone(), false);
 
     let controllers = match attribute_map.get("controllers") {
         Some(controllers) => match controllers {
@@ -96,7 +96,7 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 #[allow(non_snake_case)]
 pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     let struct_name = parse::find_struct_name(item.clone());
-    let attribute_map = parse::parse_attribute(attr.clone());
+    let attribute_map = parse::parse_attribute(attr.clone(), false);
 
     let prefix = match attribute_map.get("prefix") {
         Some(prefix) => match prefix {
@@ -220,7 +220,7 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     } else if attr.clone().into_iter().count() == 1 {
         attr.into_iter().next().unwrap().to_string()
     } else {
-        let attribute_map = parse::parse_attribute(attr.clone());
+        let attribute_map = parse::parse_attribute(attr.clone(), false);
 
         match attribute_map.get("name") {
             Some(name) => match name {
@@ -375,7 +375,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     );
 
     let function_name = parse::find_function_name(item.clone());
-    let attribute_map = parse::parse_attribute(attr.clone());
+    let attribute_map = parse::parse_attribute(attr.clone(), false);
 
     let path = match attribute_map.get("path") {
         Some(path) => match path {
@@ -384,6 +384,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         },
         None => "".to_string(),
     };
+    println!("function_name: {function_name}, path: {path}");
 
     let route_name = rule::make_route_name(function_name.as_str());
     let handler_name = rule::make_handler_name(function_name.as_str());

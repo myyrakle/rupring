@@ -111,7 +111,7 @@ pub(crate) fn extract_additional_attributes(
                     // [Key1 = value1, key2, value2, ...] 형태의 attribute를 파싱해서 map에 할당한다.
                     if let Some(group) = iter.next() {
                         if let proc_macro::TokenTree::Group(group) = group {
-                            let attributes = parse_attribute(group.stream());
+                            let attributes = parse_attribute(group.stream(), true);
 
                             for (key, value) in attributes {
                                 map.insert(key, value);
@@ -134,7 +134,10 @@ pub(crate) fn extract_additional_attributes(
 }
 
 // controllers = [HomeController {}], modules = [] => HashMap<String, AttributeValue>
-pub(crate) fn parse_attribute(item: TokenStream) -> HashMap<String, AttributeValue> {
+pub(crate) fn parse_attribute(
+    item: TokenStream,
+    with_alias: bool,
+) -> HashMap<String, AttributeValue> {
     let mut tokens = item.into_iter();
     let mut attribute_map = HashMap::new();
 
@@ -149,8 +152,10 @@ pub(crate) fn parse_attribute(item: TokenStream) -> HashMap<String, AttributeVal
                 .expect("key/value pair does not match")
                 .to_string();
 
-            if attribute_name == "path" || attribute_name == "Path" {
-                attribute_name = "PathVariable".into();
+            if with_alias {
+                if attribute_name == "path" || attribute_name == "Path" {
+                    attribute_name = "PathVariable".into();
+                }
             }
 
             let attribute_value = if attribute_value.starts_with("[") {
@@ -243,7 +248,7 @@ pub(crate) fn manipulate_route_function_parameters(
 
                                         let attributes =
                                             if let proc_macro::TokenTree::Group(group) = group {
-                                                parse_attribute(group.stream())
+                                                parse_attribute(group.stream(), true)
                                             } else {
                                                 panic!("invalid annotation parameter");
                                             };
