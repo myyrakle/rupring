@@ -161,8 +161,6 @@ pub struct HomeController {}
 
 #[rupring::Get(path = /echo/:id)]
 pub fn echo(
-    request: rupring::Request, 
-    _: rupring::Response, 
     #[path=id] id: i32
 ) -> rupring::Response {
 println!("id: {}", id);

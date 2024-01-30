@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 
 use proc_macro::{TokenStream, TokenTree};
 
@@ -144,11 +143,15 @@ pub(crate) fn parse_attribute(item: TokenStream) -> HashMap<String, AttributeVal
         let token_string = token.to_string();
 
         if token_string == "=" {
-            let attribute_name = attribute_name.clone().unwrap();
+            let mut attribute_name = attribute_name.clone().unwrap();
             let mut attribute_value = tokens
                 .next()
                 .expect("key/value pair does not match")
                 .to_string();
+
+            if attribute_name == "path" || attribute_name == "Path" {
+                attribute_name = "PathVariable".into();
+            }
 
             let attribute_value = if attribute_value.starts_with("[") {
                 let attribute_value = attribute_value
@@ -286,48 +289,46 @@ pub(crate) fn manipulate_route_function_parameters(
                         }
                     }
 
-                    let mut iter = annotation_removed.into_iter();
-
-                    let mut new_group = vec![];
-                    let mut comma_count = 0;
-
+                    // 여기서부턴 request, response 파라미터에 대한 기본 처리를 수행합니다.
                     // ,를 기준으로 파라미터를 분리해서 분석합니다.
-                    while let Some(token_tree) = iter.next() {
-                        match token_tree.clone() {
-                            proc_macro::TokenTree::Punct(punct) => {
-                                if punct.to_string().as_str() == "," {
-                                    comma_count += 1;
-                                }
+                    let mut request_name = "request".to_string();
+                    let mut response_name = "response".to_string();
 
-                                new_group.push(token_tree);
-                            }
-                            _ => {
-                                new_group.push(token_tree);
-                            }
+                    let replaced_parameter: TokenStream = annotation_removed.into_iter().collect();
+                    let parameter_text = replaced_parameter.to_string();
+
+                    for parameter in parameter_text.split(",") {
+                        let parameter = parameter.trim();
+
+                        if parameter.contains("rupring::Request") || parameter.contains("Request") {
+                            request_name = parameter
+                                .split(":")
+                                .next()
+                                .unwrap()
+                                .to_string()
+                                .trim()
+                                .to_string();
+                        }
+
+                        if parameter.contains("rupring::Response") || parameter.contains("Response")
+                        {
+                            response_name = parameter
+                                .split(":")
+                                .next()
+                                .unwrap()
+                                .to_string()
+                                .trim()
+                                .to_string();
                         }
                     }
 
-                    if comma_count == 0 {
-                        let new_code =
-                            TokenStream::from_str(", response: rupring::Response").unwrap();
-
-                        for token_tree in new_code.into_iter() {
-                            new_group.push(token_tree);
-                        }
-                    }
-
-                    if comma_count == 1 && new_group.last().unwrap().to_string().as_str() == "," {
-                        let new_code =
-                            TokenStream::from_str(" response: rupring::Response").unwrap();
-
-                        for token_tree in new_code.into_iter() {
-                            new_group.push(token_tree);
-                        }
-                    }
+                    let new_parameter_code = format!(
+                        "{request_name}: rupring::Request, {response_name}: rupring::Response",
+                    );
 
                     token_tree = proc_macro::TokenTree::Group(proc_macro::Group::new(
                         delimiter.delimiter(),
-                        new_group.into_iter().collect(),
+                        new_parameter_code.parse().unwrap(),
                     ));
 
                     out_of_parameter = true;
