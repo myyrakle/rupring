@@ -35,6 +35,86 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 ```
 
+# Request
+You can access any value provided in an HTTP Request through the Request parameter.
+
+```
+#[rupring::Get(path = /:id)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    let method = request.method;
+    assert_eq!(method, rupring::Method::GET);
+
+    let path = request.path;
+    assert_eq!(path, "/");
+
+    let body = request.body;
+    assert_eq!(body, "");
+
+    let headers = request.headers;
+    let content_type = headers.get("content-type").unwrap();
+    assert_eq!(content_type, "text/plain");
+
+    let id = request.path_param("id").unwrap();
+    assert_eq!(id, "123");
+
+    let query = request.query_param("query").unwrap();
+    assert_eq!(query, "asdf");
+
+    ...
+}
+```
+
+## Request: Path Param
+
+For path parameters, auto binding is provided through annotation.
+
+The annotation name can be one of `Path`, `path`, or `PathVariable`.
+```
+#[rupring::Get(path = /echo/:id)]
+pub fn echo(
+    #[PathVariable="id"] id: i32
+) -> rupring::Response {
+    println!("id: {}", id);
+
+    rupring::Response::new().text(request.body)
+}
+```
+
+If the Path Param is optional, just wrap the type in `Option`.
+```
+#[rupring::Get(path = /echo/:id)]
+pub fn echo(
+    #[PathVariable="id"] id: Option<i32>
+) -> rupring::Response {
+    ...
+}
+```
+
+If you need Swagger documentation for the Path Param, you should add the `Description` annotation.
+`Description` can also be used as `Desc`, `desc`, etc.
+```
+#[rupring::Get(path = /echo/:id)]
+pub fn echo(
+    #[path="id"] #[desc="asdf"] id: i32
+) -> rupring::Response {
+    println!("id: {}", id);
+
+    rupring::Response::new().text(request.body)
+}
+```
+
+If you want to define a custom type for PathParam, you can implement the ParamStringDeserializer trait.
+```
+impl ParamStringDeserializer<SomeCustomType> for ParamString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<SomeCustomType, Self::Error> {
+        ...
+    }
+}
+```
+
+
 # Response
 
 You can create a response like this:
@@ -300,6 +380,11 @@ fn inject_counter_service(something: SomethingRepository) -> CounterService {
     middlewares=[]
 )]
 ```
+
+# Swagger
+When rupring starts the server, it automatically serves swagger documents to the `/docs` path.
+
+Details are still being implemented.
 */
 
 pub(crate) mod boot;
