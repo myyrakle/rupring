@@ -1,6 +1,6 @@
 [package]
 name = "rupring"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 license = "MIT"
 authors = ["myyrakle <sssang97@naver.com>"] 
@@ -14,7 +14,7 @@ homepage = "https://github.com/myyrakle/rupring/blob/master/README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rupring_macro={ version="0.6.0", path="../rupring_macro" }
+rupring_macro={ version="0.7.0", path="../rupring_macro" }
 hyper = { version = "1", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
 http-body-util = "0.1.0"

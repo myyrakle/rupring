@@ -140,7 +140,10 @@ pub struct HomeController {}
 // #[summary = "기본 root API입니다."]
 // #[description = "별다른 기능은 없습니다."]
 // #[tags = [home]]
-// pub fn hello(_request: rupring::Request) -> rupring::Response {
+// pub fn hello(request: rupring::Request) -> rupring::Response {
+//     let body = request.body;
+//     println!("body: {}", body);
+
 //     rupring::Response::new().text("123214")
 // }
 
@@ -163,7 +166,7 @@ pub struct HomeController {}
 pub fn echo(
     #[path="id"] #[desc="asdf"] id: i32
 ) -> rupring::Response {
-println!("id: {}", id);
+    println!("id: {}", id);
 
     rupring::Response::new().text(request.body)
 }
