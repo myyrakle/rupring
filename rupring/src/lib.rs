@@ -384,6 +384,18 @@ fn inject_counter_service(something: SomethingRepository) -> CounterService {
 # Swagger
 When rupring starts the server, it automatically serves swagger documents to the `/docs` path.
 
+Additional annotations such as `summary`, `description`, and `tags` are provided for swagger documentation.
+```
+#[rupring::Get(path = /echo/:id)]
+#[summary = "echo API"]
+#[description = "It's echo API"]
+#[tags = ["echo"]]
+pub fn echo(
+    #[path="id"] #[description="just integer id"] id: Option<i32>
+) -> rupring::Response {
+    ...
+```
+
 Details are still being implemented.
 */
 
