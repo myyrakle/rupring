@@ -321,14 +321,20 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             let parameter_name = anotated_parameter.name;
             let parameter_type = anotated_parameter.type_;
             let path_name = anotated_parameter.attributes["PathVariable"].as_string();
-            let description = anotated_parameter
-                .attributes
-                .get("description")
-                .map(|e| e.as_string())
-                .unwrap_or_default();
             let path_name = path_name.trim_start_matches("\"").trim_end_matches("\"");
             let required = !parameter_type.starts_with("Option<");
             let type_ = convert_rust_type_to_js_type(parameter_type.as_str());
+
+            let description = anotated_parameter
+                .attributes
+                .get("Description")
+                .map(|e| {
+                    e.as_string()
+                        .trim_start_matches("\"")
+                        .trim_end_matches("\"")
+                        .to_string()
+                })
+                .unwrap_or_default();
 
             let variable_expression = format!(
                 r###"
@@ -384,7 +390,6 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         },
         None => "".to_string(),
     };
-    println!("function_name: {function_name}, path: {path}");
 
     let route_name = rule::make_route_name(function_name.as_str());
     let handler_name = rule::make_handler_name(function_name.as_str());
