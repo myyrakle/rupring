@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use proc_macro::{TokenStream, TokenTree};
+use proc_macro::{Punct, TokenStream, TokenTree};
 
 // Find the structure name immediately to the right of the struct keyword.
 pub(crate) fn find_struct_name(item: TokenStream) -> String {
@@ -156,6 +156,13 @@ pub(crate) fn parse_attribute(
                 if attribute_name == "path" || attribute_name == "Path" {
                     attribute_name = "PathVariable".into();
                 }
+
+                if attribute_name == "desc"
+                    || attribute_name == "Desc"
+                    || attribute_name == "description"
+                {
+                    attribute_name = "Description".into();
+                }
             }
 
             let attribute_value = if attribute_value.starts_with("[") {
@@ -229,10 +236,10 @@ pub(crate) fn manipulate_route_function_parameters(
                 }
                 _ => {}
             },
-            proc_macro::TokenTree::Group(delimiter) => {
+            proc_macro::TokenTree::Group(group) => {
                 if fn_passed && !out_of_parameter {
                     // 파라미터 영역을 분석합니다.
-                    let mut iter = delimiter.stream().into_iter();
+                    let mut iter = group.stream().into_iter().peekable();
                     let mut annotation_removed = vec![];
 
                     // annotation이 달린 특수한 파라미터들을 추출합니다.
@@ -246,12 +253,41 @@ pub(crate) fn manipulate_route_function_parameters(
                                     "#" => {
                                         let group = iter.next().unwrap();
 
-                                        let attributes =
+                                        let mut attributes =
                                             if let proc_macro::TokenTree::Group(group) = group {
                                                 parse_attribute(group.stream(), true)
                                             } else {
-                                                panic!("invalid annotation parameter");
+                                                panic!(
+                                                    "invalid annotation parameter (group expected)"
+                                                );
                                             };
+
+                                        while let Some(TokenTree::Punct(punct)) = iter.peek() {
+                                            if punct.to_string() == "#" {
+                                                iter.next().unwrap();
+
+                                                let group = iter.next().unwrap();
+
+                                                let new_attributes =
+                                                    if let proc_macro::TokenTree::Group(group) =
+                                                        group
+                                                    {
+                                                        parse_attribute(group.stream(), true)
+                                                    } else {
+                                                        panic!(
+                                                            "invalid annotation parameter (group expected)"
+                                                        );
+                                                    };
+
+                                                for (key, value) in new_attributes {
+                                                    attributes.insert(key, value);
+                                                }
+
+                                                continue;
+                                            }
+
+                                            break;
+                                        }
 
                                         let expect_name = iter.next().unwrap();
                                         let name = if let proc_macro::TokenTree::Ident(ident) =
@@ -259,12 +295,12 @@ pub(crate) fn manipulate_route_function_parameters(
                                         {
                                             ident.to_string()
                                         } else {
-                                            panic!("invalid annotation parameter");
+                                            panic!("invalid annotation parameter (ident expected)");
                                         };
 
                                         let expect_colon = iter.next().unwrap();
                                         if expect_colon.to_string().as_str() != ":" {
-                                            panic!("invalid annotation parameter");
+                                            panic!("invalid annotation parameter (: expected)");
                                         }
 
                                         let mut type_ = "".to_string();
@@ -332,7 +368,7 @@ pub(crate) fn manipulate_route_function_parameters(
                     );
 
                     token_tree = proc_macro::TokenTree::Group(proc_macro::Group::new(
-                        delimiter.delimiter(),
+                        group.delimiter(),
                         new_parameter_code.parse().unwrap(),
                     ));
 
