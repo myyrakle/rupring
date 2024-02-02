@@ -388,11 +388,15 @@ Details are still being implemented.
 */
 
 pub(crate) mod boot;
+
+/// header constants
 pub mod header;
 mod logger;
+/// MEME type constants
 pub mod meme;
 pub(crate) mod request;
 pub(crate) mod response;
+/// swagger module
 pub mod swagger;
 
 use std::panic::UnwindSafe;
@@ -513,7 +517,9 @@ pub type HeaderName = hyper::header::HeaderName;
 pub use boot::di::DIContext;
 /// Dependency Injection Provider
 pub use boot::di::IProvider;
+/// String wrapper type for ParamStringDeserializer.
 pub use request::ParamString;
+/// ParamStringDeserializer trait
 pub use request::ParamStringDeserializer;
 /// HTTP Request
 pub use request::Request;
@@ -529,6 +535,7 @@ pub trait IModule {
     fn middlewares(&self) -> Vec<MiddlewareFunction>;
 }
 
+/// Middleware function type
 pub type MiddlewareFunction =
     Box<dyn Fn(Request, Response, NextFunction) -> Response + Send + Sync + UnwindSafe + 'static>;
 
