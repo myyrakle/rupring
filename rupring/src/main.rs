@@ -128,12 +128,12 @@ pub fn logger_middleware(
     controllers=[HomeController{}], 
     modules=[rupring::swagger::module::SwaggerModule{}], 
     providers=[CounterServiceFactory{}], 
-    middlewares=[]
+    middlewares=[],
 )]
 pub struct RootModule {}
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[echo])]
+#[rupring::Controller(prefix=/, routes=[echo], tags=["home"])]
 pub struct HomeController {}
 
 // #[rupring::Get(path = /)]
@@ -163,10 +163,13 @@ pub struct HomeController {}
 // }
 
 #[rupring::Get(path = /echo/:id)]
+#[summary = "echo API"]
+#[description = "It's echo API"]
+#[tags = ["echo"]]
 pub fn echo(
-    #[path="id"] #[desc="asdf"] id: i32
+    #[path="id"] #[description="just integer id"] id: Option<i32>
 ) -> rupring::Response {
-    println!("id: {}", id);
+    println!("id: {:?}", id);
 
     rupring::Response::new().text(request.body)
 }

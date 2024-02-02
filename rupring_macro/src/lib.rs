@@ -281,7 +281,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         .to_owned();
 
     let description = additional_attributes
-        .get("description")
+        .get("Description")
         .map(|e| e.as_string())
         .unwrap_or_default()
         .trim_start_matches("\"")
