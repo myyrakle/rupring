@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use proc_macro::{Punct, TokenStream, TokenTree};
+use proc_macro::{TokenStream, TokenTree};
 
 // Find the structure name immediately to the right of the struct keyword.
 pub(crate) fn find_struct_name(item: TokenStream) -> String {
