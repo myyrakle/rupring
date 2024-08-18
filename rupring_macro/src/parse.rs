@@ -20,8 +20,6 @@ pub(crate) fn find_function_parameter_types(function_ast: &ItemFn) -> Vec<String
 
     let mut parameters_types = vec![];
 
-    println!("parameters_types: {:?}", parameters_types);
-
     for arg in parameters {
         let _type = arg.to_token_stream().to_string();
 
