@@ -210,8 +210,9 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     let _item = item.clone();
     let function_ast = syn::parse_macro_input!(_item as syn::ItemFn);
 
-    let _provider_type = parse::find_function_return_type(item.clone());
+    let _provider_type = parse::find_function_return_type(&function_ast);
     let parameters_types = parse::find_function_parameter_types(&function_ast);
+    let function_name = parse::find_function_name(&function_ast);
 
     let mut dependencies = vec![];
     let mut arguments = vec![];
@@ -226,8 +227,6 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
             ));
         }
     }
-
-    let function_name = parse::find_function_name(&function_ast);
 
     let struct_name = if attr.is_empty() {
         function_name.clone()

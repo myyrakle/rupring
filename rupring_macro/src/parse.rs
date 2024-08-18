@@ -35,18 +35,16 @@ pub(crate) fn find_function_parameter_types(function_ast: &ItemFn) -> Vec<String
 }
 
 // Find the return type of the function.
-pub(crate) fn find_function_return_type(item: TokenStream) -> String {
-    let mut tokens = item.into_iter();
-    let mut return_type = String::new();
+pub(crate) fn find_function_return_type(function_ast: &ItemFn) -> String {
+    let return_type = function_ast.sig.output.to_token_stream().to_string();
 
-    while let Some(token) = tokens.next() {
-        if token.to_string() == "-" && tokens.next().unwrap().to_string() == ">" {
-            return_type = tokens.next().unwrap().to_string();
-            break;
-        }
-    }
+    // 화살표 제거
+    let return_type = return_type.replace(" -> ", "");
 
-    return return_type;
+    // 공백 제거
+    let return_type = return_type.trim().to_owned();
+
+    return_type
 }
 
 // 1. 타입 일관성을 위해 Request와 Response 매개변수가 존재하지 않는다면 강제로 추가합니다.
