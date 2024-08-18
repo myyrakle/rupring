@@ -7,7 +7,11 @@ use proc_macro::TokenStream;
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
-    let struct_name = parse::find_struct_name(item.clone());
+    let _item = item.clone();
+    let ast = syn::parse_macro_input!(_item as syn::ItemStruct);
+
+    let struct_name = parse::find_struct_name(&ast);
+
     let attribute_map = parse::parse_attribute(attr.clone(), false);
 
     let controllers = match attribute_map.get("controllers") {
@@ -95,7 +99,11 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
-    let struct_name = parse::find_struct_name(item.clone());
+    let _item = item.clone();
+    let ast = syn::parse_macro_input!(_item as syn::ItemStruct);
+
+    let struct_name = parse::find_struct_name(&ast);
+
     let attribute_map = parse::parse_attribute(attr.clone(), false);
 
     let prefix = match attribute_map.get("prefix") {
