@@ -28,15 +28,15 @@ impl CounterService {
     }
 }
 
-// impl rupring::IProvider for CounterService {
-//     fn dependencies(&self) -> Vec<TypeId> {
-//         vec![]
-//     }
+impl rupring::IProvider for CounterService {
+    fn dependencies(&self) -> Vec<TypeId> {
+        vec![]
+    }
 
-//     fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
-//         Box::new(CounterService::new())
-//     }
-// }
+    fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
+        Box::new(CounterService::new())
+    }
+}
 
 #[rupring_macro::Injectable(CounterServiceFactory)]
 fn inject_counter_service() -> CounterService {
@@ -136,31 +136,31 @@ pub struct RootModule {}
 #[rupring::Controller(prefix=/, routes=[echo], tags=["home"])]
 pub struct HomeController {}
 
-// #[rupring::Get(path = /)]
-// #[summary = "기본 root API입니다."]
-// #[description = "별다른 기능은 없습니다."]
-// #[tags = [home]]
-// pub fn hello(request: rupring::Request) -> rupring::Response {
-//     let body = request.body;
-//     println!("body: {}", body);
+#[rupring::Get(path = /)]
+#[summary = "기본 root API입니다."]
+#[description = "별다른 기능은 없습니다."]
+#[tags = [home]]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    let body = request.body;
+    println!("body: {}", body);
 
-//     rupring::Response::new().text("123214")
-// }
+    rupring::Response::new().text("123214")
+}
 
-// #[rupring::Get(path = /user)]
-// #[tags = [user]]
-// pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-//     let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
+#[rupring::Get(path = /user)]
+#[tags = [user]]
+pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
 
-//     rupring::Response::new().text(user_service.get_user())
-// }
+    rupring::Response::new().text(user_service.get_user())
+}
 
-// mod foo {
-//     #[rupring::Get(path = /echo2)]
-//     pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-//         rupring::Response::new().text(request.body)
-//     }
-// }
+mod foo {
+    #[rupring::Get(path = /echo2)]
+    pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+        rupring::Response::new().text(request.body)
+    }
+}
 
 #[rupring::Get(path = /echo/:id)]
 #[summary = "echo API"]
@@ -174,34 +174,34 @@ pub fn echo(
     rupring::Response::new().text(request.body)
 }
 
-// #[rupring::Get(path = /count)]
-// pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-//     let counter_service = request.get_provider::<CounterService>().unwrap();
-//     counter_service.increment();
-//     let count = counter_service.get();
+#[rupring::Get(path = /count)]
+pub fn count(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+    let counter_service = request.get_provider::<CounterService>().unwrap();
+    counter_service.increment();
+    let count = counter_service.get();
 
-//     rupring::Response::new().text(format!("{}", count))
-// }
+    rupring::Response::new().text(format!("{}", count))
+}
 
-// #[derive(Debug, Clone, Copy)]
-// #[rupring::Module(
-//     controllers=[UserController{}],
-//     modules=[],
-//     providers=[
-//         UserService::default()
-//     ],
-//     middlewares=[]
-// )]
-// pub struct UserModule {}
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[UserController{}],
+    modules=[],
+    providers=[
+        UserService::default()
+    ],
+    middlewares=[]
+)]
+pub struct UserModule {}
 
-// #[rupring::Get(path = /go-to-naver)]
-// pub fn go_to_naver(_: rupring::Request, _: rupring::Response) -> rupring::Response {
-//     rupring::Response::new().redirect("https://naver.com")
-// }
+#[rupring::Get(path = /go-to-naver)]
+pub fn go_to_naver(_: rupring::Request, _: rupring::Response) -> rupring::Response {
+    rupring::Response::new().redirect("https://naver.com")
+}
 
-// #[derive(Debug, Clone)]
-// #[rupring::Controller(prefix=/, routes=[get_user], middlewares=[])]
-// pub struct UserController {}
+#[derive(Debug, Clone)]
+#[rupring::Controller(prefix=/, routes=[get_user], middlewares=[])]
+pub struct UserController {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

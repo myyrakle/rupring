@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use proc_macro::{TokenStream, TokenTree};
+use quote::ToTokens;
 use syn::{ItemFn, ItemStruct};
 
 // Find the structure name immediately to the right of the struct keyword.
@@ -14,31 +15,23 @@ pub(crate) fn find_function_name(function_ast: &ItemFn) -> String {
 }
 
 // Returns the types of function parameters as an array.
-pub(crate) fn find_function_parameter_types(item: TokenStream) -> Vec<String> {
-    let mut tokens = item.into_iter();
-    let mut parameter_types = Vec::new();
+pub(crate) fn find_function_parameter_types(function_ast: &ItemFn) -> Vec<String> {
+    let parameters = function_ast.sig.inputs.clone();
 
-    while let Some(token) = tokens.next() {
-        if let TokenTree::Group(group) = token {
-            let mut group_tokens = group.stream().into_iter();
+    let mut parameters_types = vec![];
 
-            while let Some(group_token) = group_tokens.next() {
-                if group_token.to_string() == ":" {
-                    let mut parameter_type = group_tokens.next().unwrap().to_string();
+    println!("parameters_types: {:?}", parameters_types);
 
-                    if parameter_type == "&" {
-                        parameter_type += group_tokens.next().unwrap().to_string().as_str();
-                    }
+    for arg in parameters {
+        let _type = arg.to_token_stream().to_string();
 
-                    parameter_types.push(parameter_type.clone());
-                }
-            }
+        // " :: " 패턴을 전부 "::"로 치환
+        let _type = _type.replace(" :: ", "::");
 
-            break;
-        }
+        parameters_types.push(_type);
     }
 
-    return parameter_types;
+    parameters_types
 }
 
 // Find the return type of the function.
