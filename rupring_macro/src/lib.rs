@@ -1,7 +1,9 @@
+mod attribute;
 mod parse;
 mod rule;
 use std::str::FromStr;
 
+use attribute::AttributeValue;
 use proc_macro::TokenStream;
 
 #[proc_macro_attribute]
@@ -12,36 +14,37 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     let struct_name = parse::find_struct_name(&ast);
 
-    let attribute_map = parse::parse_attribute(attr.clone(), false);
+    let attribute_map: std::collections::HashMap<String, attribute::AttributeValue> =
+        attribute::parse_attribute(attr.clone(), false);
 
     let controllers = match attribute_map.get("controllers") {
         Some(controllers) => match controllers {
-            parse::AttributeValue::ListOfString(controllers) => controllers.to_owned(),
-            parse::AttributeValue::String(controller) => vec![controller.to_owned()],
+            attribute::AttributeValue::ListOfString(controllers) => controllers.to_owned(),
+            attribute::AttributeValue::String(controller) => vec![controller.to_owned()],
         },
         None => vec![],
     };
 
     let modules = match attribute_map.get("modules") {
         Some(modules) => match modules {
-            parse::AttributeValue::ListOfString(modules) => modules.to_owned(),
-            parse::AttributeValue::String(module) => vec![module.to_owned()],
+            attribute::AttributeValue::ListOfString(modules) => modules.to_owned(),
+            AttributeValue::String(module) => vec![module.to_owned()],
         },
         None => vec![],
     };
 
     let providers = match attribute_map.get("providers") {
         Some(providers) => match providers {
-            parse::AttributeValue::ListOfString(providers) => providers.to_owned(),
-            parse::AttributeValue::String(provider) => vec![provider.to_owned()],
+            attribute::AttributeValue::ListOfString(providers) => providers.to_owned(),
+            AttributeValue::String(provider) => vec![provider.to_owned()],
         },
         None => vec![],
     };
 
     let middlewares = match attribute_map.get("middlewares") {
         Some(middlewares) => match middlewares {
-            parse::AttributeValue::ListOfString(middlewares) => middlewares.to_owned(),
-            parse::AttributeValue::String(middleware) => vec![middleware.to_owned()],
+            AttributeValue::ListOfString(middlewares) => middlewares.to_owned(),
+            AttributeValue::String(middleware) => vec![middleware.to_owned()],
         },
         None => vec![],
     };
@@ -104,11 +107,11 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     let struct_name = parse::find_struct_name(&ast);
 
-    let attribute_map = parse::parse_attribute(attr.clone(), false);
+    let attribute_map = attribute::parse_attribute(attr.clone(), false);
 
     let prefix = match attribute_map.get("prefix") {
         Some(prefix) => match prefix {
-            parse::AttributeValue::String(prefix) => prefix.to_owned(),
+            AttributeValue::String(prefix) => prefix.to_owned(),
             _ => "".to_string(),
         },
         None => "".to_string(),
@@ -116,8 +119,8 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     let routes = match attribute_map.get("routes") {
         Some(routes) => match routes {
-            parse::AttributeValue::ListOfString(routes) => routes.to_owned(),
-            parse::AttributeValue::String(route) => vec![route.to_owned()],
+            AttributeValue::ListOfString(routes) => routes.to_owned(),
+            AttributeValue::String(route) => vec![route.to_owned()],
         },
         None => vec![],
     };
@@ -144,8 +147,8 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     let middlewares = match attribute_map.get("middlewares") {
         Some(middlewares) => match middlewares {
-            parse::AttributeValue::ListOfString(middlewares) => middlewares.to_owned(),
-            parse::AttributeValue::String(middleware) => vec![middleware.to_owned()],
+            AttributeValue::ListOfString(middlewares) => middlewares.to_owned(),
+            AttributeValue::String(middleware) => vec![middleware.to_owned()],
         },
         None => vec![],
     };
@@ -231,11 +234,11 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     } else if attr.clone().into_iter().count() == 1 {
         attr.into_iter().next().unwrap().to_string()
     } else {
-        let attribute_map = parse::parse_attribute(attr.clone(), false);
+        let attribute_map = attribute::parse_attribute(attr.clone(), false);
 
         match attribute_map.get("name") {
             Some(name) => match name {
-                parse::AttributeValue::String(name) => name.to_owned(),
+                AttributeValue::String(name) => name.to_owned(),
                 _ => function_name.clone(),
             },
             None => function_name.clone(),
@@ -285,7 +288,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let _item = item.clone();
     let function_ast = syn::parse_macro_input!(_item as syn::ItemFn);
 
-    let (item, additional_attributes) = parse::extract_additional_attributes(item);
+    let (item, additional_attributes) = attribute::extract_additional_attributes(item);
     let summary = additional_attributes
         .get("summary")
         .map(|e| e.as_string())
@@ -305,8 +308,8 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let tags = additional_attributes
         .get("tags")
         .map(|e| match e {
-            parse::AttributeValue::ListOfString(tags) => tags.to_owned(),
-            parse::AttributeValue::String(tag) => vec![tag.to_owned()],
+            AttributeValue::ListOfString(tags) => tags.to_owned(),
+            AttributeValue::String(tag) => vec![tag.to_owned()],
         })
         .map(|e| {
             e.iter()
@@ -395,11 +398,11 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     );
 
     let function_name = parse::find_function_name(&function_ast);
-    let attribute_map = parse::parse_attribute(attr.clone(), false);
+    let attribute_map = attribute::parse_attribute(attr.clone(), false);
 
     let path = match attribute_map.get("path") {
         Some(path) => match path {
-            parse::AttributeValue::String(path) => path.to_owned(),
+            AttributeValue::String(path) => path.to_owned(),
             _ => "".to_string(),
         },
         None => "".to_string(),
