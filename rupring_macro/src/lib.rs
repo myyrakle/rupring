@@ -214,8 +214,6 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     let parameters_types = parse::find_function_parameter_types(&function_ast);
     let function_name = parse::find_function_name(&function_ast);
 
-    println!("parmeter_types {:?}", parameters_types);
-
     let mut dependencies = vec![];
     let mut arguments = vec![];
     for parameter_type in parameters_types {
@@ -264,8 +262,6 @@ impl rupring::IProvider for {struct_name} {{
     );
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
-
-    println!("{}", item.to_string());
 
     return item;
 }
