@@ -602,3 +602,6 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
         return result;
     }
 }
+
+#[cfg(test)]
+mod test_proc_macro;
