@@ -62,3 +62,31 @@ mod test_단일_inject {
         assert_eq!(service.get(), 1, "카운트 1",);
     }
 }
+
+mod test_1대1_inject {
+
+    use crate::{self as rupring};
+
+    #[derive(Debug, Clone, Default)]
+    pub struct SomeRepository {
+        pub some_value: i32,
+    }
+
+    #[derive(Debug, Clone, Default)]
+    pub struct SomeService {
+        pub some_repository: SomeRepository,
+    }
+
+    #[rupring_macro::Injectable(SomeRepositoryFactory)]
+    fn inject_some_repository() -> SomeRepository {
+        SomeRepository::default()
+    }
+
+    #[rupring_macro::Injectable(SomeServiceFactory)]
+    fn inject_some_service(some_repository: SomeRepository) -> SomeService {
+        SomeService { some_repository }
+    }
+
+    #[test]
+    fn test_1대1_inject() {}
+}

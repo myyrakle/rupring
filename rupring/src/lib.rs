@@ -406,8 +406,8 @@ pub mod header;
 mod logger;
 /// MEME type constants
 pub mod meme;
-pub(crate) mod request;
-pub(crate) mod response;
+pub mod request;
+pub mod response;
 /// swagger module
 pub mod swagger;
 
