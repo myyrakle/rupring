@@ -204,6 +204,9 @@ pub fn Bean(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
+    let _item = item.clone();
+    let function_ast = syn::parse_macro_input!(_item as syn::ItemFn);
+
     let _provider_type = parse::find_function_return_type(item.clone());
     let parameters_types = parse::find_function_parameter_types(item.clone());
 
@@ -221,7 +224,8 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
         }
     }
 
-    let function_name = parse::find_function_name(item.clone());
+    let function_name = parse::find_function_name(&function_ast);
+    println!("function_name: {}", function_name);
 
     let struct_name = if attr.is_empty() {
         function_name.clone()
@@ -279,6 +283,9 @@ fn convert_rust_type_to_js_type(rust_type: &str) -> String {
 
 #[allow(non_snake_case)]
 fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream {
+    let _item = item.clone();
+    let function_ast = syn::parse_macro_input!(_item as syn::ItemFn);
+
     let (item, additional_attributes) = parse::extract_additional_attributes(item);
     let summary = additional_attributes
         .get("summary")
@@ -388,7 +395,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         TokenStream::from_str(variables_code.as_str()).unwrap(),
     );
 
-    let function_name = parse::find_function_name(item.clone());
+    let function_name = parse::find_function_name(&function_ast);
     let attribute_map = parse::parse_attribute(attr.clone(), false);
 
     let path = match attribute_map.get("path") {

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use proc_macro::{TokenStream, TokenTree};
-use syn::ItemStruct;
+use syn::{ItemFn, ItemStruct};
 
 // Find the structure name immediately to the right of the struct keyword.
 pub(crate) fn find_struct_name(struct_ast: &ItemStruct) -> String {
@@ -9,18 +9,8 @@ pub(crate) fn find_struct_name(struct_ast: &ItemStruct) -> String {
 }
 
 // Find the structure name immediately to the right of the fn keyword.
-pub(crate) fn find_function_name(item: TokenStream) -> String {
-    let mut tokens = item.into_iter();
-    let mut function_name = String::new();
-
-    while let Some(token) = tokens.next() {
-        if token.to_string() == "fn" {
-            function_name = tokens.next().unwrap().to_string();
-            break;
-        }
-    }
-
-    return function_name;
+pub(crate) fn find_function_name(function_ast: &ItemFn) -> String {
+    function_ast.sig.ident.to_string()
 }
 
 // Returns the types of function parameters as an array.
