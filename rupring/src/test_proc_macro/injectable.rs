@@ -135,3 +135,82 @@ mod test_1대1_inject {
         );
     }
 }
+
+mod test_1대1_inject_module_내_테스트 {
+    use crate::{self as rupring, IProvider};
+
+    mod foo {
+        use crate::{self as rupring};
+
+        #[derive(Debug, Clone, Default)]
+        pub struct SomeRepository {
+            pub some_value: i32,
+        }
+
+        #[rupring_macro::Injectable(SomeRepositoryFactory)]
+        fn inject_some_repository() -> SomeRepository {
+            SomeRepository::default()
+        }
+    }
+
+    #[derive(Debug, Clone, Default)]
+    pub struct SomeService {
+        pub some_repository: foo::SomeRepository,
+    }
+
+    #[rupring_macro::Injectable(SomeServiceFactory)]
+    fn inject_some_service(some_repository: foo::SomeRepository) -> SomeService {
+        SomeService { some_repository }
+    }
+
+    #[test]
+    fn test_1대1_inject() {
+        impl Clone for foo::SomeRepositoryFactory {
+            fn clone(&self) -> Self {
+                foo::SomeRepositoryFactory {}
+            }
+        }
+
+        impl Clone for SomeServiceFactory {
+            fn clone(&self) -> Self {
+                SomeServiceFactory {}
+            }
+        }
+
+        let some_repository_factory = foo::SomeRepositoryFactory {};
+        let some_service_factory = SomeServiceFactory {};
+
+        assert_eq!(
+            vec![std::any::TypeId::of::<foo::SomeRepository>()],
+            some_service_factory.dependencies(),
+            "SomeService는 종속성으로 SomeRepository를 가짐",
+        );
+
+        assert_eq!(
+            Vec::<std::any::TypeId>::new(),
+            some_repository_factory.dependencies(),
+            "SomeRepository는 종속성 없음",
+        );
+
+        let mut di_context = rupring::DIContext::new();
+        di_context.register(some_repository_factory.provide(&di_context));
+        di_context.register(some_service_factory.provide(&di_context));
+
+        let repository = some_repository_factory
+            .provide(&di_context)
+            .downcast::<foo::SomeRepository>()
+            .unwrap();
+
+        assert_eq!(repository.some_value, 0, "SomeRepository 초기값 0",);
+
+        let service = some_service_factory
+            .provide(&di_context)
+            .downcast::<SomeService>()
+            .unwrap();
+
+        assert_eq!(
+            service.some_repository.some_value, 0,
+            "SomeService::SomeRepository 초기값 0",
+        );
+    }
+}
