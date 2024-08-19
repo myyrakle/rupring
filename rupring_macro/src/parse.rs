@@ -1,6 +1,6 @@
 use proc_macro::{TokenStream, TokenTree};
 use quote::ToTokens;
-use syn::{ItemFn, ItemStruct};
+use syn::{FnArg, ItemFn, ItemStruct};
 
 use crate::attribute::{self, AnnotatedParameter};
 
@@ -20,15 +20,15 @@ pub(crate) fn find_function_parameter_types(function_ast: &ItemFn) -> Vec<String
 
     let mut parameters_types = vec![];
 
-    println!("parameters_types: {:?}", parameters_types);
-
     for arg in parameters {
-        let _type = arg.to_token_stream().to_string();
+        if let FnArg::Typed(pat_type) = arg {
+            let _type = pat_type.ty.to_token_stream().to_string();
 
-        // " :: " 패턴을 전부 "::"로 치환
-        let _type = _type.replace(" :: ", "::");
+            // " :: " 패턴을 전부 "::"로 치환
+            let _type = _type.replace(" :: ", "::");
 
-        parameters_types.push(_type);
+            parameters_types.push(_type);
+        }
     }
 
     parameters_types
