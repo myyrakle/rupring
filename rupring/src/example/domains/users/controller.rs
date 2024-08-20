@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{
     dto::{DeleteUserRequest, GetUserRequest, ListUsersRequest, UpdateUserRequest},
     interface::IUserService,
@@ -21,7 +23,7 @@ pub fn get_user(
     #[required]
     id: i32,
 ) -> rupring::Response {
-    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
+    let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
     let request = GetUserRequest { id };
 
@@ -38,7 +40,7 @@ pub fn get_user(
 #[tags = [user]]
 #[summary = "user 생성"]
 pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
+    let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
     let request = serde_json::from_str(&request.body);
 
@@ -66,7 +68,7 @@ pub fn update_user(
     #[required]
     id: i32,
 ) -> rupring::Response {
-    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
+    let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
     let request = serde_json::from_str(&request.body);
 
@@ -96,7 +98,7 @@ pub fn delete_user(
     #[required]
     id: i32,
 ) -> rupring::Response {
-    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
+    let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
     let request = DeleteUserRequest { id };
 
@@ -113,7 +115,7 @@ pub fn delete_user(
 #[tags = [user]]
 #[summary = "user 리스트 조회"]
 pub fn list_users(request: rupring::Request) -> rupring::Response {
-    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
+    let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
     let limit = request.query_parameters.get("limit").map(|e|e.to_owned()).unwrap_or(vec!["10".to_owned()]);
     let offset = request.query_parameters.get("offset").map(|e|e.to_owned()).unwrap_or(vec!["1".to_owned()]);

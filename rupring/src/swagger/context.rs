@@ -129,7 +129,6 @@ fn swaggerize_url(url: &str) -> String {
 
     if in_path_param {
         result.push('}');
-        in_path_param = false;
     }
 
     result
