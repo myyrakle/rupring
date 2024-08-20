@@ -53,6 +53,7 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
 
         for route in controller.routes() {
             let normalized_path = crate::boot::route::normalize_path(prefix.clone(), route.path());
+            let normalized_path = swaggerize_url(normalized_path.as_str());
             let operation = route.swagger();
 
             // TODO: 추후에는 swagger ignore 속성을 추가해서 그걸로 처리
@@ -81,6 +82,7 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
             }
 
             let mut path = SwaggerPath::default();
+
             path.insert(method, operation);
             swagger.paths.insert(normalized_path, path);
         }
@@ -88,5 +90,70 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
 
     for child_module in root_module.child_modules() {
         generate_swagger(swagger, child_module);
+    }
+}
+
+// /:id/do-something -> /{id}/do-something
+fn swaggerize_url(url: &str) -> String {
+    let mut result = String::new();
+
+    let mut is_segment_start = true;
+    let mut in_path_param = false;
+
+    for c in url.chars() {
+        match c {
+            '/' => {
+                if in_path_param {
+                    result.push('}');
+                    in_path_param = false;
+                }
+
+                is_segment_start = true;
+
+                result.push(c);
+
+                continue;
+            }
+            ':' if is_segment_start => {
+                is_segment_start = false;
+                in_path_param = true;
+                result.push('{');
+                continue;
+            }
+            _ => {
+                is_segment_start = false;
+                result.push(c);
+            }
+        }
+    }
+
+    if in_path_param {
+        result.push('}');
+        in_path_param = false;
+    }
+
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_swaggerize_url() {
+        assert_eq!(swaggerize_url("/users/:id"), "/users/{id}");
+        assert_eq!(swaggerize_url("users/:id"), "users/{id}");
+        assert_eq!(
+            swaggerize_url("/users/:id/do-something"),
+            "/users/{id}/do-something"
+        );
+        assert_eq!(
+            swaggerize_url("/users/:id/do-something/:id2"),
+            "/users/{id}/do-something/{id2}"
+        );
+        assert_eq!(
+            swaggerize_url("/users/:id/do-something/:id2/"),
+            "/users/{id}/do-something/{id2}/"
+        );
     }
 }
