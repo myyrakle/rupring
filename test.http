@@ -1,8 +1,0 @@
-###
-GET http://localhost:3000/hello
-Content-Type: application/json
-
-{
-    "message": "Hello World!"
-}
-###

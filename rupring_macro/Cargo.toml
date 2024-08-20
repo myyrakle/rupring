@@ -1,6 +1,6 @@
 [package]
 name = "rupring_macro"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
 description = "rupring macro"
 license = "MIT"
