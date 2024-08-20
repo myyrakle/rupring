@@ -99,7 +99,7 @@ impl Response {
     /// use rupring::HeaderName;
     /// use std::collections::HashMap;
     /// let mut headers = HashMap::new();
-    /// headers.insert(HeaderName::from_static("content-type"), "application/json");
+    /// headers.insert(HeaderName::from_static("content-type"), "application/json".to_string());
     /// let response = rupring::Response::new().headers(headers);
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
     pub fn headers(mut self, headers: HashMap<HeaderName, String>) -> Self {
