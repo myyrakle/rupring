@@ -324,8 +324,10 @@ pub type SwaggerOauth2Scopes = HashMap<String, String>;
 
 pub type SwaggerDefinitions = HashMap<String, SwaggerDefinition>;
 
+pub type SwaggerDefinition = SwaggerObjectProperty;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SwaggerDefinition {
+pub struct SwaggerObjectProperty {
     #[serde(rename = "type")]
     pub type_: String,
 
@@ -337,6 +339,7 @@ pub type SwaggerProperties = HashMap<String, SwaggerProperty>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SwaggerProperty {
+    Object(SwaggerObjectProperty),
     Array(SwaggerArrayProperty),
     Single(SwaggerSingleProperty),
 }

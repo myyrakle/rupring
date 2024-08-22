@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use attribute::AttributeValue;
 use proc_macro::TokenStream;
+use quote::ToTokens;
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
@@ -513,4 +514,19 @@ pub fn Patch(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[allow(non_snake_case)]
 pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
     return Patch(attr, item);
+}
+
+#[proc_macro_derive(RequestBody, attributes(example, description, desc))]
+pub fn derive_request_body(item: TokenStream) -> TokenStream {
+    let ast = syn::parse_macro_input!(item as syn::ItemStruct);
+
+    for field in ast.fields.iter() {
+        let field_name = field.ident.as_ref().unwrap().to_string();
+        let field_type = field.ty.to_token_stream().to_string();
+
+        println!("field_name: {}", field_name);
+        println!("field_type: {}", field_type);
+    }
+
+    TokenStream::new()
 }

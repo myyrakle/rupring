@@ -7,4 +7,6 @@ pub mod json;
 pub mod module;
 pub mod routes;
 
+pub mod macros;
+
 pub use json::*;
