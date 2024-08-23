@@ -6,6 +6,7 @@ use std::str::FromStr;
 use attribute::AttributeValue;
 use proc_macro::TokenStream;
 use quote::ToTokens;
+use syn::Expr;
 
 const SHARP: &str = "#";
 
@@ -539,7 +540,10 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
     return Patch(attr, item);
 }
 
-#[proc_macro_derive(RupringDoc, attributes(example, description, desc, required, name))]
+#[proc_macro_derive(
+    RupringDoc,
+    attributes(example, description, desc, required, name, path, query, body)
+)]
 pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(item as syn::ItemStruct);
     let struct_name = parse::find_struct_name(&ast);
@@ -565,18 +569,38 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += format!(r#"required: vec![],"#).as_str();
     code += "};";
 
+    // TODO: example 파싱
+    // TODO: desc, description 파싱
+    // TODO: required 파싱
+    // TODO: name 파싱
+
+    let description = "".to_string();
+    let mut example = r#""""#.to_string();
+
     for field in ast.fields.iter() {
         let field_name = field.ident.as_ref().unwrap().to_string();
         let field_type = field.ty.to_token_stream().to_string();
-        let attr = field.attrs.clone();
 
-        // TODO: example 파싱
-        // TODO: desc, description 파싱
-        // TODO: required 파싱
-        // TODO: name 파싱
+        let attributes = field.attrs.clone();
 
-        let description = "".to_string();
-        let example = r#""""#.to_string();
+        for attribute in attributes {
+            let metadata = attribute.meta;
+
+            if let Ok(meta_name_value) = metadata.require_name_value() {
+                if let Some(segement) = meta_name_value.path.segments.get(0) {
+                    let attribute_key = segement.ident.to_string();
+
+                    match attribute_key.to_lowercase().as_str() {
+                        "example" => {
+                            if let Expr::Lit(lit) = &meta_name_value.value {
+                                example = format!("{:?}", lit.to_token_stream().to_string());
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
 
         let name = field_name.clone();
 
@@ -589,7 +613,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                 rupring::swagger::json::SwaggerProperty::Single(rupring::swagger::json::SwaggerSingleProperty {{
                     type_: leaf.type_,
                     description: "{description}".to_string(),
-                    example: Some({example}.to_string()),
+                    example: Some({example}.into()),
                 }})
             }},
             rupring::swagger::macros::SwaggerDefinitionNode::Array(array) => {{
@@ -617,8 +641,6 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
             r#"swagger_definition.properties.insert("{name}".to_string(), property_value);"#
         )
         .as_str();
-
-        //println!("attr: {:?}", attr);
     }
 
     code += "rupring::swagger::macros::SwaggerDefinitionNode::Object(swagger_definition)";

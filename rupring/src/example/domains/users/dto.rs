@@ -15,8 +15,14 @@ pub struct CreateUserRequest {
     #[example = "foobar"]
     pub username: String,
     pub email: String,
+    #[desc = "비밀번호"]
+    #[example = "password"]
     pub password: String,
     pub bar: foo::Bar,
+    #[example = 1]
+    pub foo: i32,
+    #[example = true]
+    pub asdf: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
