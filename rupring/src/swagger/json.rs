@@ -288,6 +288,7 @@ pub type SwaggerSecurity = HashMap<String, Vec<String>>;
 pub type SwaggerSecurityDefinitions = HashMap<String, SwaggerSecurityDefinition>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum SwaggerSecurityDefinition {
     APIKey(SwaggerAPIKey),
     Oauth2(SwaggerOauth2),
@@ -324,24 +325,31 @@ pub type SwaggerOauth2Scopes = HashMap<String, String>;
 
 pub type SwaggerDefinitions = HashMap<String, SwaggerDefinition>;
 
+pub type SwaggerDefinition = SwaggerDefinitionObject;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SwaggerDefinition {
+pub struct SwaggerDefinitionObject {
     #[serde(rename = "type")]
     pub type_: String,
 
     #[serde(rename = "properties")]
     pub properties: SwaggerProperties,
+
+    #[serde(rename = "required")]
+    pub required: Vec<String>,
 }
 
 pub type SwaggerProperties = HashMap<String, SwaggerProperty>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum SwaggerProperty {
     Array(SwaggerArrayProperty),
     Single(SwaggerSingleProperty),
+    Reference(SwaggerReferenceProperty),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SwaggerArrayProperty {
     #[serde(rename = "type")]
     pub type_: String,
@@ -353,7 +361,7 @@ pub struct SwaggerArrayProperty {
     pub description: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SwaggerSingleProperty {
     #[serde(rename = "type")]
     pub type_: String,
@@ -362,7 +370,16 @@ pub struct SwaggerSingleProperty {
     pub description: String,
 
     #[serde(rename = "example")]
-    pub example: Option<String>,
+    pub example: Option<String>, // TODO: Union으로 치환
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerReferenceProperty {
+    #[serde(rename = "$ref")]
+    pub reference: String,
+
+    #[serde(rename = "description")]
+    pub description: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -372,7 +389,16 @@ pub struct SwaggerType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum SwaggerTypeOrReference {
     Type(SwaggerType),
     Reference(SwaggerReference),
+}
+
+impl Default for SwaggerTypeOrReference {
+    fn default() -> Self {
+        SwaggerTypeOrReference::Type(SwaggerType {
+            type_: "".to_string(),
+        })
+    }
 }

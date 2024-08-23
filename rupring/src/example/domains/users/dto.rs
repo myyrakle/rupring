@@ -1,10 +1,22 @@
+use rupring_macro::RupringDoc;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+pub mod foo {
+
+    use rupring_macro::RupringDoc;
+    use serde::{Deserialize, Serialize};
+    #[derive(Debug, Serialize, Deserialize, RupringDoc)]
+    pub struct Bar {}
+}
+
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
 pub struct CreateUserRequest {
+    #[desc = "유저명"]
+    #[example = "foobar"]
     pub username: String,
     pub email: String,
     pub password: String,
+    pub bar: foo::Bar,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

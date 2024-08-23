@@ -1,12 +1,13 @@
 use std::sync::{Arc, RwLock};
 
-use crate as rupring;
 use crate::IModule;
+use crate::{self as rupring};
 
 use super::{
     json::{SwaggerPath, SwaggerSchema},
     SwaggerTags,
 };
+use super::{SwaggerParameter, SwaggerParameterCategory, SwaggerReference, SwaggerTypeOrReference};
 
 #[derive(Debug, Clone, Default)]
 pub struct SwaggerContext {
@@ -54,7 +55,38 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
         for route in controller.routes() {
             let normalized_path = crate::boot::route::normalize_path(prefix.clone(), route.path());
             let normalized_path = swaggerize_url(normalized_path.as_str());
-            let operation = route.swagger();
+            let mut operation = route.swagger();
+
+            if let Some(swagger_request_body) = route.swagger_request_body() {
+                operation.parameters.push(SwaggerParameter {
+                    name: swagger_request_body
+                        .definition_name
+                        .split("::")
+                        .last()
+                        .unwrap_or("Request Body")
+                        .to_string(),
+                    in_: SwaggerParameterCategory::Body,
+                    description: "Request Body".to_string(),
+                    required: true,
+                    schema: Some(SwaggerTypeOrReference::Reference(SwaggerReference {
+                        reference: "#/definitions/".to_string()
+                            + swagger_request_body.definition_name.as_str(),
+                    })),
+                    type_: None,
+                });
+
+                swagger.definitions.insert(
+                    swagger_request_body.definition_name.clone(),
+                    swagger_request_body.definition_value,
+                );
+
+                for dependency in swagger_request_body.dependencies {
+                    swagger.definitions.insert(
+                        dependency.definition_name.clone(),
+                        dependency.definition_value,
+                    );
+                }
+            }
 
             // TODO: 추후에는 swagger ignore 속성을 추가해서 그걸로 처리
             match normalized_path.as_str() {

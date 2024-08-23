@@ -537,6 +537,7 @@ pub use request::Request;
 /// HTTP Response
 pub use response::Response;
 use swagger::json::SwaggerOperation;
+use swagger::macros::SwaggerRequestBody;
 
 /// Module interface
 pub trait IModule {
@@ -565,6 +566,10 @@ pub trait IRoute {
 
     fn swagger(&self) -> SwaggerOperation {
         Default::default()
+    }
+
+    fn swagger_request_body(&self) -> Option<SwaggerRequestBody> {
+        None
     }
 }
 

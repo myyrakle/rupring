@@ -5,6 +5,9 @@ use std::str::FromStr;
 
 use attribute::AttributeValue;
 use proc_macro::TokenStream;
+use quote::ToTokens;
+
+const SHARP: &str = "#";
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
@@ -325,6 +328,14 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             .join(", ")
     );
 
+    let request_body = additional_attributes
+        .get("RequestBody")
+        .map(|e| e.as_string())
+        .unwrap_or_default()
+        .trim_start_matches("\"")
+        .trim_end_matches("\"")
+        .to_owned();
+
     let (item, annotated_parameters) = parse::manipulate_route_function_parameters(item);
 
     let mut swagger_code = "".to_string();
@@ -410,6 +421,17 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let route_name = rule::make_route_name(function_name.as_str());
     let handler_name = rule::make_handler_name(function_name.as_str());
 
+    let mut swagger_request_body_code = "".to_string();
+    if request_body.len() > 0 {
+        swagger_request_body_code = format!(
+            r#"
+            fn swagger_request_body(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{
+                rupring::swagger::macros::generate_swagger_request_body::<{request_body}>()
+            }}
+            "#
+        );
+    }
+
     swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.description = \"{description}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.tags = {tags};", tags = tags).as_str());
@@ -437,6 +459,8 @@ impl rupring::IRoute for {route_name} {{
         {swagger_code}
         swagger
     }}
+
+    {swagger_request_body_code}
 }}
 
 #[derive(Debug, Clone)]
@@ -513,4 +537,95 @@ pub fn Patch(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[allow(non_snake_case)]
 pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
     return Patch(attr, item);
+}
+
+#[proc_macro_derive(RupringDoc, attributes(example, description, desc, required, name))]
+pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
+    let ast = syn::parse_macro_input!(item as syn::ItemStruct);
+    let struct_name = parse::find_struct_name(&ast);
+
+    let mut code = "".to_string();
+
+    code +=
+        format!(r#"impl rupring::swagger::macros::ToSwaggerDefinitionNode for {struct_name} {{"#)
+            .as_str();
+
+    code += "fn get_definition_name() -> String {";
+    code += r#"let current_module_name = module_path!().to_string();"#;
+    code += format!(r#"let definition_name = format!("{{current_module_name}}::{struct_name}");"#)
+        .as_str();
+    code += "definition_name";
+    code += "}";
+
+    code += "fn to_swagger_definition(context: &mut rupring::swagger::macros::SwaggerDefinitionContext) -> rupring::swagger::macros::SwaggerDefinitionNode {";
+    code += format!(r#"let mut swagger_definition = rupring::swagger::json::SwaggerDefinition {{"#)
+        .as_str();
+    code += format!(r#"type_: "object".to_string(),"#).as_str();
+    code += format!(r#"properties: std::collections::HashMap::new(),"#).as_str();
+    code += format!(r#"required: vec![],"#).as_str();
+    code += "};";
+
+    for field in ast.fields.iter() {
+        let field_name = field.ident.as_ref().unwrap().to_string();
+        let field_type = field.ty.to_token_stream().to_string();
+        let attr = field.attrs.clone();
+
+        // TODO: example 파싱
+        // TODO: desc, description 파싱
+        // TODO: required 파싱
+        // TODO: name 파싱
+
+        let description = "".to_string();
+        let example = r#""""#.to_string();
+
+        let name = field_name.clone();
+
+        code += format!(r#"let property_of_type = {field_type}::to_swagger_definition(context);"#)
+            .as_str();
+
+        code += format!(
+            r#"let property_value = match property_of_type {{
+            rupring::swagger::macros::SwaggerDefinitionNode::Single(leaf) => {{
+                rupring::swagger::json::SwaggerProperty::Single(rupring::swagger::json::SwaggerSingleProperty {{
+                    type_: leaf.type_,
+                    description: "{description}".to_string(),
+                    example: Some({example}.to_string()),
+                }})
+            }},
+            rupring::swagger::macros::SwaggerDefinitionNode::Array(array) => {{
+                rupring::swagger::json::SwaggerProperty::Array(rupring::swagger::json::SwaggerArrayProperty {{
+                    type_: array.type_,
+                    items: array.items,
+                    description: "{description}".to_string(),
+                }})
+            }},
+            rupring::swagger::macros::SwaggerDefinitionNode::Object(object) => {{
+                let definition_name = {field_type}::get_definition_name();
+
+                context.definitions.insert(definition_name.clone(), object);
+
+                rupring::swagger::json::SwaggerProperty::Reference(rupring::swagger::json::SwaggerReferenceProperty {{
+                    reference: "{SHARP}/definitions/".to_string() + definition_name.as_str(),
+                    description: "{description}".to_string(),
+                }})
+            }},
+        }};"#
+        )
+        .as_str();
+
+        code += format!(
+            r#"swagger_definition.properties.insert("{name}".to_string(), property_value);"#
+        )
+        .as_str();
+
+        //println!("attr: {:?}", attr);
+    }
+
+    code += "rupring::swagger::macros::SwaggerDefinitionNode::Object(swagger_definition)";
+
+    code += "}";
+
+    code += "}";
+
+    return TokenStream::from_str(code.as_str()).unwrap();
 }
