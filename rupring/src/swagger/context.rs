@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock};
 
-use crate as rupring;
 use crate::IModule;
+use crate::{self as rupring};
 
 use super::{
     json::{SwaggerPath, SwaggerSchema},

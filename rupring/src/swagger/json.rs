@@ -344,9 +344,10 @@ pub type SwaggerProperties = HashMap<String, SwaggerProperty>;
 pub enum SwaggerProperty {
     Array(SwaggerArrayProperty),
     Single(SwaggerSingleProperty),
+    Reference(SwaggerReferenceProperty),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SwaggerArrayProperty {
     #[serde(rename = "type")]
     pub type_: String,
@@ -358,7 +359,7 @@ pub struct SwaggerArrayProperty {
     pub description: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SwaggerSingleProperty {
     #[serde(rename = "type")]
     pub type_: String,
@@ -367,7 +368,16 @@ pub struct SwaggerSingleProperty {
     pub description: String,
 
     #[serde(rename = "example")]
-    pub example: Option<String>,
+    pub example: Option<String>, // TODO: Union으로 치환
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SwaggerReferenceProperty {
+    #[serde(rename = "$ref")]
+    pub reference: String,
+
+    #[serde(rename = "description")]
+    pub description: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -380,4 +390,12 @@ pub struct SwaggerType {
 pub enum SwaggerTypeOrReference {
     Type(SwaggerType),
     Reference(SwaggerReference),
+}
+
+impl Default for SwaggerTypeOrReference {
+    fn default() -> Self {
+        SwaggerTypeOrReference::Type(SwaggerType {
+            type_: "".to_string(),
+        })
+    }
 }

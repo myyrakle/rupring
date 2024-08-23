@@ -1,6 +1,6 @@
 mod banner;
 pub mod di;
-mod parse;
+pub mod parse;
 pub(crate) mod route;
 
 use std::collections::HashMap;
