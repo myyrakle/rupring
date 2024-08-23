@@ -537,6 +537,7 @@ pub use request::Request;
 /// HTTP Response
 pub use response::Response;
 use swagger::json::SwaggerOperation;
+use swagger::SwaggerDefinitionObject;
 
 /// Module interface
 pub trait IModule {
@@ -557,6 +558,13 @@ pub trait IController {
     fn middlewares(&self) -> Vec<MiddlewareFunction>;
 }
 
+pub struct SwaggerRequestBody {
+    pub definition_name: String,
+    pub definition_value: SwaggerDefinitionObject,
+
+    pub dependencies: Vec<SwaggerRequestBody>,
+}
+
 /// Route interface
 pub trait IRoute {
     fn method(&self) -> Method;
@@ -565,6 +573,10 @@ pub trait IRoute {
 
     fn swagger(&self) -> SwaggerOperation {
         Default::default()
+    }
+
+    fn swagger_request_body(&self) -> Option<SwaggerRequestBody> {
+        None
     }
 }
 

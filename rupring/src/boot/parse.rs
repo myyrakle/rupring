@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 
-use rupring_macro::RupringDoc;
-use serde::{Deserialize, Serialize};
-
 pub(crate) fn parse_query_parameter(raw_querystring: &str) -> HashMap<String, Vec<String>> {
     let mut query_parameters = HashMap::<String, Vec<String>>::new();
 
@@ -165,26 +162,4 @@ mod tests {
             );
         }
     }
-}
-
-pub mod foo {
-
-    use crate as rupring;
-
-    use rupring_macro::RupringDoc;
-    use serde::{Deserialize, Serialize};
-    #[derive(Debug, Serialize, Deserialize, RupringDoc)]
-    pub struct Bar {}
-}
-
-use crate as rupring;
-
-#[derive(Debug, Serialize, Deserialize, RupringDoc)]
-pub struct CreateUserRequest {
-    #[desc = "유저명"]
-    #[example = "foobar"]
-    pub username: String,
-    pub email: String,
-    pub password: String,
-    pub bar: foo::Bar,
 }

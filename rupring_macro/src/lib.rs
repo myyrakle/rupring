@@ -328,6 +328,14 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             .join(", ")
     );
 
+    let request_body = additional_attributes
+        .get("RequestBody")
+        .map(|e| e.as_string())
+        .unwrap_or_default()
+        .trim_start_matches("\"")
+        .trim_end_matches("\"")
+        .to_owned();
+
     let (item, annotated_parameters) = parse::manipulate_route_function_parameters(item);
 
     let mut swagger_code = "".to_string();
@@ -578,8 +586,10 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                     description: "{description}".to_string(),
                 }})
             }},
-            rupring::swagger::macros::SwaggerDefinitionNode::Object(root) => {{
+            rupring::swagger::macros::SwaggerDefinitionNode::Object(object) => {{
                 let definition_name = {field_type}::get_definition_name();
+
+                context.definitions.insert(definition_name.clone(), object);
 
                 rupring::swagger::json::SwaggerProperty::Reference(rupring::swagger::json::SwaggerReferenceProperty {{
                     reference: "{SHARP}/definitions/".to_string() + definition_name.as_str(),

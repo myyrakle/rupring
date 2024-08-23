@@ -1,12 +1,14 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
+
+use crate::SwaggerRequestBody;
 
 use super::{
-    SwaggerArrayProperty, SwaggerDefinition, SwaggerReference, SwaggerSingleProperty, SwaggerType,
-    SwaggerTypeOrReference,
+    SwaggerArrayProperty, SwaggerDefinition, SwaggerDefinitionObject, SwaggerReference,
+    SwaggerSingleProperty, SwaggerType, SwaggerTypeOrReference,
 };
 
 pub struct SwaggerDefinitionContext {
-    pub property_set: HashSet<String>,
+    pub definitions: HashMap<String, SwaggerDefinitionObject>,
 }
 
 pub trait ToSwaggerDefinitionNode {
@@ -174,4 +176,36 @@ impl<T: ToSwaggerDefinitionNode> ToSwaggerDefinitionNode for Vec<T> {
             ..Default::default()
         })
     }
+}
+
+pub fn generate_swagger_request_body<T: ToSwaggerDefinitionNode>() -> Option<SwaggerRequestBody> {
+    let mut context = SwaggerDefinitionContext {
+        definitions: Default::default(),
+    };
+
+    let root_definition = T::to_swagger_definition(&mut context);
+    let root_definition_name = T::get_definition_name();
+
+    let mut swagger_request_body =
+        if let crate::swagger::macros::SwaggerDefinitionNode::Object(def) = root_definition {
+            let swagger_request_body = SwaggerRequestBody {
+                definition_name: root_definition_name,
+                definition_value: def,
+                dependencies: vec![],
+            };
+
+            swagger_request_body
+        } else {
+            return None;
+        };
+
+    for (name, definition) in context.definitions {
+        swagger_request_body.dependencies.push(SwaggerRequestBody {
+            definition_name: name,
+            definition_value: definition,
+            dependencies: vec![],
+        });
+    }
+
+    Some(swagger_request_body)
 }
