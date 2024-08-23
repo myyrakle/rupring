@@ -288,6 +288,7 @@ pub type SwaggerSecurity = HashMap<String, Vec<String>>;
 pub type SwaggerSecurityDefinitions = HashMap<String, SwaggerSecurityDefinition>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum SwaggerSecurityDefinition {
     APIKey(SwaggerAPIKey),
     Oauth2(SwaggerOauth2),
@@ -341,6 +342,7 @@ pub struct SwaggerDefinitionObject {
 pub type SwaggerProperties = HashMap<String, SwaggerProperty>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum SwaggerProperty {
     Array(SwaggerArrayProperty),
     Single(SwaggerSingleProperty),
@@ -387,6 +389,7 @@ pub struct SwaggerType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum SwaggerTypeOrReference {
     Type(SwaggerType),
     Reference(SwaggerReference),
