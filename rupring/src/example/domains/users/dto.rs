@@ -10,6 +10,8 @@ pub mod foo {
 
 #[derive(Debug, Serialize, Deserialize, RequestBody)]
 pub struct CreateUserRequest {
+    #[desc = "유저명"]
+    #[example = "foobar"]
     pub username: String,
     pub email: String,
     pub password: String,

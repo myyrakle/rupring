@@ -519,14 +519,63 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_derive(RequestBody, attributes(example, description, desc))]
 pub fn derive_request_body(item: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(item as syn::ItemStruct);
+    let struct_name = parse::find_struct_name(&ast);
+
+    let mut code = "".to_string();
+
+    code +=
+        format!(r#"impl rupring::swagger::macros::ToSwaggerDefinitionNode for {struct_name} {{"#)
+            .as_str();
+
+    code += "fn to_swagger_definition() -> rupring::swagger::macros::SwaggerDefinitionNode {";
+
+    code += format!(r#"let mut swagger_definition = rupring::swagger::json::SwaggerDefinition {{"#)
+        .as_str();
+    code += format!(r#"type_: "object".to_string(),"#).as_str();
+    code += format!(r#"properties: std::collections::HashMap::new(),"#).as_str();
+    code += "};";
 
     for field in ast.fields.iter() {
         let field_name = field.ident.as_ref().unwrap().to_string();
         let field_type = field.ty.to_token_stream().to_string();
+        let attr = field.attrs.clone();
+
+        // TODO: example 파싱
+        // TODO: desc, description 파싱
+        // TODO: name 파싱
+
+        code +=
+            format!(r#"let property_of_type = {field_type}::to_swagger_definition();"#).as_str();
+
+        code += format!(
+            r#"let property_value = match property_of_type {{
+            rupring::swagger::macros::SwaggerDefinitionNode::Leaf(leaf) => {{
+                rupring::swagger::json::SwaggerType {{
+                    type_: leaf.type_,
+                }}
+            }},
+            rupring::swagger::macros::SwaggerDefinitionNode::Root(root) => {{
+                rupring::swagger::json::SwaggerType {{
+                    type_: root.type_,
+                }}
+            }},
+        }};"#
+        )
+        .as_str();
+
+        code += format!(r#"swagger_definition.properties.insert("{field_name}", property_value)"#)
+            .as_str();
 
         println!("field_name: {}", field_name);
         println!("field_type: {}", field_type);
+        println!("attr: {:?}", attr);
     }
 
-    TokenStream::new()
+    code += "rupring::swagger::macros::SwaggerDefinitionNode::Root(swagger_definition)";
+
+    code += "}";
+
+    code += "}";
+
+    return TokenStream::from_str(code.as_str()).unwrap();
 }
