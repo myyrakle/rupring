@@ -361,6 +361,44 @@ pub struct SwaggerArrayProperty {
     pub description: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum SwaggerPrimitiveType {
+    String(String),
+    Number(f64),
+    Boolean(bool),
+}
+
+impl From<&str> for SwaggerPrimitiveType {
+    fn from(value: &str) -> Self {
+        let string = value.to_string();
+
+        if string.to_lowercase() == "true" || string.to_lowercase() == "false" {
+            return SwaggerPrimitiveType::Boolean(string.parse().unwrap());
+        }
+
+        let chars = string.chars().collect::<Vec<char>>();
+
+        if chars.len() > 0 {
+            if chars[0].is_numeric() {
+                return SwaggerPrimitiveType::Number(string.parse().unwrap());
+            }
+
+            if chars[0] == '"' && chars[chars.len() - 1] == '"' {
+                return SwaggerPrimitiveType::String(string[1..chars.len() - 1].to_string());
+            }
+        }
+
+        SwaggerPrimitiveType::String(string)
+    }
+}
+
+impl Default for SwaggerPrimitiveType {
+    fn default() -> Self {
+        SwaggerPrimitiveType::String("".to_string())
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SwaggerSingleProperty {
     #[serde(rename = "type")]
@@ -370,7 +408,7 @@ pub struct SwaggerSingleProperty {
     pub description: String,
 
     #[serde(rename = "example")]
-    pub example: Option<String>, // TODO: Union으로 치환
+    pub example: Option<SwaggerPrimitiveType>, // TODO: Union으로 치환
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
