@@ -421,6 +421,17 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let route_name = rule::make_route_name(function_name.as_str());
     let handler_name = rule::make_handler_name(function_name.as_str());
 
+    let mut swagger_request_body_code = "".to_string();
+    if request_body.len() > 0 {
+        swagger_request_body_code = format!(
+            r#"
+            fn swagger_request_body(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{
+                rupring::swagger::macros::generate_swagger_request_body::<{request_body}>()
+            }}
+            "#
+        );
+    }
+
     swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.description = \"{description}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.tags = {tags};", tags = tags).as_str());
@@ -448,6 +459,8 @@ impl rupring::IRoute for {route_name} {{
         {swagger_code}
         swagger
     }}
+
+    {swagger_request_body_code}
 }}
 
 #[derive(Debug, Clone)]

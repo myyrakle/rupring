@@ -537,7 +537,7 @@ pub use request::Request;
 /// HTTP Response
 pub use response::Response;
 use swagger::json::SwaggerOperation;
-use swagger::SwaggerDefinitionObject;
+use swagger::macros::SwaggerRequestBody;
 
 /// Module interface
 pub trait IModule {
@@ -556,13 +556,6 @@ pub trait IController {
     fn prefix(&self) -> String;
     fn routes(&self) -> Vec<Box<dyn IRoute + Send + 'static>>;
     fn middlewares(&self) -> Vec<MiddlewareFunction>;
-}
-
-pub struct SwaggerRequestBody {
-    pub definition_name: String,
-    pub definition_value: SwaggerDefinitionObject,
-
-    pub dependencies: Vec<SwaggerRequestBody>,
 }
 
 /// Route interface

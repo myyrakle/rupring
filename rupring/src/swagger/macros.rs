@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::SwaggerRequestBody;
-
 use super::{
     SwaggerArrayProperty, SwaggerDefinition, SwaggerDefinitionObject, SwaggerReference,
     SwaggerSingleProperty, SwaggerType, SwaggerTypeOrReference,
@@ -176,6 +174,13 @@ impl<T: ToSwaggerDefinitionNode> ToSwaggerDefinitionNode for Vec<T> {
             ..Default::default()
         })
     }
+}
+
+pub struct SwaggerRequestBody {
+    pub definition_name: String,
+    pub definition_value: SwaggerDefinitionObject,
+
+    pub dependencies: Vec<SwaggerRequestBody>,
 }
 
 pub fn generate_swagger_request_body<T: ToSwaggerDefinitionNode>() -> Option<SwaggerRequestBody> {
