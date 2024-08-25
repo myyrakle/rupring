@@ -7,7 +7,10 @@ use super::{
     json::{SwaggerPath, SwaggerSchema},
     SwaggerTags,
 };
-use super::{SwaggerParameter, SwaggerParameterCategory, SwaggerReference, SwaggerTypeOrReference};
+use super::{
+    SwaggerParameter, SwaggerParameterCategory, SwaggerReference, SwaggerResponse,
+    SwaggerTypeOrReference,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct SwaggerContext {
@@ -95,6 +98,33 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
 
                 for swagger_parameter in swagger_request_body.query_parameters {
                     operation.parameters.push(swagger_parameter);
+                }
+            }
+
+            let response_info = route.swagger_response_info();
+
+            if let Some(swagger_response_body) = response_info {
+                swagger.definitions.insert(
+                    swagger_response_body.definition_name.clone(),
+                    swagger_response_body.definition_value,
+                );
+
+                operation.responses.insert(
+                    "200".to_string(),
+                    SwaggerResponse {
+                        description: "OK".to_string(),
+                        schema: Some(SwaggerReference {
+                            reference: "#/definitions/".to_string()
+                                + swagger_response_body.definition_name.as_str(),
+                        }),
+                    },
+                );
+
+                for dependency in swagger_response_body.dependencies {
+                    swagger.definitions.insert(
+                        dependency.definition_name.clone(),
+                        dependency.definition_value,
+                    );
                 }
             }
 
