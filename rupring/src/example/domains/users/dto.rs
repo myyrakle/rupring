@@ -29,6 +29,7 @@ pub struct CreateUserRequest {
     #[required]
     pub asdf: bool,
     #[desc = "설명"]
+    #[name = "q1w2e3r4"]
     pub _asdf: Option<foo::Bar>,
     pub ids: Vec<i32>,
     pub bars: Vec<foo::Bar>,
