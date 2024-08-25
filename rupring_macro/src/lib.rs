@@ -577,7 +577,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         let mut description = "".to_string();
         let mut example = r#""""#.to_string();
 
-        let field_name = field.ident.as_ref().unwrap().to_string();
+        let mut field_name = field.ident.as_ref().unwrap().to_string();
         let mut field_type = field.ty.to_token_stream().to_string().replace(" ", "");
 
         let attributes = field.attrs.clone();
@@ -622,6 +622,20 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 description = text;
                             }
                         }
+                        "name" => {
+                            if let Expr::Lit(lit) = &meta_name_value.value {
+                                let mut text = lit.to_token_stream().to_string();
+
+                                if text.starts_with("\"") {
+                                    text = text
+                                        .trim_start_matches("\"")
+                                        .trim_end_matches("\"")
+                                        .to_string();
+                                }
+
+                                field_name = text;
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -632,8 +646,6 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
             code += format!(r#"swagger_definition.required.push("{field_name}".to_string());"#)
                 .as_str();
         }
-
-        let name = field_name.clone();
 
         // T<A> 형태를 T::<A> 형태로 변환
         if field_type.contains("<") {
@@ -674,7 +686,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         .as_str();
 
         code += format!(
-            r#"swagger_definition.properties.insert("{name}".to_string(), property_value);"#
+            r#"swagger_definition.properties.insert("{field_name}".to_string(), property_value);"#
         )
         .as_str();
     }
