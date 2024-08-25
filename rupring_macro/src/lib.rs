@@ -330,7 +330,8 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     );
 
     let request_body = additional_attributes
-        .get("RequestBody")
+        .get("parameters")
+        .or(additional_attributes.get("params"))
         .map(|e| e.as_string())
         .unwrap_or_default()
         .trim_start_matches("\"")
