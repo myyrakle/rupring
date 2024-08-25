@@ -34,9 +34,9 @@ pub struct CreateUserRequest {
     pub ids: Vec<i32>,
     pub bars: Vec<foo::Bar>,
 
+    #[query]
     #[desc = "설명"]
     #[example = "asdf"]
-    #[query]
     pub query_test: Option<String>,
 }
 

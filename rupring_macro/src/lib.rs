@@ -605,63 +605,61 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         for attribute in attributes {
             let metadata = attribute.meta;
 
-            if let Ok(meta_name_value) = metadata.require_name_value() {
-                if let Some(segement) = meta_name_value.path.segments.get(0) {
-                    let attribute_key = segement.ident.to_string();
+            let path = metadata.path().to_token_stream().to_string();
 
-                    match attribute_key.to_lowercase().as_str() {
-                        "example" => {
-                            if let Expr::Lit(lit) = &meta_name_value.value {
-                                example = format!("{:?}", lit.to_token_stream().to_string());
-                            }
-                        }
-                        "required" => {
-                            if let Expr::Lit(lit) = &meta_name_value.value {
-                                is_required = lit.to_token_stream().to_string().parse().unwrap();
-                            } else {
-                                is_required = true;
-                            }
-                        }
-                        "description" | "desc" => {
-                            if let Expr::Lit(lit) = &meta_name_value.value {
-                                let mut text = lit.to_token_stream().to_string();
+            let meta_value = metadata.require_name_value().ok().map(|e| e.value.clone());
 
-                                if text.starts_with("\"") {
-                                    text = text
-                                        .trim_start_matches("\"")
-                                        .trim_end_matches("\"")
-                                        .to_string();
-                                }
-
-                                description = text;
-                            }
-                        }
-                        "name" => {
-                            if let Expr::Lit(lit) = &meta_name_value.value {
-                                let mut text = lit.to_token_stream().to_string();
-
-                                if text.starts_with("\"") {
-                                    text = text
-                                        .trim_start_matches("\"")
-                                        .trim_end_matches("\"")
-                                        .to_string();
-                                }
-
-                                field_name = text;
-                            }
-                        }
-                        "path_param" | "param" => {
-                            is_path_parameter = true;
-                        }
-                        "query" => {
-                            is_query_parameter = true;
-                        }
-                        "ignore" => {
-                            is_ignore = true;
-                        }
-                        _ => {}
+            match path.to_lowercase().as_str() {
+                "example" => {
+                    if let Some(Expr::Lit(lit)) = &meta_value {
+                        example = format!("{:?}", lit.to_token_stream().to_string());
                     }
                 }
+                "required" => {
+                    if let Some(Expr::Lit(lit)) = &meta_value {
+                        is_required = lit.to_token_stream().to_string().parse().unwrap();
+                    } else {
+                        is_required = true;
+                    }
+                }
+                "description" | "desc" => {
+                    if let Some(Expr::Lit(lit)) = &meta_value {
+                        let mut text = lit.to_token_stream().to_string();
+
+                        if text.starts_with("\"") {
+                            text = text
+                                .trim_start_matches("\"")
+                                .trim_end_matches("\"")
+                                .to_string();
+                        }
+
+                        description = text;
+                    }
+                }
+                "name" => {
+                    if let Some(Expr::Lit(lit)) = &meta_value {
+                        let mut text = lit.to_token_stream().to_string();
+
+                        if text.starts_with("\"") {
+                            text = text
+                                .trim_start_matches("\"")
+                                .trim_end_matches("\"")
+                                .to_string();
+                        }
+
+                        field_name = text;
+                    }
+                }
+                "path_param" | "param" => {
+                    is_path_parameter = true;
+                }
+                "query" => {
+                    is_query_parameter = true;
+                }
+                "ignore" => {
+                    is_ignore = true;
+                }
+                _ => {}
             }
         }
 
