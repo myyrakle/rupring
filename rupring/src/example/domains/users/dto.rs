@@ -28,6 +28,7 @@ pub struct CreateUserRequest {
     #[example = true]
     #[required]
     pub asdf: bool,
+    #[desc = "설명"]
     pub _asdf: Option<foo::Bar>,
     pub ids: Vec<i32>,
     pub bars: Vec<foo::Bar>,
