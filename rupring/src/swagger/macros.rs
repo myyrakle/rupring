@@ -176,6 +176,13 @@ impl<T: ToSwaggerDefinitionNode> ToSwaggerDefinitionNode for Vec<T> {
     }
 }
 
+impl<T: ToSwaggerDefinitionNode> ToSwaggerDefinitionNode for Option<T> {
+    fn to_swagger_definition(context: &mut SwaggerDefinitionContext) -> SwaggerDefinitionNode {
+        let item = T::to_swagger_definition(context);
+
+        item
+    }
+}
 pub struct SwaggerRequestBody {
     pub definition_name: String,
     pub definition_value: SwaggerDefinitionObject,

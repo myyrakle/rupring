@@ -578,7 +578,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
 
     for field in ast.fields.iter() {
         let field_name = field.ident.as_ref().unwrap().to_string();
-        let field_type = field.ty.to_token_stream().to_string();
+        let mut field_type = field.ty.to_token_stream().to_string().replace(" ", "");
 
         let attributes = field.attrs.clone();
 
@@ -621,8 +621,15 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
 
         let name = field_name.clone();
 
+        // T<A> 형태를 T::<A> 형태로 변환
+        if field_type.contains("<") {
+            field_type = field_type.replace("<", "::<")
+        }
+
         code += format!(r#"let property_of_type = {field_type}::to_swagger_definition(context);"#)
             .as_str();
+
+        println!("{}", field_type);
 
         code += format!(
             r#"let property_value = match property_of_type {{
