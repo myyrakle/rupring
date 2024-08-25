@@ -573,10 +573,10 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     // TODO: desc, description 파싱
     // TODO: name 파싱
 
-    let description = "".to_string();
-    let mut example = r#""""#.to_string();
-
     for field in ast.fields.iter() {
+        let mut description = "".to_string();
+        let mut example = r#""""#.to_string();
+
         let field_name = field.ident.as_ref().unwrap().to_string();
         let mut field_type = field.ty.to_token_stream().to_string().replace(" ", "");
 
@@ -606,6 +606,20 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 is_required = lit.to_token_stream().to_string().parse().unwrap();
                             } else {
                                 is_required = true;
+                            }
+                        }
+                        "description" | "desc" => {
+                            if let Expr::Lit(lit) = &meta_name_value.value {
+                                let mut text = lit.to_token_stream().to_string();
+
+                                if text.starts_with("\"") {
+                                    text = text
+                                        .trim_start_matches("\"")
+                                        .trim_end_matches("\"")
+                                        .to_string();
+                                }
+
+                                description = text;
                             }
                         }
                         _ => {}
