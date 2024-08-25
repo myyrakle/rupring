@@ -57,7 +57,9 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
             let normalized_path = swaggerize_url(normalized_path.as_str());
             let mut operation = route.swagger();
 
-            if let Some(swagger_request_body) = route.swagger_request_body() {
+            let request_info = route.swagger_request_info();
+
+            if let Some(swagger_request_body) = request_info {
                 operation.parameters.push(SwaggerParameter {
                     name: swagger_request_body
                         .definition_name
@@ -85,6 +87,10 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
                         dependency.definition_name.clone(),
                         dependency.definition_value,
                     );
+                }
+
+                for swagger_parameter in swagger_request_body.path_parameters {
+                    operation.parameters.push(swagger_parameter);
                 }
             }
 

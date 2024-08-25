@@ -427,8 +427,8 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     if request_body.len() > 0 {
         swagger_request_body_code = format!(
             r#"
-            fn swagger_request_body(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{
-                rupring::swagger::macros::generate_swagger_request_body::<{request_body}>()
+            fn swagger_request_info(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{
+                rupring::swagger::macros::generate_swagger_request_info::<{request_body}>()
             }}
             "#
         );
@@ -543,7 +543,7 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(
     RupringDoc,
-    attributes(example, description, desc, required, name, path, query, body)
+    attributes(example, description, desc, required, name, path_param, query, body)
 )]
 pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(item as syn::ItemStruct);
@@ -568,6 +568,8 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += format!(r#"type_: "object".to_string(),"#).as_str();
     code += format!(r#"properties: std::collections::HashMap::new(),"#).as_str();
     code += format!(r#"required: vec![],"#).as_str();
+    code += format!(r#"path_parameters: vec![],"#).as_str();
+    code += format!(r#"query_parameters: vec![],"#).as_str();
     code += "};";
 
     // TODO: desc, description 파싱
@@ -583,6 +585,8 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         let attributes = field.attrs.clone();
 
         let mut is_required = true;
+
+        let mut is_path_parameter = false;
 
         if field_type.starts_with("Option<") {
             is_required = false;
@@ -636,6 +640,9 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 field_name = text;
                             }
                         }
+                        "path_param" => {
+                            is_path_parameter = true;
+                        }
                         _ => {}
                     }
                 }
@@ -652,6 +659,26 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
             field_type = field_type.replace("<", "::<")
         }
 
+        if is_path_parameter {
+            code += format!(
+                r#"swagger_definition.path_parameters.push(rupring::swagger::json::SwaggerParameter {{
+                name: "{field_name}".to_string(),
+                in_: rupring::swagger::json::SwaggerParameterCategory::Path,
+                description: "{description}".to_string(),
+                required: {is_required},
+                schema: Some(rupring::swagger::json::SwaggerTypeOrReference::Type(
+                    rupring::swagger::json::SwaggerType {{
+                        type_: "{field_type}".to_string(),
+                    }}
+                )),
+                type_: None,
+            }});"#
+            ).as_str();
+
+            continue;
+        }
+
+        // Body 파라미터 생성 구현
         code += format!(r#"let property_of_type = {field_type}::to_swagger_definition(context);"#)
             .as_str();
 

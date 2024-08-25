@@ -1,9 +1,15 @@
 use std::collections::HashMap;
 
 use super::{
-    SwaggerArrayProperty, SwaggerDefinition, SwaggerDefinitionObject, SwaggerReference,
-    SwaggerSingleProperty, SwaggerType, SwaggerTypeOrReference,
+    SwaggerArrayProperty, SwaggerDefinition, SwaggerDefinitionObject, SwaggerParameter,
+    SwaggerReference, SwaggerSingleProperty, SwaggerType, SwaggerTypeOrReference,
 };
+
+pub struct SwaggerRequestInfo {
+    pub request_body: Option<SwaggerRequestBody>,
+    pub path_parameters: Vec<SwaggerParameter>,
+    pub query_parameters: Vec<SwaggerParameter>,
+}
 
 pub struct SwaggerDefinitionContext {
     pub definitions: HashMap<String, SwaggerDefinitionObject>,
@@ -188,9 +194,12 @@ pub struct SwaggerRequestBody {
     pub definition_value: SwaggerDefinitionObject,
 
     pub dependencies: Vec<SwaggerRequestBody>,
+
+    pub path_parameters: Vec<SwaggerParameter>,
+    pub query_parameters: Vec<SwaggerParameter>,
 }
 
-pub fn generate_swagger_request_body<T: ToSwaggerDefinitionNode>() -> Option<SwaggerRequestBody> {
+pub fn generate_swagger_request_info<T: ToSwaggerDefinitionNode>() -> Option<SwaggerRequestBody> {
     let mut context = SwaggerDefinitionContext {
         definitions: Default::default(),
     };
@@ -202,8 +211,10 @@ pub fn generate_swagger_request_body<T: ToSwaggerDefinitionNode>() -> Option<Swa
         if let crate::swagger::macros::SwaggerDefinitionNode::Object(def) = root_definition {
             let swagger_request_body = SwaggerRequestBody {
                 definition_name: root_definition_name,
-                definition_value: def,
+                definition_value: def.clone(),
                 dependencies: vec![],
+                path_parameters: def.path_parameters.clone(),
+                query_parameters: def.query_parameters.clone(),
             };
 
             swagger_request_body
@@ -216,6 +227,8 @@ pub fn generate_swagger_request_body<T: ToSwaggerDefinitionNode>() -> Option<Swa
             definition_name: name,
             definition_value: definition,
             dependencies: vec![],
+            path_parameters: vec![],
+            query_parameters: vec![],
         });
     }
 
