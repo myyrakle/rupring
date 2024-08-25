@@ -330,7 +330,8 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     );
 
     let request_body = additional_attributes
-        .get("RequestBody")
+        .get("parameters")
+        .or(additional_attributes.get("params"))
         .map(|e| e.as_string())
         .unwrap_or_default()
         .trim_start_matches("\"")
@@ -569,9 +570,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += format!(r#"required: vec![],"#).as_str();
     code += "};";
 
-    // TODO: example 파싱
     // TODO: desc, description 파싱
-    // TODO: required 파싱
     // TODO: name 파싱
 
     let description = "".to_string();
@@ -579,9 +578,15 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
 
     for field in ast.fields.iter() {
         let field_name = field.ident.as_ref().unwrap().to_string();
-        let field_type = field.ty.to_token_stream().to_string();
+        let mut field_type = field.ty.to_token_stream().to_string().replace(" ", "");
 
         let attributes = field.attrs.clone();
+
+        let mut is_required = true;
+
+        if field_type.starts_with("Option<") {
+            is_required = false;
+        }
 
         for attribute in attributes {
             let metadata = attribute.meta;
@@ -596,13 +601,30 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 example = format!("{:?}", lit.to_token_stream().to_string());
                             }
                         }
+                        "required" => {
+                            if let Expr::Lit(lit) = &meta_name_value.value {
+                                is_required = lit.to_token_stream().to_string().parse().unwrap();
+                            } else {
+                                is_required = true;
+                            }
+                        }
                         _ => {}
                     }
                 }
             }
         }
 
+        if is_required {
+            code += format!(r#"swagger_definition.required.push("{field_name}".to_string());"#)
+                .as_str();
+        }
+
         let name = field_name.clone();
+
+        // T<A> 형태를 T::<A> 형태로 변환
+        if field_type.contains("<") {
+            field_type = field_type.replace("<", "::<")
+        }
 
         code += format!(r#"let property_of_type = {field_type}::to_swagger_definition(context);"#)
             .as_str();

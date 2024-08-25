@@ -39,7 +39,7 @@ pub fn get_user(
 #[rupring::Post(path = /users)]
 #[tags = [user]]
 #[summary = "user 생성"]
-#[RequestBody = crate::domains::users::dto::CreateUserRequest]
+#[params = crate::domains::users::dto::CreateUserRequest]
 pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
     let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 

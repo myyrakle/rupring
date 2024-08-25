@@ -6,7 +6,10 @@ pub mod foo {
     use rupring_macro::RupringDoc;
     use serde::{Deserialize, Serialize};
     #[derive(Debug, Serialize, Deserialize, RupringDoc)]
-    pub struct Bar {}
+    pub struct Bar {
+        pub a: i32,
+        pub b: String,
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, RupringDoc)]
@@ -20,9 +23,14 @@ pub struct CreateUserRequest {
     pub password: String,
     pub bar: foo::Bar,
     #[example = 1]
+    #[required = false]
     pub foo: i32,
     #[example = true]
+    #[required]
     pub asdf: bool,
+    pub _asdf: Option<foo::Bar>,
+    pub ids: Vec<i32>,
+    pub bars: Vec<foo::Bar>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
