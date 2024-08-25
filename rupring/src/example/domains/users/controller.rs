@@ -62,23 +62,19 @@ pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::
 #[rupring::Put(path = /users/:id)]
 #[tags = [user]]
 #[summary = "user 정보 수정"]
+#[params = crate::domains::users::dto::UpdateUserRequest]
 pub fn update_user(
     request: rupring::Request,
-    #[path = "id"]
-    #[desc = "user 고유 id"]
-    #[required]
-    id: i32,
 ) -> rupring::Response {
     let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
     let request = serde_json::from_str(&request.body);
 
-    let mut request: UpdateUserRequest = match request {
+    let request: UpdateUserRequest = match request {
         Ok(request) => request,
         Err(_) => return rupring::Response::new().status(400).text("bad request"),
     };
 
-    request.id = id;
 
     let response = user_service.update_user(request);
 

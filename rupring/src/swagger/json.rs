@@ -337,6 +337,12 @@ pub struct SwaggerDefinitionObject {
 
     #[serde(rename = "required")]
     pub required: Vec<String>,
+
+    #[serde(skip_serializing)]
+    pub path_parameters: Vec<SwaggerParameter>,
+
+    #[serde(skip_serializing)]
+    pub query_parameters: Vec<SwaggerParameter>,
 }
 
 pub type SwaggerProperties = HashMap<String, SwaggerProperty>;

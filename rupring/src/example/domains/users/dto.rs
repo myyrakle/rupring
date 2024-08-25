@@ -38,9 +38,12 @@ pub struct CreateUserRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateUserResponse {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
 pub struct UpdateUserRequest {
     #[serde(skip_serializing)]
+    #[path_param = "id"]
+    #[desc = "user 고유 id"]
+    #[required]
     pub id: i32,
     pub username: String,
     pub email: String,
