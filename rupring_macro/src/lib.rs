@@ -629,8 +629,6 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         code += format!(r#"let property_of_type = {field_type}::to_swagger_definition(context);"#)
             .as_str();
 
-        println!("{}", field_type);
-
         code += format!(
             r#"let property_value = match property_of_type {{
             rupring::swagger::macros::SwaggerDefinitionNode::Single(leaf) => {{
