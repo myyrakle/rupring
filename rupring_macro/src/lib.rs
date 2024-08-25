@@ -570,9 +570,6 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += format!(r#"required: vec![],"#).as_str();
     code += "};";
 
-    // TODO: desc, description 파싱
-    // TODO: name 파싱
-
     for field in ast.fields.iter() {
         let mut description = "".to_string();
         let mut example = r#""""#.to_string();
