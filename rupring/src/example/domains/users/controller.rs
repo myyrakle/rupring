@@ -16,6 +16,7 @@ pub struct UserController {}
 #[rupring::Get(path = /users/:id)]
 #[tags = [user]]
 #[summary = "user 조회"]
+#[response = crate::domains::users::dto::GetUserResponse]
 pub fn get_user(
     request: rupring::Request,
     #[path = "id"]
@@ -111,6 +112,8 @@ pub fn delete_user(
 #[rupring::Get(path = /users)]
 #[tags = [user]]
 #[summary = "user 리스트 조회"]
+#[params = crate::domains::users::dto::ListUsersRequest]
+#[response = crate::domains::users::dto::ListUsersResponse]
 pub fn list_users(request: rupring::Request) -> rupring::Response {
     let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 

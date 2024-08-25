@@ -571,6 +571,10 @@ pub trait IRoute {
     fn swagger_request_info(&self) -> Option<SwaggerRequestBody> {
         None
     }
+
+    fn swagger_response_info(&self) -> Option<SwaggerRequestBody> {
+        None
+    }
 }
 
 /// Handler interface

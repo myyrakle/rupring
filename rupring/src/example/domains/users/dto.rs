@@ -71,20 +71,22 @@ pub struct GetUserRequest {
     pub id: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
 pub struct GetUserResponse {
     pub id: i32,
     pub username: String,
     pub email: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
 pub struct ListUsersRequest {
+    #[query = "offset"]
     pub offset: i32,
+    #[query = "limit"]
     pub limit: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
 pub struct ListUsersResponse {
     pub users: Vec<GetUserResponse>,
     pub total: i32,

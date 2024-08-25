@@ -338,6 +338,14 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         .trim_end_matches("\"")
         .to_owned();
 
+    let response = additional_attributes
+        .get("response")
+        .map(|e| e.as_string())
+        .unwrap_or_default()
+        .trim_start_matches("\"")
+        .trim_end_matches("\"")
+        .to_owned();
+
     let (item, annotated_parameters) = parse::manipulate_route_function_parameters(item);
 
     let mut swagger_code = "".to_string();
@@ -434,6 +442,17 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         );
     }
 
+    let mut swagger_response_body_code = "".to_string();
+    if response.len() > 0 {
+        swagger_response_body_code = format!(
+            r#"
+            fn swagger_response_info(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{
+                rupring::swagger::macros::generate_swagger_request_info::<{response}>()
+            }}
+            "#
+        );
+    }
+
     swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.description = \"{description}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.tags = {tags};", tags = tags).as_str());
@@ -463,6 +482,8 @@ impl rupring::IRoute for {route_name} {{
     }}
 
     {swagger_request_body_code}
+
+    {swagger_response_body_code}
 }}
 
 #[derive(Debug, Clone)]
