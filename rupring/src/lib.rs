@@ -568,7 +568,7 @@ pub trait IRoute {
         Default::default()
     }
 
-    fn swagger_request_body(&self) -> Option<SwaggerRequestBody> {
+    fn swagger_request_info(&self) -> Option<SwaggerRequestBody> {
         None
     }
 }
