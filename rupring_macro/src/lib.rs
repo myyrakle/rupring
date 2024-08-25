@@ -543,7 +543,18 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(
     RupringDoc,
-    attributes(example, description, desc, required, name, path_param, query, body)
+    attributes(
+        example,
+        description,
+        desc,
+        required,
+        name,
+        path_param,
+        param,
+        query,
+        body,
+        ignore,
+    )
 )]
 pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(item as syn::ItemStruct);
@@ -572,9 +583,6 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += format!(r#"query_parameters: vec![],"#).as_str();
     code += "};";
 
-    // TODO: desc, description 파싱
-    // TODO: name 파싱
-
     for field in ast.fields.iter() {
         let mut description = "".to_string();
         let mut example = r#""""#.to_string();
@@ -585,6 +593,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         let attributes = field.attrs.clone();
 
         let mut is_required = true;
+        let mut is_ignore = false;
 
         let mut is_path_parameter = false;
 
@@ -640,13 +649,20 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 field_name = text;
                             }
                         }
-                        "path_param" => {
+                        "path_param" | "param" => {
                             is_path_parameter = true;
+                        }
+                        "ignore" => {
+                            is_ignore = true;
                         }
                         _ => {}
                     }
                 }
             }
+        }
+
+        if is_ignore {
+            continue;
         }
 
         if is_required {
