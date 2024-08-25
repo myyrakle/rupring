@@ -569,9 +569,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += format!(r#"required: vec![],"#).as_str();
     code += "};";
 
-    // TODO: example 파싱
     // TODO: desc, description 파싱
-    // TODO: required 파싱
     // TODO: name 파싱
 
     let description = "".to_string();
@@ -582,6 +580,12 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         let field_type = field.ty.to_token_stream().to_string();
 
         let attributes = field.attrs.clone();
+
+        let mut is_required = true;
+
+        if field_type.starts_with("Option<") {
+            is_required = false;
+        }
 
         for attribute in attributes {
             let metadata = attribute.meta;
@@ -596,10 +600,22 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 example = format!("{:?}", lit.to_token_stream().to_string());
                             }
                         }
+                        "required" => {
+                            if let Expr::Lit(lit) = &meta_name_value.value {
+                                is_required = lit.to_token_stream().to_string().parse().unwrap();
+                            } else {
+                                is_required = true;
+                            }
+                        }
                         _ => {}
                     }
                 }
             }
+        }
+
+        if is_required {
+            code += format!(r#"swagger_definition.required.push("{field_name}".to_string());"#)
+                .as_str();
         }
 
         let name = field_name.clone();

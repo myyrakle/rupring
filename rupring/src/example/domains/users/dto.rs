@@ -20,8 +20,10 @@ pub struct CreateUserRequest {
     pub password: String,
     pub bar: foo::Bar,
     #[example = 1]
+    #[required = false]
     pub foo: i32,
     #[example = true]
+    #[required]
     pub asdf: bool,
 }
 
