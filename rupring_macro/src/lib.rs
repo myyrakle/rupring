@@ -596,6 +596,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         let mut is_ignore = false;
 
         let mut is_path_parameter = false;
+        let mut is_query_parameter = false;
 
         if field_type.starts_with("Option<") {
             is_required = false;
@@ -652,6 +653,9 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                         "path_param" | "param" => {
                             is_path_parameter = true;
                         }
+                        "query" => {
+                            is_query_parameter = true;
+                        }
                         "ignore" => {
                             is_ignore = true;
                         }
@@ -680,6 +684,25 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                 r#"swagger_definition.path_parameters.push(rupring::swagger::json::SwaggerParameter {{
                 name: "{field_name}".to_string(),
                 in_: rupring::swagger::json::SwaggerParameterCategory::Path,
+                description: "{description}".to_string(),
+                required: {is_required},
+                schema: Some(rupring::swagger::json::SwaggerTypeOrReference::Type(
+                    rupring::swagger::json::SwaggerType {{
+                        type_: "{field_type}".to_string(),
+                    }}
+                )),
+                type_: None,
+            }});"#
+            ).as_str();
+
+            continue;
+        }
+
+        if is_query_parameter {
+            code += format!(
+                r#"swagger_definition.query_parameters.push(rupring::swagger::json::SwaggerParameter {{
+                name: "{field_name}".to_string(),
+                in_: rupring::swagger::json::SwaggerParameterCategory::Query,
                 description: "{description}".to_string(),
                 required: {is_required},
                 schema: Some(rupring::swagger::json::SwaggerTypeOrReference::Type(

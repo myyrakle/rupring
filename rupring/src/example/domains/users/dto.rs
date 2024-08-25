@@ -33,6 +33,11 @@ pub struct CreateUserRequest {
     pub _asdf: Option<foo::Bar>,
     pub ids: Vec<i32>,
     pub bars: Vec<foo::Bar>,
+
+    #[desc = "설명"]
+    #[example = "asdf"]
+    #[query]
+    pub query_test: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
