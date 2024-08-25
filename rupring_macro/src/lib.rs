@@ -655,6 +655,19 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                 }
                 "query" => {
                     is_query_parameter = true;
+
+                    if let Some(Expr::Lit(lit)) = &meta_value {
+                        let mut text = lit.to_token_stream().to_string();
+
+                        if text.starts_with("\"") {
+                            text = text
+                                .trim_start_matches("\"")
+                                .trim_end_matches("\"")
+                                .to_string();
+                        }
+
+                        field_name = text;
+                    }
                 }
                 "ignore" => {
                     is_ignore = true;
