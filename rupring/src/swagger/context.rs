@@ -92,6 +92,10 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
                 for swagger_parameter in swagger_request_body.path_parameters {
                     operation.parameters.push(swagger_parameter);
                 }
+
+                for swagger_parameter in swagger_request_body.query_parameters {
+                    operation.parameters.push(swagger_parameter);
+                }
             }
 
             // TODO: 추후에는 swagger ignore 속성을 추가해서 그걸로 처리
