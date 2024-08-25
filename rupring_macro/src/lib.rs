@@ -552,7 +552,8 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
         path_param,
         param,
         query,
-        body
+        body,
+        ignore,
     )
 )]
 pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
@@ -592,6 +593,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         let attributes = field.attrs.clone();
 
         let mut is_required = true;
+        let mut is_ignore = false;
 
         let mut is_path_parameter = false;
 
@@ -650,10 +652,17 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                         "path_param" | "param" => {
                             is_path_parameter = true;
                         }
+                        "ignore" => {
+                            is_ignore = true;
+                        }
                         _ => {}
                     }
                 }
             }
+        }
+
+        if is_ignore {
+            continue;
         }
 
         if is_required {
