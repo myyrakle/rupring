@@ -13,6 +13,12 @@ pub struct Request {
     pub(crate) di_context: Arc<crate::DIContext>,
 }
 
+pub trait BindFromRequest {
+    fn bind(&mut self, request: Request) -> anyhow::Result<Self>
+    where
+        Self: Sized;
+}
+
 impl UnwindSafe for Request {}
 
 impl Request {

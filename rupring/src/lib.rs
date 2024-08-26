@@ -619,5 +619,6 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
 #[cfg(test)]
 mod test_proc_macro;
 
+pub use anyhow;
 pub use serde;
 pub use serde_json;

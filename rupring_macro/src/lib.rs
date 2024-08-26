@@ -638,6 +638,10 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         format!(r#"#[derive(rupring::serde::Serialize, rupring::serde::Deserialize)]"#).as_str();
     define_struct_for_json += format!(r#"pub struct {struct_name}__JSON {{"#).as_str();
 
+    let mut json_field_names = vec![];
+    let mut path_field_names = vec![];
+    let mut query_field_names = vec![];
+
     for field in ast.fields.iter() {
         let mut description = "".to_string();
         let mut example = r#""""#.to_string();
@@ -759,6 +763,8 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         }
 
         if is_path_parameter {
+            path_field_names.push(field_name.clone());
+
             code += format!(
                 r#"swagger_definition.path_parameters.push(rupring::swagger::json::SwaggerParameter {{
                 name: "{field_name}".to_string(),
@@ -778,6 +784,8 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         }
 
         if is_query_parameter {
+            query_field_names.push(field_name.clone());
+
             code += format!(
                 r#"swagger_definition.query_parameters.push(rupring::swagger::json::SwaggerParameter {{
                 name: "{field_name}".to_string(),
@@ -795,6 +803,8 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
 
             continue;
         }
+
+        json_field_names.push(field_name.clone());
 
         define_struct_for_json += format!(
             r#"
@@ -852,6 +862,45 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += "}";
 
     code += define_struct_for_json.as_str();
+
+    let mut request_bind_code = "".to_string();
+    request_bind_code +=
+        format!(r#"impl rupring::request::BindFromRequest for {struct_name} {{"#).as_str();
+
+    request_bind_code +=
+        "fn bind(&mut self, request: rupring::request::Request) -> rupring::anyhow::Result<Self> {";
+    request_bind_code += "use rupring::ParamStringDeserializer;";
+
+    request_bind_code += format!("let mut json_bound = rupring::serde_json::from_str::<{struct_name}__JSON>(request.body.as_str())?;").as_str();
+
+    request_bind_code += format!("let mut bound = {struct_name} {{").as_str();
+
+    for field_name in json_field_names {
+        request_bind_code += format!("{field_name}: json_bound.{field_name},").as_str();
+    }
+
+    for field_name in path_field_names {
+        request_bind_code += format!(
+            r#"{field_name}: rupring::ParamString(
+                request.path_parameters["{field_name}"].clone()
+            ).
+                deserialize().
+                map_err(
+                    |_|Err(rupring::anyhow::anyhow!("{field_name} is invalid"))
+                )?,
+            "#
+        )
+        .as_str();
+    }
+
+    request_bind_code += format!("}};").as_str();
+
+    request_bind_code += "Ok(bound)";
+    request_bind_code += "}";
+
+    request_bind_code += format!(r#"}}"#).as_str();
+
+    code += request_bind_code.as_str();
 
     return TokenStream::from_str(code.as_str()).unwrap();
 }
