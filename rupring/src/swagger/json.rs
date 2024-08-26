@@ -46,7 +46,7 @@ impl Default for SwaggerSchema {
             tags: Default::default(),
             paths: Default::default(),
             definitions: Default::default(),
-            security_definitions: Default::default(),
+            security_definitions: SwaggerSecurityDefinition::new_default_definitions(),
             external_docs: Default::default(),
         }
     }
@@ -286,6 +286,24 @@ pub struct SwaggerResponse {
 pub type SwaggerSecurity = HashMap<String, Vec<String>>;
 
 pub type SwaggerSecurityDefinitions = HashMap<String, SwaggerSecurityDefinition>;
+
+impl SwaggerSecurityDefinition {
+    pub fn new_bearer_auth() -> Self {
+        SwaggerSecurityDefinition::APIKey(SwaggerAPIKey {
+            type_: "apiKey".to_string(),
+            name: "Authorization".to_string(),
+            in_: "header".to_string(),
+        })
+    }
+
+    pub fn new_default_definitions() -> SwaggerSecurityDefinitions {
+        let mut security_definitions = SwaggerSecurityDefinitions::new();
+
+        security_definitions.insert("BearerAuth".to_string(), Self::new_bearer_auth());
+
+        security_definitions
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
