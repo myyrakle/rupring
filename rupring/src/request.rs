@@ -36,6 +36,21 @@ pub trait QueryStringDeserializer<T>: Sized {
     fn deserialize(&self) -> Result<T, Self::Error>;
 }
 
+impl<T> QueryStringDeserializer<Option<T>> for QueryString
+where
+    QueryString: QueryStringDeserializer<T>,
+{
+    type Error = ();
+
+    fn deserialize(&self) -> Result<Option<T>, Self::Error> {
+        let result = Self::deserialize(self);
+        match result {
+            Ok(v) => Ok(Some(v)),
+            Err(_) => Ok(None),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ParamString(pub String);
 
