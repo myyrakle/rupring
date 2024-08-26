@@ -893,6 +893,20 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         .as_str();
     }
 
+    for field_name in query_field_names {
+        request_bind_code += format!(
+            r#"{field_name}: rupring::ParamString(
+                request.query_parameters["{field_name}"].clone()
+            ).
+                deserialize().
+                map_err(
+                    |_|Err(rupring::anyhow::anyhow!("{field_name} is invalid"))
+                )?,
+            "#
+        )
+        .as_str();
+    }
+
     request_bind_code += format!("}};").as_str();
 
     request_bind_code += "Ok(bound)";

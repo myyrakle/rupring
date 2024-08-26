@@ -28,6 +28,15 @@ impl Request {
 }
 
 #[derive(Debug, Clone)]
+pub struct QueryString(pub Vec<String>);
+
+pub trait QueryStringDeserializer<T>: Sized {
+    type Error;
+
+    fn deserialize(&self) -> Result<T, Self::Error>;
+}
+
+#[derive(Debug, Clone)]
 pub struct ParamString(pub String);
 
 pub trait ParamStringDeserializer<T>: Sized {
