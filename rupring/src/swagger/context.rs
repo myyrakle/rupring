@@ -60,6 +60,10 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
             let normalized_path = swaggerize_url(normalized_path.as_str());
             let mut operation = route.swagger();
 
+            for security in route.swagger_security_info() {
+                operation.security.push(security);
+            }
+
             let request_info = route.swagger_request_info();
 
             if let Some(swagger_request_body) = request_info {

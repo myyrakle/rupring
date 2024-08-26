@@ -68,12 +68,12 @@ pub(crate) fn parse_attribute(
     let mut tokens = item.into_iter();
     let mut attribute_map = HashMap::new();
 
-    let mut attribute_name = None;
+    let mut attribute_name_outer = None;
     while let Some(token) = tokens.next() {
         let token_string = token.to_string();
 
         if token_string == "=" {
-            let mut attribute_name = attribute_name.clone().unwrap();
+            let mut attribute_name = attribute_name_outer.clone().unwrap();
             let mut attribute_value = tokens
                 .next()
                 .expect("key/value pair does not match")
@@ -125,9 +125,15 @@ pub(crate) fn parse_attribute(
             };
 
             attribute_map.insert(attribute_name, attribute_value);
+
+            attribute_name_outer = None;
         } else {
-            attribute_name = Some(token_string);
+            attribute_name_outer = Some(token_string);
         }
+    }
+
+    if let Some(attribute_name) = attribute_name_outer {
+        attribute_map.insert(attribute_name, AttributeValue::String("".into()));
     }
 
     return attribute_map;

@@ -471,10 +471,11 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     if let Some(auth) = auth {
         swagger_security_code = format!(
             r#"
-            swagger.security = vec![rupring::swagger::SwaggerSecurity {{
-                name: "{auth}".to_string(),
-                scopes: vec![],
-            }}];
+            fn swagger_security_info(&self) -> Vec<rupring::swagger::json::SwaggerSecurity> {{
+                vec![
+                    std::collections::HashMap::from_iter(vec![("{auth}".to_string(), vec![])])
+                ]
+            }}
             "#
         );
     }
