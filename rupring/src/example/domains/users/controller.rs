@@ -17,6 +17,7 @@ pub struct UserController {}
 #[tags = [user]]
 #[summary = "user 조회"]
 #[response = crate::domains::users::dto::GetUserResponse]
+#[auth = BearerAuth]
 pub fn get_user(
     request: rupring::Request,
     #[path = "id"]
@@ -41,6 +42,7 @@ pub fn get_user(
 #[tags = [user]]
 #[summary = "user 생성"]
 #[params = crate::domains::users::dto::CreateUserRequest]
+#[auth]
 pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
     let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 

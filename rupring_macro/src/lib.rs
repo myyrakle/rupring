@@ -346,6 +346,20 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         .trim_end_matches("\"")
         .to_owned();
 
+    let auth = additional_attributes.get("auth").map(|e| {
+        let mut auth_value = e
+            .as_string()
+            .trim_start_matches("\"")
+            .trim_end_matches("\"")
+            .to_owned();
+
+        if auth_value.len() == 0 {
+            auth_value = "BearerAuth".to_string();
+        }
+
+        auth_value
+    });
+
     let (item, annotated_parameters) = parse::manipulate_route_function_parameters(item);
 
     let mut swagger_code = "".to_string();
@@ -453,6 +467,19 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
         );
     }
 
+    let mut swagger_security_code = "".to_string();
+    if let Some(auth) = auth {
+        swagger_security_code = format!(
+            r#"
+            fn swagger_security_info(&self) -> Vec<rupring::swagger::json::SwaggerSecurity> {{
+                vec![
+                    std::collections::HashMap::from_iter(vec![("{auth}".to_string(), vec![])])
+                ]
+            }}
+            "#
+        );
+    }
+
     swagger_code.push_str(format!("swagger.summary = \"{summary}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.description = \"{description}\".to_string();").as_str());
     swagger_code.push_str(format!("swagger.tags = {tags};", tags = tags).as_str());
@@ -484,6 +511,8 @@ impl rupring::IRoute for {route_name} {{
     {swagger_request_body_code}
 
     {swagger_response_body_code}
+
+    {swagger_security_code}
 }}
 
 #[derive(Debug, Clone)]
