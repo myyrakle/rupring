@@ -17,6 +17,7 @@ pub struct UserController {}
 #[tags = [user]]
 #[summary = "user 조회"]
 #[response = crate::domains::users::dto::GetUserResponse]
+#[auth]
 pub fn get_user(
     request: rupring::Request,
     #[path = "id"]

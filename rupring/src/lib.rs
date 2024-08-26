@@ -538,6 +538,7 @@ pub use request::Request;
 pub use response::Response;
 use swagger::json::SwaggerOperation;
 use swagger::macros::SwaggerRequestBody;
+use swagger::SwaggerSecurity;
 
 /// Module interface
 pub trait IModule {
@@ -574,6 +575,10 @@ pub trait IRoute {
 
     fn swagger_response_info(&self) -> Option<SwaggerRequestBody> {
         None
+    }
+
+    fn swagger_security_info(&self) -> Vec<SwaggerSecurity> {
+        vec![]
     }
 }
 
