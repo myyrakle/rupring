@@ -219,6 +219,30 @@ impl QueryStringDeserializer<f64> for QueryString {
     }
 }
 
+impl QueryStringDeserializer<bool> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<bool, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<bool>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<String> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<String, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            Ok(e.clone())
+        } else {
+            Err(())
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ParamString(pub String);
 
