@@ -633,6 +633,11 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += format!(r#"query_parameters: vec![],"#).as_str();
     code += "};";
 
+    let mut define_struct_for_json = "".to_string();
+    define_struct_for_json +=
+        format!(r#"#[derive(rupring::serde::Serialize, rupring::serde::Deserialize)]"#).as_str();
+    define_struct_for_json += format!(r#"pub struct {struct_name}__JSON {{"#).as_str();
+
     for field in ast.fields.iter() {
         let mut description = "".to_string();
         let mut example = r#""""#.to_string();
@@ -791,6 +796,13 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
             continue;
         }
 
+        define_struct_for_json += format!(
+            r#"
+            pub {field_name}: {field_type}, 
+        "#
+        )
+        .as_str();
+
         // Body 파라미터 생성 구현
         code += format!(r#"let property_of_type = {field_type}::to_swagger_definition(context);"#)
             .as_str();
@@ -831,11 +843,15 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         .as_str();
     }
 
+    define_struct_for_json += format!(r#"}}"#).as_str();
+
     code += "rupring::swagger::macros::SwaggerDefinitionNode::Object(swagger_definition)";
 
     code += "}";
 
     code += "}";
+
+    code += define_struct_for_json.as_str();
 
     return TokenStream::from_str(code.as_str()).unwrap();
 }
