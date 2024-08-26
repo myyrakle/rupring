@@ -51,6 +51,150 @@ where
     }
 }
 
+impl QueryStringDeserializer<i8> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i8, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<i8>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<i16> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i16, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<i16>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<i32> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i32, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<i32>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<i64> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i64, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<i64>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<i128> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<i128, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<i128>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<isize> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<isize, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<isize>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<u8> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u8, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<u8>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<u16> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u16, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<u16>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<u32> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u32, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<u32>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<u64> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u64, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<u64>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<u128> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<u128, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<u128>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl QueryStringDeserializer<usize> for QueryString {
+    type Error = ();
+
+    fn deserialize(&self) -> Result<usize, Self::Error> {
+        if let Some(e) = self.0.get(0) {
+            e.parse::<usize>().map_err(|_| ())
+        } else {
+            Err(())
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ParamString(pub String);
 
