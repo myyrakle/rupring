@@ -667,6 +667,8 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     }
 }
 
+pub use rupring_macro::RupringDoc;
+
 #[cfg(test)]
 mod test_proc_macro;
 
