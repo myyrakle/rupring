@@ -916,12 +916,22 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     }
 
     for (struct_field_name, param_name, field_type) in query_field_names {
+        let mut code_if_field_type_is_none =
+            format!(r#"return Err(rupring::anyhow::anyhow!("invalid parameter: {param_name}"));"#);
+
+        if field_type.starts_with("Option<") || field_type.starts_with("Option::<") {
+            code_if_field_type_is_none = r#"
+                rupring::request::QueryString(vec![])
+            "#
+            .to_string();
+        }
+
         request_bind_code += format!(
             r#"{struct_field_name}: {{
                 let query = if let Some(query) = request.query_parameters.get("{param_name}") {{
                     rupring::request::QueryString(query.to_owned())
                 }} else {{
-                    return Err(rupring::anyhow::anyhow!("invalid parameter: {param_name}"));
+                    {code_if_field_type_is_none}
                 }};
 
                 let deserialized: {field_type} = match query.deserialize_query_string() {{
