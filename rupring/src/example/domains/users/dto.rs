@@ -14,26 +14,15 @@ pub mod foo {
 
 #[derive(Debug, Serialize, Deserialize, RupringDoc)]
 pub struct CreateUserRequest {
-    #[desc = "유저명"]
+    #[desc = "user name"]
     #[example = "foobar"]
     pub username: String,
-    pub email: String,
-    #[desc = "비밀번호"]
-    #[example = "password"]
-    pub password: String,
-    #[example = 1]
-    #[required = false]
-    pub foo: i32,
-    #[example = true]
-    #[required]
-    pub asdf: bool,
-    #[desc = "설명"]
-    pub ids: Vec<i32>,
 
-    #[query = "query_test111"]
-    #[desc = "설명"]
-    #[example = "asdf"]
-    pub query_test: Option<String>,
+    pub email: String,
+
+    #[desc = "user password"]
+    #[example = "q1w2e3r4"]
+    pub password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

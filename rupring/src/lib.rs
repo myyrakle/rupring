@@ -395,7 +395,58 @@ pub fn echo(
     ...
 ```
 
-Details are still being implemented.
+Using the RupringDoc derive macro, you can perform document definition for Request Parameter.
+```rust,ignore
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
+pub struct CreateUserRequest {
+    #[desc = "user name"]
+    #[example = "foobar"]
+    pub username: String,
+
+    pub email: String,
+
+    #[desc = "user password"]
+    #[example = "q1w2e3r4"]
+    pub password: String,
+}
+```
+### RupringDoc attribute Details
+1. `#[desc = ""]` or `#[description = ""]`: Description of the field.
+2. `#[example = ""]`: Example value of the field.
+3. `#[name = "id"]`: If the field name is different from the variable name, you can add this annotation.
+4. `#[required]`: If the field is required, you can add this annotation.
+5. `#[path_param = "id"]` or `#[param = "id"]`: If the field is a path parameter, you can add this annotation.
+6. `#[query = "query"]`: If the field is a query parameter, you can add this annotation.
+7. `#[ignore]`: If you want to ignore the field, you can add this annotation.
+
+Then, you can specify request information in the API through the params attribute as follows.
+```rust,ignore
+#[rupring::Post(path = /users)]
+#[tags = [user]]
+#[summary = "user create"]
+#[params = crate::domains::users::dto::CreateUserRequest]
+pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+...
+```
+
+Response documentation can also be defined through the RupringDoc macro and response attribute.
+```rust,ignore
+#[rupring::Get(path = /users/:id)]
+#[tags = [user]]
+#[summary = "find user"]
+#[response = crate::domains::users::dto::GetUserResponse]
+pub fn get_user(
+```
+
+If you want to activate BearerAuth for the API, activate the auth attribute as follows. (The default is BearerAuth.
+```rust,ignore
+#[rupring::Get(path = /users/:id)]
+#[tags = [user]]
+#[summary = "find user"]
+#[response = crate::domains::users::dto::GetUserResponse]
+#[auth = BearerAuth]
+pub fn get_user(
+```
 */
 
 pub(crate) mod boot;
