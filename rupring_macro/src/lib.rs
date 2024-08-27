@@ -870,11 +870,11 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         format!(r#"impl rupring::request::BindFromRequest for {struct_name} {{"#).as_str();
 
     request_bind_code +=
-        "fn bind(&mut self, request: rupring::request::Request) -> rupring::anyhow::Result<Self> {";
+        "fn bind(request: rupring::request::Request) -> rupring::anyhow::Result<Self> {";
     request_bind_code += "use rupring::request::ParamStringDeserializer;";
     request_bind_code += "use rupring::request::QueryStringDeserializer;";
 
-    request_bind_code += format!("let mut json_bound = rupring::serde_json::from_str::<{struct_name}__JSON>(request.body.as_str()).unwrap();").as_str();
+    request_bind_code += format!("let mut json_bound = rupring::serde_json::from_str::<{struct_name}__JSON>(request.body.as_str())?;").as_str();
 
     request_bind_code += format!("let bound = {struct_name} {{").as_str();
 
@@ -904,9 +904,11 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     for (field_name, field_type) in query_field_names {
         request_bind_code += format!(
             r#"{field_name}: {{
-                let query = rupring::request::QueryString(
-                    request.query_parameters["{field_name}"].clone()
-                ); 
+                let query = if let Some(query) = request.query_parameters.get("{field_name}") {{
+                    rupring::request::QueryString(query.to_owned())
+                }} else {{
+                    return Err(rupring::anyhow::anyhow!("invalid parameter: {field_name}"));
+                }};
 
                 let deserialized: {field_type} = match query.deserialize_query_string() {{
                     Ok(v) => v,

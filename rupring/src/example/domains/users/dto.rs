@@ -21,7 +21,6 @@ pub struct CreateUserRequest {
     #[desc = "비밀번호"]
     #[example = "password"]
     pub password: String,
-    pub bar: foo::Bar,
     #[example = 1]
     #[required = false]
     pub foo: i32,
@@ -29,10 +28,7 @@ pub struct CreateUserRequest {
     #[required]
     pub asdf: bool,
     #[desc = "설명"]
-    #[name = "q1w2e3r4"]
-    pub _asdf: Option<foo::Bar>,
     pub ids: Vec<i32>,
-    pub bars: Vec<foo::Bar>,
 
     #[query = "query_test111"]
     #[desc = "설명"]
