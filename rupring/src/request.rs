@@ -50,6 +50,7 @@ where
 
     fn deserialize_query_string(&self) -> Result<Option<T>, Self::Error> {
         let result = Self::deserialize_query_string(self);
+
         match result {
             Ok(v) => Ok(Some(v)),
             Err(_) => Ok(None),

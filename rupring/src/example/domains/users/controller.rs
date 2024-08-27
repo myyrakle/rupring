@@ -51,7 +51,7 @@ pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::
     let request = match request::BindFromRequest::bind(request) {
         Ok(request) => request,
         Err(err) => {
-            println!("{:?}", err); 
+            println!("error: {:?}", err); 
             return rupring::Response::new().status(400).text("bad request");
         },
     };
