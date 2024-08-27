@@ -646,10 +646,11 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         let mut description = "".to_string();
         let mut example = r#""""#.to_string();
 
-        let mut field_name = field.ident.as_ref().unwrap().to_string();
+        let field_name = field.ident.as_ref().unwrap().to_string();
         let mut field_type = field.ty.to_token_stream().to_string().replace(" ", "");
 
-        let original_field_name = field_name.clone();
+        let struct_field_name = field_name.clone();
+        let mut param_name = field_name.clone();
 
         let attributes = field.attrs.clone();
 
@@ -708,7 +709,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 .to_string();
                         }
 
-                        field_name = text;
+                        param_name = text;
                     }
                 }
                 "path_param" | "param" => {
@@ -722,7 +723,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 .to_string();
                         }
 
-                        field_name = text;
+                        param_name = text;
                     }
 
                     is_path_parameter = true;
@@ -740,7 +741,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
                                 .to_string();
                         }
 
-                        field_name = text;
+                        param_name = text;
                     }
                 }
                 "ignore" => {
@@ -765,7 +766,11 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         }
 
         if is_path_parameter {
-            path_field_names.push((original_field_name.clone(), field_type.clone()));
+            path_field_names.push((
+                struct_field_name.clone(),
+                param_name.clone(),
+                field_type.clone(),
+            ));
 
             code += format!(
                 r#"swagger_definition.path_parameters.push(rupring::swagger::json::SwaggerParameter {{
@@ -786,7 +791,11 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         }
 
         if is_query_parameter {
-            query_field_names.push((original_field_name.clone(), field_type.clone()));
+            query_field_names.push((
+                struct_field_name.clone(),
+                param_name.clone(),
+                field_type.clone(),
+            ));
 
             code += format!(
                 r#"swagger_definition.query_parameters.push(rupring::swagger::json::SwaggerParameter {{
@@ -806,11 +815,15 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
             continue;
         }
 
-        json_field_names.push((original_field_name.clone(), field_type.clone()));
+        json_field_names.push((
+            struct_field_name.clone(),
+            param_name.clone(),
+            field_type.clone(),
+        ));
 
         define_struct_for_json += format!(
             r#"
-            pub {original_field_name}: {field_type}, 
+            pub {struct_field_name}: {field_type}, 
         "#
         )
         .as_str();
@@ -870,28 +883,29 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         format!(r#"impl rupring::request::BindFromRequest for {struct_name} {{"#).as_str();
 
     request_bind_code +=
-        "fn bind(&mut self, request: rupring::request::Request) -> rupring::anyhow::Result<Self> {";
+        "fn bind(request: rupring::request::Request) -> rupring::anyhow::Result<Self> {";
     request_bind_code += "use rupring::request::ParamStringDeserializer;";
     request_bind_code += "use rupring::request::QueryStringDeserializer;";
 
-    request_bind_code += format!("let mut json_bound = rupring::serde_json::from_str::<{struct_name}__JSON>(request.body.as_str()).unwrap();").as_str();
+    request_bind_code += format!("let mut json_bound = rupring::serde_json::from_str::<{struct_name}__JSON>(request.body.as_str())?;").as_str();
 
     request_bind_code += format!("let bound = {struct_name} {{").as_str();
 
-    for (field_name, _) in json_field_names {
-        request_bind_code += format!("{field_name}: json_bound.{field_name},").as_str();
+    for (struct_field_name, _, _) in json_field_names {
+        request_bind_code +=
+            format!("{struct_field_name}: json_bound.{struct_field_name},").as_str();
     }
 
-    for (field_name, field_type) in path_field_names {
+    for (struct_field_name, param_name, field_type) in path_field_names {
         request_bind_code += format!(
-            r#"{field_name}: {{
+            r#"{struct_field_name}: {{
                 let param = rupring::request::ParamString(
-                    request.path_parameters["{field_name}"].clone()
+                    request.path_parameters["{param_name}"].clone()
                 );
 
                 let deserialized: {field_type} = match param.deserialize() {{
                     Ok(v) => v,
-                    Err(_) => return Err(rupring::anyhow::anyhow!("invalid parameter: {field_name}")),
+                    Err(_) => return Err(rupring::anyhow::anyhow!("invalid parameter: {param_name}")),
                 }};
 
                 deserialized
@@ -901,16 +915,28 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
         .as_str();
     }
 
-    for (field_name, field_type) in query_field_names {
+    for (struct_field_name, param_name, field_type) in query_field_names {
+        let mut code_if_field_type_is_none =
+            format!(r#"return Err(rupring::anyhow::anyhow!("invalid parameter: {param_name}"));"#);
+
+        if field_type.starts_with("Option<") || field_type.starts_with("Option::<") {
+            code_if_field_type_is_none = r#"
+                rupring::request::QueryString(vec![])
+            "#
+            .to_string();
+        }
+
         request_bind_code += format!(
-            r#"{field_name}: {{
-                let query = rupring::request::QueryString(
-                    request.query_parameters["{field_name}"].clone()
-                ); 
+            r#"{struct_field_name}: {{
+                let query = if let Some(query) = request.query_parameters.get("{param_name}") {{
+                    rupring::request::QueryString(query.to_owned())
+                }} else {{
+                    {code_if_field_type_is_none}
+                }};
 
                 let deserialized: {field_type} = match query.deserialize_query_string() {{
                     Ok(v) => v,
-                    Err(_) => return Err(rupring::anyhow::anyhow!("invalid parameter: {field_name}")),
+                    Err(_) => return Err(rupring::anyhow::anyhow!("invalid parameter: {param_name}")),
                 }};
 
                 deserialized

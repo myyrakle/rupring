@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use rupring::request;
+
 use super::{
     dto::{DeleteUserRequest, GetUserRequest, ListUsersRequest, UpdateUserRequest},
     interface::IUserService,
@@ -44,14 +46,17 @@ pub fn get_user(
 #[params = crate::domains::users::dto::CreateUserRequest]
 #[auth]
 pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
+    let user_service = request.get_provider::<Arc<dyn IUserService>>().map(|e|e.clone()).unwrap();
 
-    let request = serde_json::from_str(&request.body);
-
-    let request = match request {
+    let request = match request::BindFromRequest::bind(request) {
         Ok(request) => request,
-        Err(_) => return rupring::Response::new().status(400).text("bad request"),
+        Err(err) => {
+            println!("error: {:?}", err); 
+            return rupring::Response::new().status(400).text("bad request");
+        },
     };
+    
+    println!("{:?}", request);
 
     let response = user_service.create_user(request);
 

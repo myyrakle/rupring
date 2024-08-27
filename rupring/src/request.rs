@@ -13,8 +13,14 @@ pub struct Request {
     pub(crate) di_context: Arc<crate::DIContext>,
 }
 
+impl Request {
+    pub fn bind<T: BindFromRequest + Default>(&self) -> anyhow::Result<T> {
+        BindFromRequest::bind(self.clone())
+    }
+}
+
 pub trait BindFromRequest {
-    fn bind(&mut self, request: Request) -> anyhow::Result<Self>
+    fn bind(request: Request) -> anyhow::Result<Self>
     where
         Self: Sized;
 }
@@ -44,6 +50,7 @@ where
 
     fn deserialize_query_string(&self) -> Result<Option<T>, Self::Error> {
         let result = Self::deserialize_query_string(self);
+
         match result {
             Ok(v) => Ok(Some(v)),
             Err(_) => Ok(None),
