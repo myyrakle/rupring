@@ -1,6 +1,6 @@
 /*! # Get Started
 There is only one dependency.
-```ignore
+```bash
 cargo add rupring
 ```
 
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 # Request
 You can access any value provided in an HTTP Request through the Request parameter.
 
-```rust,ignore
+```rust
 #[rupring::Get(path = /:id)]
 pub fn hello(request: rupring::Request) -> rupring::Response {
     let method = request.method;
@@ -53,13 +53,15 @@ pub fn hello(request: rupring::Request) -> rupring::Response {
     let content_type = headers.get("content-type").unwrap();
     assert_eq!(content_type, "text/plain");
 
-    let id = request.path_param("id").unwrap();
+    let id = request.path_parameters["id"].clone();
     assert_eq!(id, "123");
 
-    let query = request.query_param("query").unwrap();
-    assert_eq!(query, "asdf");
+    let query = request.query_parameters["query"].clone();
+    assert_eq!(query, vec!["asdf".to_string()]);
 
-    ...
+    //...
+
+    response
 }
 ```
 
@@ -456,7 +458,9 @@ pub mod header;
 mod logger;
 /// MEME type constants
 pub mod meme;
+/// HTTP request module
 pub mod request;
+/// HTTP response module
 pub mod response;
 /// swagger module
 pub mod swagger;
