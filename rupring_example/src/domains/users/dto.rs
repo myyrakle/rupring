@@ -1,9 +1,8 @@
-use rupring_macro::RupringDoc;
+use rupring::RupringDoc;
 use serde::{Deserialize, Serialize};
 
 pub mod foo {
-
-    use rupring_macro::RupringDoc;
+    use rupring::RupringDoc;
     use serde::{Deserialize, Serialize};
     #[derive(Debug, Serialize, Deserialize, RupringDoc)]
     pub struct Bar {

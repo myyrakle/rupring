@@ -21,7 +21,7 @@ impl UserService {
 }
 
 impl IUserService for UserService {
-    fn create_user(&self, request: CreateUserRequest) -> anyhow::Result<CreateUserResponse> {
+    fn create_user(&self, request: CreateUserRequest) -> rupring::Result<CreateUserResponse> {
         let _ = self.repository.create_user(CreateUserParams {
             name: request.username,
             email: request.email,
@@ -31,7 +31,7 @@ impl IUserService for UserService {
         Ok(CreateUserResponse {})
     }
 
-    fn update_user(&self, request: UpdateUserRequest) -> anyhow::Result<UpdateUserResponse> {
+    fn update_user(&self, request: UpdateUserRequest) -> rupring::Result<UpdateUserResponse> {
         let _ = self
             .repository
             .update_user(super::model::UpdateUserParams {
@@ -44,14 +44,14 @@ impl IUserService for UserService {
         Ok(UpdateUserResponse {})
     }
 
-    fn delete_user(&self, request: DeleteUserRequest) -> anyhow::Result<DeleteUserResponse> {
+    fn delete_user(&self, request: DeleteUserRequest) -> rupring::Result<DeleteUserResponse> {
         self.repository
             .delete_user(super::model::DeleteUserParams { id: request.id })?;
 
         Ok(DeleteUserResponse {})
     }
 
-    fn get_user(&self, request: GetUserRequest) -> anyhow::Result<GetUserResponse> {
+    fn get_user(&self, request: GetUserRequest) -> rupring::Result<GetUserResponse> {
         let user = self.repository.get_user(GetUserParams { id: request.id })?;
 
         if let Some(user) = user {
@@ -62,10 +62,10 @@ impl IUserService for UserService {
             });
         }
 
-        Err(anyhow::anyhow!("user not found"))
+        Err(rupring::error!("user not found"))
     }
 
-    fn list_users(&self, request: ListUsersRequest) -> anyhow::Result<ListUsersResponse> {
+    fn list_users(&self, request: ListUsersRequest) -> rupring::Result<ListUsersResponse> {
         let count = self
             .repository
             .count_users(super::model::CountUsersParams {})?;

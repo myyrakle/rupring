@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "rupring",
+    "rupring", "rupring_example",
     "rupring_macro"
 ]
 resolver = "2"
