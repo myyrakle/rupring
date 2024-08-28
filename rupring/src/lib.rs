@@ -674,6 +674,9 @@ mod test_proc_macro;
 pub use anyhow;
 pub use anyhow::anyhow as error;
 pub use anyhow::Result;
+
 pub use serde;
+pub use serde::{Deserialize, Serialize};
 pub use serde_json;
+
 pub use tokio;

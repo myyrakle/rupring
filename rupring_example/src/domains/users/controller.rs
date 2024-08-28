@@ -76,7 +76,7 @@ pub fn update_user(
 ) -> rupring::Response {
     let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
-    let request = serde_json::from_str(&request.body);
+    let request = rupring::serde_json::from_str(&request.body);
 
     let request: UpdateUserRequest = match request {
         Ok(request) => request,
