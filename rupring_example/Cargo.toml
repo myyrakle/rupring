@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 rupring={ version="0.8.1", path="../rupring" }
 tokio = { version = "1", features = ["full"] }
+serde = { version="1.0.193", features=["derive"] }

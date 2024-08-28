@@ -1,10 +1,9 @@
 use rupring::RupringDoc;
-use rupring::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 pub mod foo {
-
     use rupring::RupringDoc;
-    use rupring::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
     #[derive(Debug, Serialize, Deserialize, RupringDoc)]
     pub struct Bar {
         pub a: i32,

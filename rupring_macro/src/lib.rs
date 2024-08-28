@@ -635,7 +635,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
 
     let mut define_struct_for_json = "".to_string();
     define_struct_for_json +=
-        format!(r#"#[derive(rupring::serde::Serialize, rupring::serde::Deserialize)]"#).as_str();
+        format!(r#"#[derive(serde::Serialize, serde::Deserialize)]"#).as_str();
     define_struct_for_json += format!(r#"pub struct {struct_name}__JSON {{"#).as_str();
 
     let mut json_field_names = vec![];
