@@ -15,7 +15,7 @@ impl UserInMemoryRepository {
 }
 
 impl IUserRepository for UserInMemoryRepository {
-    fn create_user(&self, params: super::model::CreateUserParams) -> anyhow::Result<i32> {
+    fn create_user(&self, params: super::model::CreateUserParams) -> rupring::Result<i32> {
         if self.users.is_poisoned() {
             self.users.clear_poison();
         }
@@ -36,7 +36,7 @@ impl IUserRepository for UserInMemoryRepository {
         Ok(id)
     }
 
-    fn update_user(&self, params: super::model::UpdateUserParams) -> anyhow::Result<()> {
+    fn update_user(&self, params: super::model::UpdateUserParams) -> rupring::Result<()> {
         if self.users.is_poisoned() {
             self.users.clear_poison();
         }
@@ -53,7 +53,7 @@ impl IUserRepository for UserInMemoryRepository {
         Ok(())
     }
 
-    fn delete_user(&self, params: super::model::DeleteUserParams) -> anyhow::Result<()> {
+    fn delete_user(&self, params: super::model::DeleteUserParams) -> rupring::Result<()> {
         if self.users.is_poisoned() {
             self.users.clear_poison();
         }
@@ -73,7 +73,7 @@ impl IUserRepository for UserInMemoryRepository {
     fn get_user(
         &self,
         request: super::model::GetUserParams,
-    ) -> anyhow::Result<Option<super::model::User>> {
+    ) -> rupring::Result<Option<super::model::User>> {
         if self.users.is_poisoned() {
             self.users.clear_poison();
         }
@@ -85,7 +85,7 @@ impl IUserRepository for UserInMemoryRepository {
         Ok(user.cloned())
     }
 
-    fn list_users(&self, params: super::model::ListUsersParams) -> anyhow::Result<Users> {
+    fn list_users(&self, params: super::model::ListUsersParams) -> rupring::Result<Users> {
         if self.users.is_poisoned() {
             self.users.clear_poison();
         }
@@ -110,7 +110,7 @@ impl IUserRepository for UserInMemoryRepository {
         Ok(users[start..end].to_vec())
     }
 
-    fn count_users(&self, _: super::model::CountUsersParams) -> anyhow::Result<i32> {
+    fn count_users(&self, _: super::model::CountUsersParams) -> rupring::Result<i32> {
         if self.users.is_poisoned() {
             self.users.clear_poison();
         }

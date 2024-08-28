@@ -1,0 +1,8 @@
+[package]
+name = "rupring_example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rupring={ version="0.8.1", path="../rupring" }
+tokio = { version = "1", features = ["full"] }

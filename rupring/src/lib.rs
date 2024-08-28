@@ -461,6 +461,7 @@ pub mod response;
 /// swagger module
 pub mod swagger;
 
+use std::any;
 use std::panic::UnwindSafe;
 
 /// Controller Annotation
@@ -567,8 +568,6 @@ pub use rupring_macro::Delete;
 /// This is an alias for [Delete].
 pub use rupring_macro::DeleteMapping;
 
-extern crate rupring_macro;
-
 /// HTTP method (from hyper crate)
 pub type Method = hyper::Method;
 
@@ -673,5 +672,8 @@ pub use rupring_macro::RupringDoc;
 mod test_proc_macro;
 
 pub use anyhow;
+pub use anyhow::anyhow as error;
+pub use anyhow::Result;
 pub use serde;
 pub use serde_json;
+pub use tokio;
