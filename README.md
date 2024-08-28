@@ -6,15 +6,16 @@ spring on rust
 
 ## Get Started
 
-There is only one dependency.
-
-```
-cargo add rupring
+required dependency list
+```toml
+rupring = "0.8.2"
+tokio = { version = "1", features = ["full"] }
+serde = { version="1.0.193", features=["derive"] }
 ```
 
 And you can write your server like this:
 
-```
+```rust
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(controllers=[HomeController{}], modules=[])]
 pub struct RootModule {}
@@ -41,7 +42,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     Ok(())
 }
-
 ```
 
 And if you run the program, it will work fine.  
