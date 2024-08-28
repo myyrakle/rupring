@@ -45,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 ```
 
 And if you run the program, it will work fine.  
-![Alt text](./example/hello_world.png)
+![hello_world](https://github.com/user-attachments/assets/76d30d84-c7ed-4723-83fc-9394874c9779)
 
 ## More Details
 
