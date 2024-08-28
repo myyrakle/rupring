@@ -70,7 +70,7 @@ pub fn hello(request: rupring::Request) -> rupring::Response {
 For path parameters, auto binding is provided through annotation.
 
 The annotation name can be one of `Path`, `path`, or `PathVariable`.
-```rust,ignore
+```rust
 #[rupring::Get(path = /echo/:id)]
 pub fn echo(
     #[PathVariable="id"] id: i32
@@ -82,18 +82,20 @@ pub fn echo(
 ```
 
 If the Path Param is optional, just wrap the type in `Option`.
-```rust,ignore
+```rust
 #[rupring::Get(path = /echo/:id)]
 pub fn echo(
     #[PathVariable="id"] id: Option<i32>
 ) -> rupring::Response {
-    ...
+    // ...
+
+    rupring::Response::new().text("OK".to_string())
 }
 ```
 
 If you need Swagger documentation for the Path Param, you should add the `Description` annotation.
 `Description` can also be used as `Desc`, `desc`, etc.
-```rust,ignore
+```rust
 #[rupring::Get(path = /echo/:id)]
 pub fn echo(
     #[path="id"] #[desc="asdf"] id: i32
@@ -105,12 +107,15 @@ pub fn echo(
 ```
 
 If you want to define a custom type for PathParam, you can implement the ParamStringDeserializer trait.
-```rust,ignore
-impl ParamStringDeserializer<SomeCustomType> for ParamString {
+```rust
+struct SomeCustomType {}
+
+impl rupring::ParamStringDeserializer<SomeCustomType> for rupring::ParamString {
     type Error = ();
 
     fn deserialize(&self) -> Result<SomeCustomType, Self::Error> {
-        ...
+        //...
+        Ok(SomeCustomType {})
     }
 }
 ```
@@ -119,7 +124,7 @@ impl ParamStringDeserializer<SomeCustomType> for ParamString {
 # Response
 
 You can create a response like this:
-```rust,ignore
+```rust
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text("Hello, World!".to_string())
@@ -127,7 +132,7 @@ pub fn hello(_request: rupring::Request) -> rupring::Response {
 ```
 
 You can also return a json value like this:
-```rust,ignore
+```rust
 #[derive(serde::Serialize)]
 struct User {
     name: String,
@@ -142,7 +147,7 @@ pub fn get_user(_request: rupring::Request) -> rupring::Response {
 ```
 
 You can set the status code like this:
-```rust,ignore
+```rust
 #[rupring::Get(path = /asdf)]
 pub fn not_found(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text("not found".to_string()).status(404)
@@ -150,7 +155,7 @@ pub fn not_found(_request: rupring::Request) -> rupring::Response {
 ```
 
 You can set the header like this:
-```rust,ignore
+```rust
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new()
@@ -160,7 +165,7 @@ pub fn hello(_request: rupring::Request) -> rupring::Response {
 ```
 
 If you want, you can receive it as a parameter instead of creating the response directly.
-```rust,ignore
+```rust
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request, response: rupring::Response) -> rupring::Response {
     response
@@ -171,7 +176,7 @@ pub fn hello(_request: rupring::Request, response: rupring::Response) -> rupring
 This is especially useful when you need to inherit and use Response through middleware.
 
 If you want to redirect, you can use Response’s redirect method.
-```rust,ignore
+```rust
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new().redirect("/hello")
@@ -185,11 +190,11 @@ rupring provides middleware features for common logic processing.
 If you want to log requests for all APIs that exist in a module, you can apply middleware in the form below.
 
 First, define a middleware function.
-```rust,ignore
+```rust
 pub fn logger_middleware(
     request: rupring::Request,
     response: rupring::Response,
-    next: NextFunction,
+    next: rupring::NextFunction,
 ) -> rupring::Response {
     println!(
         "Request: {} {}",
@@ -205,19 +210,45 @@ If you want to return a response immediately without forwarding, just return the
 
 
 And you can register the middleware function just defined in the module or controller unit.
-```rust,ignore
+```rust
+pub fn logger_middleware(
+    request: rupring::Request,
+    response: rupring::Response,
+    next: rupring::NextFunction,
+) -> rupring::Response {
+    println!(
+        "Request: {} {}",
+        request.method.to_string(),
+        request.path.to_string()
+    );
+
+    next(request, response)
+}
+
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(
-    controllers=[HomeController{}],
+    controllers=[RootController{}],
     modules=[UserModule{}],
     providers=[],
     middlewares=[logger_middleware]
 )]
 pub struct RootModule {}
 
+#[derive(Debug, Clone)]
+#[rupring::Controller(prefix=/, routes=[])]
+pub struct RootController {}
+
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[UserController{}],
+    providers=[],
+    middlewares=[]
+)]
+pub struct UserModule {}
+
 // or Controller
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[get_user], middlewares=[logger_middleware])]
+#[rupring::Controller(prefix=/, routes=[], middlewares=[logger_middleware])]
 pub struct UserController {}
 ```
 Middleware registered in a module is recursively applied to the routes of controllers registered in that module and to child modules.
@@ -236,7 +267,7 @@ rupring provides DI feature.
 
 If you want to implement and DI a Provider that contains simple functionality, you can do it like this:
 First, define the Provider.
-```rust,ignore
+```rust
 #[derive(Debug, Clone, Default)]
 pub struct HomeService {}
 
@@ -254,14 +285,37 @@ impl rupring::IProvider for HomeService {
 ```
 
 Second, add it as a dependency to the module you want to use.
-```rust,ignore
+```rust
+use std::any::Any;
+
+#[derive(Debug, Clone, Default)]
+pub struct HomeService {}
+
+impl rupring::IProvider for HomeService {
+    fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn Any> {
+        Box::new(HomeService {})
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[rupring::Controller(prefix=/, routes=[])]
+pub struct HomeController {}
+
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(controllers=[HomeController{}], modules=[], providers=[HomeService::default()])]
 pub struct RootModule {}
 ```
 
 And, you can use it by getting it from the router through the request object.
-```rust,ignore
+```rust
+pub struct HomeService {}
+
+impl HomeService {
+    pub fn hello(&self) -> String {
+        "hello!!".to_string()
+    }
+}
+
 #[rupring::Get(path = /)]
 pub fn hello(request: rupring::Request) -> rupring::Response {
     let home_service = request.get_provider::<HomeService>().unwrap();
@@ -271,7 +325,22 @@ pub fn hello(request: rupring::Request) -> rupring::Response {
 ```
 
 If a provider requires another provider, you must specify the dependency cycle as follows:
-```rust,ignore
+```rust
+use std::any::TypeId;
+
+#[derive(Debug, Clone, Default)]
+pub struct HomeRepository {}
+
+pub struct HomeService {
+    home_repository: HomeRepository,
+}
+
+impl HomeService {
+    pub fn hello(&self) -> String {
+        "hello!!".to_string()
+    }
+}
+
 impl rupring::IProvider for HomeService {
     fn dependencies(&self) -> Vec<TypeId> {
         vec![TypeId::of::<HomeRepository>()]
@@ -279,14 +348,16 @@ impl rupring::IProvider for HomeService {
 
     fn provide(&self, di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
         Box::new(HomeService {
-            home_repository: di_context.get::<HomeRepository>().unwrap().to_owned(),
+            home_repository: di_context.get::<HomeRepository>().map(|e|e.to_owned()).unwrap(),
         })
     }
 }
 ```
 
 If you need mutables within the provider, you must ensure thread safety through Mutex or Atomic as follows:
-```rust,ignore
+```rust
+use std::sync::{Arc, Mutex};
+
 #[derive(Debug, Clone, Default)]
 pub struct CounterService {
     counter: Arc<Mutex<i32>>,
@@ -313,7 +384,9 @@ impl CounterService {
 
 If you need to abstract based on a trait, you need to box it twice as follows:
 
-```rust,ignore
+```rust
+use std::any::TypeId;
+
 pub trait IUserService {
     fn get_user(&self) -> String;
 }
@@ -350,43 +423,73 @@ pub fn get_user(request: rupring::Request) -> rupring::Response {
 
 Additionally, shortcuts are provided for defining DI components.
 For example, the code below automatically creates an IProvider object "inject_counter_service" that can be passed to modules.
-```rust,ignore
+```rust
+#[derive(Debug, Clone, Default)]
+pub struct SomethingRepository {}
+
+#[derive(Debug, Clone, Default)]
+pub struct CounterService {
+    something: SomethingRepository,
+}
+
+impl CounterService {
+    pub fn new(something: SomethingRepository) -> Self {
+        CounterService { something }
+    }
+}
+
 #[rupring::Injectable]
 fn inject_counter_service(something: SomethingRepository) -> CounterService {
     CounterService::new(something)
 }
-...
+
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(
-    controllers=[HomeController{}],
-    modules=[UserModule{}],
+    controllers=[/*...*/],
+    modules=[/*...*/],
     providers=[inject_counter_service{}],
     middlewares=[]
 )]
+pub struct RootModule {}
 ```
 It automatically receives DI based on parameters.
 
 The injectable annotation can also be explicitly named.
-```rust,ignore
+```rust
+#[derive(Debug, Clone, Default)]
+pub struct SomethingRepository {}
+
+#[derive(Debug, Clone, Default)]
+pub struct CounterService {
+    something: SomethingRepository,
+}
+
+impl CounterService {
+    pub fn new(something: SomethingRepository) -> Self {
+        CounterService { something }
+    }
+}
+
 #[rupring::Injectable(CounterServiceFactory)] // or #[rupring::Injectable(name=CounterServiceFactory)]
 fn inject_counter_service(something: SomethingRepository) -> CounterService {
     CounterService::new(something)
 }
-...
+
 #[derive(Debug, Clone, Copy)]
 #[rupring::Module(
-    controllers=[HomeController{}],
-    modules=[UserModule{}],
+    controllers=[/*...*/],
+    modules=[/*...*/],
     providers=[CounterServiceFactory{}],
     middlewares=[]
 )]
+pub struct RootModule {}
 ```
 
 # Swagger
 When rupring starts the server, it automatically serves swagger documents to the `/docs` path.
 
 Additional annotations such as `summary`, `description`, and `tags` are provided for swagger documentation.
-```rust,ignore
+```rust
 #[rupring::Get(path = /echo/:id)]
 #[summary = "echo API"]
 #[description = "It's echo API"]
@@ -394,11 +497,17 @@ Additional annotations such as `summary`, `description`, and `tags` are provided
 pub fn echo(
     #[path="id"] #[description="just integer id"] id: Option<i32>
 ) -> rupring::Response {
-    ...
+    //...
+
+    rupring::Response::new().text("OK".to_string())
+}
 ```
 
 Using the RupringDoc derive macro, you can perform document definition for Request Parameter.
-```rust,ignore
+```rust
+use rupring::RupringDoc;
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Serialize, Deserialize, RupringDoc)]
 pub struct CreateUserRequest {
     #[desc = "user name"]
@@ -422,32 +531,75 @@ pub struct CreateUserRequest {
 7. `#[ignore]`: If you want to ignore the field, you can add this annotation.
 
 Then, you can specify request information in the API through the params attribute as follows.
-```rust,ignore
+```rust
+use rupring::RupringDoc;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
+pub struct CreateUserRequest {
+    #[desc = "user name"]
+    #[example = "foobar"]
+    pub username: String,
+
+    pub email: String,
+
+    #[desc = "user password"]
+    #[example = "q1w2e3r4"]
+    pub password: String,
+}
+
 #[rupring::Post(path = /users)]
 #[tags = [user]]
 #[summary = "user create"]
-#[params = crate::domains::users::dto::CreateUserRequest]
+#[params = CreateUserRequest]
 pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-...
+    // ...
+
+    rupring::Response::new().text("OK".to_string())
+}
 ```
 
 Response documentation can also be defined through the RupringDoc macro and response attribute.
-```rust,ignore
+```rust
+use rupring::RupringDoc;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
+pub struct GetUserResponse {
+    pub id: i32,
+    pub username: String,
+    pub email: String,
+}
+
 #[rupring::Get(path = /users/:id)]
 #[tags = [user]]
 #[summary = "find user"]
-#[response = crate::domains::users::dto::GetUserResponse]
-pub fn get_user(
+#[response = GetUserResponse]
+pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+    return rupring::Response::new().text("OK".to_string());
+}
 ```
 
 If you want to activate BearerAuth for the API, activate the auth attribute as follows. (The default is BearerAuth.
-```rust,ignore
+```rust
+use rupring::RupringDoc;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, RupringDoc)]
+pub struct GetUserResponse {
+    pub id: i32,
+    pub username: String,
+    pub email: String,
+}
+
 #[rupring::Get(path = /users/:id)]
 #[tags = [user]]
 #[summary = "find user"]
-#[response = crate::domains::users::dto::GetUserResponse]
+#[response = GetUserResponse]
 #[auth = BearerAuth]
-pub fn get_user(
+pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
+    return rupring::Response::new().text("OK".to_string());
+}
 ```
 */
 
@@ -467,41 +619,73 @@ pub mod swagger;
 
 use std::panic::UnwindSafe;
 
-/// Controller Annotation
-/// ```rust,ignore
-/// #[derive(Debug, Clone)]
-/// #[rupring::Controller(prefix=/, routes=[hello, echo])]
-/// pub struct HomeController {}
-/// ```
+/**  Controller Annotation
+```rust
+#[rupring::Get(path = /)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    // ...
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+
+#[rupring::Get(path = /echo)]
+pub fn echo(request: rupring::Request) -> rupring::Response {
+    // ...
+    rupring::Response::new().text(request.body)
+}
+
+#[derive(Debug, Clone)]
+#[rupring::Controller(prefix=/, routes=[hello, echo])]
+pub struct HomeController {}
+```
+*/
 pub use rupring_macro::Controller;
 
-/// Module Annotation
-/// ```rust,ignore
-/// #[derive(Debug, Clone, Copy)]
-/// #[rupring::Module(
-///    controllers=[HomeController{}],
-///    modules=[],
-///    providers=[HomeService::default(), HomeRepository::default(), UserService::default(), CounterService::default()]
-/// )]
-/// pub struct RootModule {}
+/** Module Annotation
+```rust
+#[derive(Debug, Clone)]
+#[rupring::Module(
+    controllers=[/*HomeController{}*/],
+    modules=[],
+    providers=[/*HomeService::default(), HomeRepository::default(), UserService::default(), CounterService::default()*/]
+)]
+pub struct RootModule {}
+```
+ */
 pub use rupring_macro::Module;
 
-/// This is a shortcut annotation for creating an IProvider object.
-/// ```rust,ignore
-/// #[rupring_macro::Injectable(CounterServiceFactory)]
-/// fn inject_counter_service() -> CounterService {
-///    CounterService::new()
-/// }
-/// ...
-/// #[derive(Debug, Clone, Copy)]
-/// #[rupring::Module(
-///    controllers=[HomeController{}],
-///    modules=[UserModule{}],
-///    providers=[CounterServiceFactory{}],
-///    middlewares=[]
-/// )]
-/// pub struct RootModule {}
-/// ```
+/** This is a shortcut annotation for creating an IProvider object.
+
+```rust
+use std::sync::{Arc, Mutex};
+
+#[derive(Debug, Clone, Default)]
+pub struct CounterService {
+    counter: Arc<Mutex<i32>>,
+}
+
+impl CounterService {
+    pub fn new() -> Self {
+        CounterService {
+            counter: Arc::new(Mutex::new(0)),
+        }
+    }
+}
+
+#[rupring_macro::Injectable(CounterServiceFactory)]
+fn inject_counter_service() -> CounterService {
+   CounterService::new()
+}
+
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[/*...*/],
+    modules=[/*...*/],
+    providers=[CounterServiceFactory{}],
+    middlewares=[]
+)]
+pub struct RootModule {}
+```
+*/
 pub use rupring_macro::Injectable;
 
 /// This is an alias for [Injectable].
@@ -516,56 +700,70 @@ pub use rupring_macro::Service;
 /// This is an alias for [Injectable].
 pub use rupring_macro::Repository;
 
-/// Get Route Annotation
-/// ```rust,ignore
-/// #[rupring::Get(path = /)]
-/// pub fn hello(request: rupring::Request) -> rupring::Response {
-///    // ...
-/// }
+/** Get Route Annotation
+```rust
+#[rupring::Get(path = /)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    // ...
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+*/
 pub use rupring_macro::Get;
 
 /// This is an alias for [Get].
 pub use rupring_macro::GetMapping;
 
-/// Post Route Annotation
-/// ```rust,ignore
-/// #[rupring::Post(path = /)]
-/// pub fn hello(request: rupring::Request) -> rupring::Response {
-///   // ...
-/// }
+/** Post Route Annotation
+```rust
+#[rupring::Post(path = /)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    // ...
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+```
+*/
 pub use rupring_macro::Post;
 
 /// This is an alias for [Post].
 pub use rupring_macro::PostMapping;
 
-/// Patch Route Annotation
-/// ```rust,ignore
-/// #[rupring::Patch(path = /)]
-/// pub fn hello(request: rupring::Request) -> rupring::Response {
-///   // ...
-/// }
+/** Patch Route Annotation
+```rust
+#[rupring::Patch(path = /)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    // ...
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+```
+*/
 pub use rupring_macro::Patch;
 
 /// This is an alias for [Patch].
 pub use rupring_macro::PatchMapping;
 
-/// Put Route Annotation
-/// ```rust,ignore
-/// #[rupring::Put(path = /)]
-/// pub fn hello(request: rupring::Request) -> rupring::Response {
-///   // ...
-/// }
+/** Put Route Annotation
+```rust
+#[rupring::Put(path = /)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    // ...
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+```
+*/
 pub use rupring_macro::Put;
 
 /// This is an alias for [Put].
 pub use rupring_macro::PutMapping;
 
-/// Delete Route Annotation
-/// ```rust,ignore
-/// #[rupring::Delete(path = /)]
-/// pub fn hello(request: rupring::Request) -> rupring::Response {
-///     // ...
-/// }
+/** Delete Route Annotation
+```rust
+#[rupring::Delete(path = /)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    // ...
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+```
+*/
 pub use rupring_macro::Delete;
 
 /// This is an alias for [Delete].
