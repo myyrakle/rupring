@@ -791,6 +791,8 @@ use swagger::json::SwaggerOperation;
 use swagger::macros::SwaggerRequestBody;
 use swagger::SwaggerSecurity;
 
+pub mod application_properties;
+
 /// Module interface
 pub trait IModule {
     fn child_modules(&self) -> Vec<Box<dyn IModule>>;
