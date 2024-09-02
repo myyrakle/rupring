@@ -1,6 +1,6 @@
 # rupring
 
-![](https://img.shields.io/badge/language-Rust-red) ![](https://img.shields.io/badge/version-0.8.2-brightgreen) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/myyrakle/rupring/blob/master/LICENSE)
+![](https://img.shields.io/badge/language-Rust-red) ![](https://img.shields.io/badge/version-0.9.0-brightgreen) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/myyrakle/rupring/blob/master/LICENSE)
 
 spring on rust
 
@@ -8,8 +8,7 @@ spring on rust
 
 required dependency list
 ```toml
-rupring = "0.8.2"
-tokio = { version = "1", features = ["full"] }
+rupring = "0.9.0"
 serde = { version="1.0.193", features=["derive"] }
 ```
 
@@ -34,13 +33,8 @@ pub fn echo(request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text(request.body)
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let app = rupring::RupringFactory::create(RootModule {});
-
-    app.listen(3000).await?;
-
-    Ok(())
+fn main() {
+    rupring::run(RootModule {})
 }
 ```
 
