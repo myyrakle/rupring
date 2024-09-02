@@ -1,4 +1,5 @@
 mod banner;
+pub mod boot;
 use crate::di;
 mod parse;
 pub(crate) mod route;

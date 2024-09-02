@@ -604,6 +604,7 @@ pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Res
 */
 
 pub(crate) mod core;
+pub use core::boot::run;
 pub(crate) mod di;
 
 /// header constants
@@ -619,7 +620,10 @@ pub mod response;
 pub mod swagger;
 
 use std::panic::UnwindSafe;
+use std::str::FromStr;
 
+use application_properties::load_application_properties_from_all;
+use application_properties::ApplicationProperties;
 /**  Controller Annotation
 ```rust
 #[rupring::Get(path = /)]
@@ -848,6 +852,7 @@ pub type NextFunction = fn(Request, Response) -> Response;
 #[derive(Debug, Clone)]
 pub struct RupringFactory<T: IModule> {
     root_module: T,
+    pub application_properties: ApplicationProperties,
 }
 
 impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
@@ -855,14 +860,19 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     pub fn create(module: T) -> Self {
         RupringFactory {
             root_module: module,
+            application_properties: load_application_properties_from_all(),
         }
     }
 
     /// It receives the port number and runs the server.
     pub async fn listen(self, port: u16) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+        use std::net::{IpAddr, SocketAddr};
 
-        let socket_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
+        let host = self.application_properties.server.address.clone();
+
+        let ip = IpAddr::from_str(host.as_str())?;
+
+        let socket_addr = SocketAddr::new(ip, port);
 
         let result = core::run_server(socket_addr, self.root_module).await;
 
