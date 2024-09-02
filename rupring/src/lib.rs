@@ -603,7 +603,7 @@ pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Res
 ```
 */
 
-pub(crate) mod boot;
+pub(crate) mod core;
 pub(crate) mod di;
 
 /// header constants
@@ -864,7 +864,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
 
         let socket_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
 
-        let result = boot::run_server(socket_addr, self.root_module).await;
+        let result = core::run_server(socket_addr, self.root_module).await;
 
         return result;
     }

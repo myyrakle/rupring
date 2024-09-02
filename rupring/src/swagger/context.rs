@@ -56,7 +56,7 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
         let prefix = controller.prefix();
 
         for route in controller.routes() {
-            let normalized_path = crate::boot::route::normalize_path(prefix.clone(), route.path());
+            let normalized_path = crate::core::route::normalize_path(prefix.clone(), route.path());
             let normalized_path = swaggerize_url(normalized_path.as_str());
             let mut operation = route.swagger();
 
