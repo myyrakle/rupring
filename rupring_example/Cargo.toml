@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rupring={ version="0.8.1", path="../rupring" }
+rupring={ version="0.9.0", path="../rupring" }
 serde = { version="1.0.193", features=["derive"] }

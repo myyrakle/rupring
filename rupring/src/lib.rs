@@ -24,13 +24,8 @@ pub fn echo(request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text(request.body)
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let app = rupring::RupringFactory::create(RootModule {});
-
-    app.listen(3000).await?;
-
-    Ok(())
+fn main() {
+    rupring::run(RootModule {})
 }
 ```
 
