@@ -3,6 +3,7 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Clone)]
 pub struct ApplicationProperties {
     pub server: Server,
+    pub environment: String,
 
     pub etc: HashMap<String, String>,
 }
@@ -26,6 +27,7 @@ impl Default for Server {
 impl ApplicationProperties {
     pub fn from_properties(text: String) -> ApplicationProperties {
         let mut server = Server::default();
+        let mut environment = "dev".to_string();
         let mut etc = HashMap::new();
 
         for line in text.lines() {
@@ -56,13 +58,20 @@ impl ApplicationProperties {
                 "server.address" => {
                     server.address = value.to_string();
                 }
+                "environment" => {
+                    environment = value.to_string();
+                }
                 _ => {
                     etc.insert(key, value);
                 }
             }
         }
 
-        ApplicationProperties { server, etc }
+        ApplicationProperties {
+            server,
+            etc,
+            environment,
+        }
     }
 }
 
@@ -92,6 +101,7 @@ mod tests {
                         port: 8080,
                     },
                     etc: HashMap::new(),
+                    environment: "dev".to_string(),
                 },
             },
             TestCase {
@@ -107,6 +117,7 @@ mod tests {
                         address: "127.0.0.1".to_string(),
                         port: 8080,
                     },
+                    environment: "dev".to_string(),
                     etc: HashMap::from([("foo.bar".to_string(), "hello".to_string())]),
                 },
             },
@@ -122,6 +133,7 @@ mod tests {
                         address: "127.0.0.1".to_string(),
                         port: 8080,
                     },
+                    environment: "dev".to_string(),
                     etc: HashMap::new(),
                 },
             },
@@ -137,6 +149,7 @@ mod tests {
                         address: "127.0.0.1".to_string(),
                         port: 8080,
                     },
+                    environment: "dev".to_string(),
                     etc: HashMap::new(),
                 },
             },
@@ -152,6 +165,24 @@ mod tests {
                         address: "127.0.0.1".to_string(),
                         port: 3000,
                     },
+                    environment: "dev".to_string(),
+                    etc: HashMap::new(),
+                },
+            },
+            TestCase {
+                name: "environment 바인딩".to_string(),
+                input: r#"
+                    server.port=80#@#@80
+                    server.address= 127.0.0.1
+                    environment=prod
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 3000,
+                    },
+                    environment: "prod".to_string(),
                     etc: HashMap::new(),
                 },
             },
