@@ -604,6 +604,7 @@ pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Res
 */
 
 pub(crate) mod boot;
+pub(crate) mod di;
 
 /// header constants
 pub mod header;
@@ -776,9 +777,9 @@ pub type Method = hyper::Method;
 pub type HeaderName = hyper::header::HeaderName;
 
 /// Dependency Injection Context for entire life cycle
-pub use boot::di::DIContext;
+pub use di::DIContext;
 /// Dependency Injection Provider
-pub use boot::di::IProvider;
+pub use di::IProvider;
 /// String wrapper type for ParamStringDeserializer.
 pub use request::ParamString;
 /// ParamStringDeserializer trait
