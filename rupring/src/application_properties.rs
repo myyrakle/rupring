@@ -8,6 +8,16 @@ pub struct ApplicationProperties {
     pub etc: HashMap<String, String>,
 }
 
+impl Default for ApplicationProperties {
+    fn default() -> Self {
+        ApplicationProperties {
+            server: Server::default(),
+            environment: "dev".to_string(),
+            etc: HashMap::new(),
+        }
+    }
+}
+
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]
 pub struct Server {
@@ -197,4 +207,14 @@ mod tests {
             );
         }
     }
+}
+
+// 알아서 모든 대상에 대해 application.properties를 읽어서 ApplicationProperties를 반환하는 함수
+pub fn load_application_properties_from_all() -> ApplicationProperties {
+    // 1. 현재 경로에 application.properties가 있는지 확인하고, 있다면 읽어서 반환합니다.
+    if let Ok(text) = std::fs::read_to_string("application.properties") {
+        return ApplicationProperties::from_properties(text);
+    }
+
+    ApplicationProperties::default()
 }
