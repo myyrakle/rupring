@@ -1,23 +1,14 @@
 fn to_pascal_case(name: &str) -> String {
-    let words: Vec<&str> = name.split('_').collect();
-    let mut result = String::new();
-
-    for (_i, word) in words.iter().enumerate() {
-        match word.len() {
-            0 => {
-                result.push_str(&word.to_lowercase());
+    name.split('_')
+        .filter(|s| !s.is_empty())
+        .map(|s| {
+            let mut c = s.chars();
+            match c.next() {
+                None => String::new(),
+                Some(f) => f.to_uppercase().collect::<String>() + c.as_str().to_lowercase().as_str(),
             }
-            1 => {
-                result.push_str(&word.to_uppercase());
-            }
-            _ => {
-                result.push_str(&word[0..1].to_uppercase());
-                result.push_str(&word[1..].to_lowercase());
-            }
-        }
-    }
-
-    result
+        })
+        .collect()
 }
 
 #[test]
