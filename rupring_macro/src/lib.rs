@@ -253,6 +253,7 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     let new_code = format!(
         r#"
+#[allow(non_camel_case_types)]
 pub struct {struct_name}{{}}
 impl rupring::IProvider for {struct_name} {{
     fn dependencies(&self) -> Vec<std::any::TypeId> {{
@@ -486,6 +487,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
 
     let new_code = format!(
         r#"
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone)]
 pub(crate) struct {route_name} {{}}
 
@@ -515,6 +517,7 @@ impl rupring::IRoute for {route_name} {{
     {swagger_security_code}
 }}
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone)]
 pub(crate) struct {handler_name}{{}}
 
@@ -634,6 +637,7 @@ pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
     code += "};";
 
     let mut define_struct_for_json = "".to_string();
+    define_struct_for_json += format!("#[allow(non_camel_case_types)]").as_str();
     define_struct_for_json +=
         format!(r#"#[derive(serde::Serialize, serde::Deserialize)]"#).as_str();
     define_struct_for_json += format!(r#"pub struct {struct_name}__JSON {{"#).as_str();
