@@ -1,6 +1,6 @@
 # rupring
 
-![](https://img.shields.io/badge/language-Rust-red) ![](https://img.shields.io/badge/version-0.9.0-brightgreen) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/myyrakle/rupring/blob/master/LICENSE)
+![](https://img.shields.io/badge/language-Rust-red) ![](https://img.shields.io/badge/version-0.9.1-brightgreen) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/myyrakle/rupring/blob/master/LICENSE)
 
 spring on rust
 
@@ -8,7 +8,7 @@ spring on rust
 
 required dependency list
 ```toml
-rupring = "0.9.0"
+rupring = "0.9.1"
 serde = { version="1.0.193", features=["derive"] }
 ```
 
