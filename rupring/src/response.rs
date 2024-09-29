@@ -39,7 +39,7 @@ impl Response {
     /// let response = rupring::Response::new().json(User {
     ///    name: "John".to_string(),
     /// });
-    /// assert_eq!(response.body, r#"{"name":"John"}"#);
+    /// assert_eq!(response.body, r#"{"name":"John"}"#.to_string().into_bytes());
     /// // ...
     /// ```
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
@@ -63,7 +63,7 @@ impl Response {
     /// Set to return a text value.
     /// ```
     /// let response = rupring::Response::new().text("Hello World".to_string());
-    /// assert_eq!(response.body, "Hello World".to_string());
+    /// assert_eq!(response.body, "Hello World".to_string().into_bytes());
     pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static(header::CONTENT_TYPE),
