@@ -136,129 +136,135 @@ impl ApplicationProperties {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn test_from_properties() {
-//         struct TestCase {
-//             name: String,
-//             input: String,
-//             expected: ApplicationProperties,
-//         }
+    #[test]
+    fn test_from_properties() {
+        struct TestCase {
+            name: String,
+            input: String,
+            expected: ApplicationProperties,
+        }
 
-//         let test_cases = vec![
-//             TestCase {
-//                 name: "일반적인 기본 속성 바인딩".to_string(),
-//                 input: r#"
-//                     server.port=8080
-//                     server.address=127.0.0.1
-//                     "#
-//                 .to_string(),
-//                 expected: ApplicationProperties {
-//                     server: Server {
-//                         address: "127.0.0.1".to_string(),
-//                         port: 8080,
-//                     },
-//                     etc: HashMap::new(),
-//                     environment: "dev".to_string(),
-//                 },
-//             },
-//             TestCase {
-//                 name: "추가 속성 바인딩".to_string(),
-//                 input: r#"
-//                     server.port=8080
-//                     server.address=127.0.0.1
-//                     foo.bar=hello
-//                     "#
-//                 .to_string(),
-//                 expected: ApplicationProperties {
-//                     server: Server {
-//                         address: "127.0.0.1".to_string(),
-//                         port: 8080,
-//                     },
-//                     environment: "dev".to_string(),
-//                     etc: HashMap::from([("foo.bar".to_string(), "hello".to_string())]),
-//                 },
-//             },
-//             TestCase {
-//                 name: "따옴표로 감싸기".to_string(),
-//                 input: r#"
-//                     server.port=8080
-//                     server.address="127.0.0.1"
-//                     "#
-//                 .to_string(),
-//                 expected: ApplicationProperties {
-//                     server: Server {
-//                         address: "127.0.0.1".to_string(),
-//                         port: 8080,
-//                     },
-//                     environment: "dev".to_string(),
-//                     etc: HashMap::new(),
-//                 },
-//             },
-//             TestCase {
-//                 name: "중간에 띄어쓰기".to_string(),
-//                 input: r#"
-//                     server.port=8080
-//                     server.address= 127.0.0.1
-//                     "#
-//                 .to_string(),
-//                 expected: ApplicationProperties {
-//                     server: Server {
-//                         address: "127.0.0.1".to_string(),
-//                         port: 8080,
-//                     },
-//                     environment: "dev".to_string(),
-//                     etc: HashMap::new(),
-//                 },
-//             },
-//             TestCase {
-//                 name: "포트 파싱 실패".to_string(),
-//                 input: r#"
-//                     server.port=80#@#@80
-//                     server.address= 127.0.0.1
-//                     "#
-//                 .to_string(),
-//                 expected: ApplicationProperties {
-//                     server: Server {
-//                         address: "127.0.0.1".to_string(),
-//                         port: 3000,
-//                     },
-//                     environment: "dev".to_string(),
-//                     etc: HashMap::new(),
-//                 },
-//             },
-//             TestCase {
-//                 name: "environment 바인딩".to_string(),
-//                 input: r#"
-//                     server.port=80#@#@80
-//                     server.address= 127.0.0.1
-//                     environment=prod
-//                     "#
-//                 .to_string(),
-//                 expected: ApplicationProperties {
-//                     server: Server {
-//                         address: "127.0.0.1".to_string(),
-//                         port: 3000,
-//                     },
-//                     environment: "prod".to_string(),
-//                     etc: HashMap::new(),
-//                 },
-//             },
-//         ];
+        let test_cases = vec![
+            TestCase {
+                name: "일반적인 기본 속성 바인딩".to_string(),
+                input: r#"
+                    server.port=8080
+                    server.address=127.0.0.1
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 8080,
+                        ..Default::default()
+                    },
+                    etc: HashMap::new(),
+                    environment: "dev".to_string(),
+                },
+            },
+            TestCase {
+                name: "추가 속성 바인딩".to_string(),
+                input: r#"
+                    server.port=8080
+                    server.address=127.0.0.1
+                    foo.bar=hello
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 8080,
+                        ..Default::default()
+                    },
+                    environment: "dev".to_string(),
+                    etc: HashMap::from([("foo.bar".to_string(), "hello".to_string())]),
+                },
+            },
+            TestCase {
+                name: "따옴표로 감싸기".to_string(),
+                input: r#"
+                    server.port=8080
+                    server.address="127.0.0.1"
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 8080,
+                        ..Default::default()
+                    },
+                    environment: "dev".to_string(),
+                    etc: HashMap::new(),
+                },
+            },
+            TestCase {
+                name: "중간에 띄어쓰기".to_string(),
+                input: r#"
+                    server.port=8080
+                    server.address= 127.0.0.1
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 8080,
+                        ..Default::default()
+                    },
+                    environment: "dev".to_string(),
+                    etc: HashMap::new(),
+                },
+            },
+            TestCase {
+                name: "포트 파싱 실패".to_string(),
+                input: r#"
+                    server.port=80#@#@80
+                    server.address= 127.0.0.1
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 3000,
+                        ..Default::default()
+                    },
+                    environment: "dev".to_string(),
+                    etc: HashMap::new(),
+                },
+            },
+            TestCase {
+                name: "environment 바인딩".to_string(),
+                input: r#"
+                    server.port=80#@#@80
+                    server.address= 127.0.0.1
+                    environment=prod
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 3000,
+                        ..Default::default()
+                    },
+                    environment: "prod".to_string(),
+                    etc: HashMap::new(),
+                },
+            },
+        ];
 
-//         for tc in test_cases {
-//             let got = ApplicationProperties::from_properties(tc.input.clone());
-//             assert_eq!(
-//                 got, tc.expected,
-//                 "{} - input: {:?}, actual: {:?}",
-//                 tc.name, tc.input, got
-//             );
-//         }
-//     }
-// }
+        for tc in test_cases {
+            let got = ApplicationProperties::from_properties(tc.input.clone());
+            assert_eq!(
+                got, tc.expected,
+                "{} - input: {:?}, actual: {:?}",
+                tc.name, tc.input, got
+            );
+        }
+    }
+}
 
 // 알아서 모든 대상에 대해 application.properties를 읽어서 ApplicationProperties를 반환하는 함수
 pub fn load_application_properties_from_all() -> ApplicationProperties {
