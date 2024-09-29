@@ -70,141 +70,7 @@ pub async fn run_server(
                     service_fn(|req: Request<hyper::body::Incoming>| {
                         let di_context = Arc::clone(&di_context);
 
-                        async move {
-                            let di_context = Arc::clone(&di_context);
-
-                            let uri = req.uri();
-                            let request_path = uri.path().to_string();
-                            let request_method = req.method().to_owned();
-
-                            print_system_log(
-                                Level::Info,
-                                format!("[Request] {} {}", request_method, request_path).as_str(),
-                            );
-
-                            let route = route::find_route(
-                                Box::new(root_module),
-                                request_path.clone(),
-                                request_method.clone(),
-                            );
-
-                            match route {
-                                Some((route, route_path, middlewares)) => {
-                                    let handler = route.handler();
-
-                                    let raw_querystring = uri.query().unwrap_or("");
-                                    let query_parameters =
-                                        parse::parse_query_parameter(raw_querystring);
-
-                                    let mut headers = HashMap::new();
-                                    for (header_name, header_value) in req.headers() {
-                                        let header_name = header_name.to_string();
-                                        let header_value =
-                                            header_value.to_str().unwrap_or("").to_string();
-
-                                        headers.insert(header_name, header_value);
-                                    }
-
-                                    preprocess_headers(&mut headers);
-
-                                    let path_parameters = parse::parse_path_parameter(
-                                        route_path,
-                                        request_path.clone(),
-                                    );
-
-                                    let request_body = match req.collect().await {
-                                        Ok(body) => {
-                                            let body = body.to_bytes();
-                                            let body = String::from_utf8(body.to_vec())
-                                                .unwrap_or("".to_string());
-
-                                            body
-                                        }
-                                        Err(err) => {
-                                            return Ok::<Response<Full<Bytes>>, Infallible>(
-                                                Response::new(Full::new(Bytes::from(format!(
-                                                    "Error reading request body: {:?}",
-                                                    err
-                                                )))),
-                                            );
-                                        }
-                                    };
-
-                                    let response = std::panic::catch_unwind(move || {
-                                        let mut request = crate::Request {
-                                            method: request_method,
-                                            path: request_path,
-                                            body: request_body,
-                                            query_parameters,
-                                            headers,
-                                            path_parameters,
-                                            di_context: Arc::clone(&di_context),
-                                        };
-
-                                        let mut response = crate::Response::new();
-
-                                        for middleware in middlewares {
-                                            let middleware_result = middleware(
-                                                request,
-                                                response.clone(),
-                                                move |request, response| {
-                                                    let next = Some(Box::new((request, response)));
-
-                                                    let mut response = crate::Response::new();
-                                                    response.next = next;
-
-                                                    response
-                                                },
-                                            );
-
-                                            match middleware_result.next {
-                                                Some(next) => {
-                                                    let (next_request, next_response) = *next;
-
-                                                    request = next_request;
-                                                    response = next_response;
-                                                }
-                                                None => {
-                                                    return middleware_result;
-                                                }
-                                            }
-                                        }
-
-                                        handler.handle(request, response)
-                                    });
-
-                                    let response = match response {
-                                        Ok(response) => response,
-                                        Err(_err) => crate::Response::new()
-                                            .status(500)
-                                            .text("Internal Server Error".to_string()),
-                                    };
-
-                                    let headers = response.headers.clone();
-                                    let status = response.status.clone();
-
-                                    let mut response: hyper::Response<Full<Bytes>> =
-                                        response.into();
-
-                                    if let Ok(status) = StatusCode::from_u16(status) {
-                                        *response.status_mut() = status;
-                                    }
-
-                                    for (key, value) in headers.iter() {
-                                        if let Ok(value) = value.parse() {
-                                            response.headers_mut().insert(key, value);
-                                        }
-                                    }
-
-                                    return Ok::<Response<Full<Bytes>>, Infallible>(response);
-                                }
-                                None => {
-                                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(
-                                        Full::new(Bytes::from("Not Found".to_string())),
-                                    ));
-                                }
-                            }
-                        }
+                        async move { process_request(di_context, root_module, req).await }
                     }),
                 )
                 .await
@@ -212,5 +78,132 @@ pub async fn run_server(
                 println!("Error serving connection: {:?}", err);
             }
         });
+    }
+}
+
+async fn process_request(
+    di_context: Arc<di::DIContext>,
+    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    req: Request<hyper::body::Incoming>,
+) -> Result<Response<Full<Bytes>>, Infallible> {
+    let di_context = Arc::clone(&di_context);
+
+    let uri = req.uri();
+    let request_path = uri.path().to_string();
+    let request_method = req.method().to_owned();
+
+    print_system_log(
+        Level::Info,
+        format!("[Request] {} {}", request_method, request_path).as_str(),
+    );
+
+    let route = route::find_route(
+        Box::new(root_module),
+        request_path.clone(),
+        request_method.clone(),
+    );
+
+    match route {
+        Some((route, route_path, middlewares)) => {
+            let handler = route.handler();
+
+            let raw_querystring = uri.query().unwrap_or("");
+            let query_parameters = parse::parse_query_parameter(raw_querystring);
+
+            let mut headers = HashMap::new();
+            for (header_name, header_value) in req.headers() {
+                let header_name = header_name.to_string();
+                let header_value = header_value.to_str().unwrap_or("").to_string();
+
+                headers.insert(header_name, header_value);
+            }
+
+            preprocess_headers(&mut headers);
+
+            let path_parameters = parse::parse_path_parameter(route_path, request_path.clone());
+
+            let request_body = match req.collect().await {
+                Ok(body) => {
+                    let body = body.to_bytes();
+                    let body = String::from_utf8(body.to_vec()).unwrap_or("".to_string());
+
+                    body
+                }
+                Err(err) => {
+                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(
+                        Bytes::from(format!("Error reading request body: {:?}", err)),
+                    )));
+                }
+            };
+
+            let response = std::panic::catch_unwind(move || {
+                let mut request = crate::Request {
+                    method: request_method,
+                    path: request_path,
+                    body: request_body,
+                    query_parameters,
+                    headers,
+                    path_parameters,
+                    di_context: Arc::clone(&di_context),
+                };
+
+                let mut response = crate::Response::new();
+
+                for middleware in middlewares {
+                    let middleware_result =
+                        middleware(request, response.clone(), move |request, response| {
+                            let next = Some(Box::new((request, response)));
+
+                            let mut response = crate::Response::new();
+                            response.next = next;
+
+                            response
+                        });
+
+                    match middleware_result.next {
+                        Some(next) => {
+                            let (next_request, next_response) = *next;
+
+                            request = next_request;
+                            response = next_response;
+                        }
+                        None => {
+                            return middleware_result;
+                        }
+                    }
+                }
+
+                handler.handle(request, response)
+            });
+
+            let response = match response {
+                Ok(response) => response,
+                Err(_err) => crate::Response::new()
+                    .status(500)
+                    .text("Internal Server Error".to_string()),
+            };
+
+            let headers = response.headers.clone();
+            let status = response.status.clone();
+
+            let mut response: hyper::Response<Full<Bytes>> = response.into();
+
+            if let Ok(status) = StatusCode::from_u16(status) {
+                *response.status_mut() = status;
+            }
+
+            for (key, value) in headers.iter() {
+                if let Ok(value) = value.parse() {
+                    response.headers_mut().insert(key, value);
+                }
+            }
+
+            return Ok::<Response<Full<Bytes>>, Infallible>(response);
+        }
+        None => {
+            return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
+                "Not Found".to_string(),
+            ))));
+        }
     }
 }
