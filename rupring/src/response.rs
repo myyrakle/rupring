@@ -7,7 +7,7 @@ use hyper::body::Bytes;
 #[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
-    pub body: String,
+    pub body: Vec<u8>,
     pub headers: HashMap<HeaderName, String>,
     pub(crate) next: Option<Box<(Request, Response)>>,
 }
@@ -23,7 +23,7 @@ impl Response {
     pub fn new() -> Self {
         Self {
             status: 200,
-            body: "".to_string(),
+            body: Vec::new(),
             headers: Default::default(),
             next: None,
         }
@@ -54,7 +54,8 @@ impl Response {
                 self.status = 500;
                 format!("Error serializing response body: {:?}", err)
             }
-        };
+        }
+        .into();
 
         return self;
     }
@@ -69,7 +70,7 @@ impl Response {
             meme::TEXT.to_string(),
         );
 
-        self.body = body.to_string();
+        self.body = body.to_string().into();
 
         return self;
     }
