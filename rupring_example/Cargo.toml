@@ -4,6 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dotenv = "0.15.0"
 rupring={ version="0.9.0", path="../rupring" }
 serde = { version="1.0.193", features=["derive"] }
