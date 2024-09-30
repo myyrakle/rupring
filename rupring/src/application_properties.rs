@@ -1,3 +1,16 @@
+/*!
+## Intro
+- application.properties is a configuration method influenced by spring.
+
+## How to find it
+- The rupring program searches the current execution path to see if there is a file called application.properties.
+- If it does not exist, application.properties is searched based on the directory of the current executable file.
+- If it is still not there, load it with default values ​​and start.
+
+## Format
+- Similar to spring, it has a Key=Value format separated by newlines.
+*/
+
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
