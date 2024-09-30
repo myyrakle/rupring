@@ -298,6 +298,30 @@ fn post_process_response(
                     .to_string(),
             );
         }
+        "deflate" => {
+            // compression
+            let compressed_bytes = compress_with_deflate(&response.body);
+
+            let compressed_bytes = match compressed_bytes {
+                Ok(compressed_bytes) => compressed_bytes,
+                Err(err) => {
+                    eprintln!("Error compressing response body: {:?}", err);
+                    return response;
+                }
+            };
+
+            response.body = compressed_bytes;
+
+            // add header for compression
+            response.headers.insert(
+                crate::HeaderName::from_static(header::CONTENT_ENCODING),
+                application_properties
+                    .server
+                    .compression
+                    .algorithm
+                    .to_string(),
+            );
+        }
         _ => {}
     }
 
@@ -308,6 +332,17 @@ fn compress_with_gzip(body: &[u8]) -> anyhow::Result<Vec<u8>> {
     use std::io::Write;
 
     let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder.write_all(body)?;
+    let compressed = encoder.finish()?;
+
+    Ok(compressed)
+}
+
+fn compress_with_deflate(body: &[u8]) -> anyhow::Result<Vec<u8>> {
+    use std::io::Write;
+
+    let mut encoder =
+        flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::default());
     encoder.write_all(body)?;
     let compressed = encoder.finish()?;
 
