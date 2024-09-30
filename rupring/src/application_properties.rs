@@ -9,6 +9,17 @@
 
 ## Format
 - Similar to spring, it has a Key=Value format separated by newlines.
+
+## Special Options
+| Key | Description | Default |
+| --- | --- | --- |
+| environment | The environment to run in. | dev |
+| server.port | The port to listen on. | 3000 |
+| server.address | The address to listen on. | 0.0.0.0 |
+| server.compression.enabled | Whether to enable compression. | false |
+| server.compression.mime-types | The mime types to compress. | text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml |
+| server.compression.min-response-size | The minimum response size to compress. (byte) | 2048 |
+| server.compression.algorithm | The compression algorithm to use. | gzip |
 */
 
 use std::collections::HashMap;
