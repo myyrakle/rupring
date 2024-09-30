@@ -615,7 +615,6 @@ pub mod response;
 pub mod swagger;
 
 use std::panic::UnwindSafe;
-use std::str::FromStr;
 
 use application_properties::load_application_properties_from_all;
 use application_properties::ApplicationProperties;
@@ -860,16 +859,8 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     }
 
     /// It receives the port number and runs the server.
-    pub async fn listen(self, port: u16) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use std::net::{IpAddr, SocketAddr};
-
-        let host = self.application_properties.server.address.clone();
-
-        let ip = IpAddr::from_str(host.as_str())?;
-
-        let socket_addr = SocketAddr::new(ip, port);
-
-        let result = core::run_server(socket_addr, self.root_module).await;
+    pub async fn listen(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let result = core::run_server(self.application_properties, self.root_module).await;
 
         return result;
     }

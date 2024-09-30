@@ -18,11 +18,43 @@ impl Default for ApplicationProperties {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Compression {
+    pub enabled: bool,
+    pub mime_types: Vec<String>,
+    pub min_response_size: usize,
+    pub algorithm: String,
+}
+
+impl Default for Compression {
+    fn default() -> Self {
+        Compression {
+            enabled: false,
+            mime_types: vec![
+                "text/html",
+                "text/xml",
+                "text/plain",
+                "text/css",
+                "text/javascript",
+                "application/javascript",
+                "application/json",
+                "application/xml",
+            ]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+            min_response_size: 2048, // 2KB
+            algorithm: "gzip".to_string(),
+        }
+    }
+}
+
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]
 pub struct Server {
     pub address: String,
     pub port: u16,
+    pub compression: Compression,
 }
 
 impl Default for Server {
@@ -30,6 +62,7 @@ impl Default for Server {
         Server {
             address: "0.0.0.0".to_string(),
             port: 3000,
+            compression: Compression::default(),
         }
     }
 }
@@ -59,6 +92,7 @@ impl ApplicationProperties {
                 value.to_string()
             };
 
+            // TODO: 매크로 기반 파싱 구현
             match key.as_str() {
                 "server.port" => {
                     if let Ok(value) = value.parse::<u16>() {
@@ -67,6 +101,23 @@ impl ApplicationProperties {
                 }
                 "server.address" => {
                     server.address = value.to_string();
+                }
+                "server.compression.enabled" => {
+                    if let Ok(value) = value.parse::<bool>() {
+                        server.compression.enabled = value;
+                    }
+                }
+                "server.compression.mime-types" => {
+                    server.compression.mime_types =
+                        value.split(",").map(|s| s.to_string()).collect();
+                }
+                "server.compression.min-response-size" => {
+                    if let Ok(value) = value.parse::<usize>() {
+                        server.compression.min_response_size = value;
+                    }
+                }
+                "server.compression.algorithm" => {
+                    server.compression.algorithm = value.to_string();
                 }
                 "environment" => {
                     environment = value.to_string();
@@ -109,6 +160,7 @@ mod tests {
                     server: Server {
                         address: "127.0.0.1".to_string(),
                         port: 8080,
+                        ..Default::default()
                     },
                     etc: HashMap::new(),
                     environment: "dev".to_string(),
@@ -126,6 +178,7 @@ mod tests {
                     server: Server {
                         address: "127.0.0.1".to_string(),
                         port: 8080,
+                        ..Default::default()
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::from([("foo.bar".to_string(), "hello".to_string())]),
@@ -142,6 +195,7 @@ mod tests {
                     server: Server {
                         address: "127.0.0.1".to_string(),
                         port: 8080,
+                        ..Default::default()
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
@@ -158,6 +212,7 @@ mod tests {
                     server: Server {
                         address: "127.0.0.1".to_string(),
                         port: 8080,
+                        ..Default::default()
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
@@ -174,6 +229,7 @@ mod tests {
                     server: Server {
                         address: "127.0.0.1".to_string(),
                         port: 3000,
+                        ..Default::default()
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
@@ -191,6 +247,7 @@ mod tests {
                     server: Server {
                         address: "127.0.0.1".to_string(),
                         port: 3000,
+                        ..Default::default()
                     },
                     environment: "prod".to_string(),
                     etc: HashMap::new(),

@@ -8,6 +8,7 @@ pub const ACCEPT_CHARSET: &'static str = "accept-charset";
 pub const ACCEPT_DATETIME: &'static str = "accept-datetime";
 pub const CONTENT_TYPE: &'static str = "content-type";
 pub const CONTENT_LENGTH: &'static str = "content-length";
+pub const CONTENT_ENCODING: &'static str = "content-encoding";
 pub const USER_AGENT: &'static str = "user-agent";
 pub const HOST: &'static str = "host";
 pub const CONNECTION: &'static str = "connection";

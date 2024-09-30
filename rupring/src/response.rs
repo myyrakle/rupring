@@ -7,7 +7,7 @@ use hyper::body::Bytes;
 #[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
-    pub body: String,
+    pub body: Vec<u8>,
     pub headers: HashMap<HeaderName, String>,
     pub(crate) next: Option<Box<(Request, Response)>>,
 }
@@ -23,7 +23,7 @@ impl Response {
     pub fn new() -> Self {
         Self {
             status: 200,
-            body: "".to_string(),
+            body: Vec::new(),
             headers: Default::default(),
             next: None,
         }
@@ -39,7 +39,7 @@ impl Response {
     /// let response = rupring::Response::new().json(User {
     ///    name: "John".to_string(),
     /// });
-    /// assert_eq!(response.body, r#"{"name":"John"}"#);
+    /// assert_eq!(response.body, r#"{"name":"John"}"#.to_string().into_bytes());
     /// // ...
     /// ```
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
@@ -54,7 +54,8 @@ impl Response {
                 self.status = 500;
                 format!("Error serializing response body: {:?}", err)
             }
-        };
+        }
+        .into();
 
         return self;
     }
@@ -62,14 +63,14 @@ impl Response {
     /// Set to return a text value.
     /// ```
     /// let response = rupring::Response::new().text("Hello World".to_string());
-    /// assert_eq!(response.body, "Hello World".to_string());
+    /// assert_eq!(response.body, "Hello World".to_string().into_bytes());
     pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static(header::CONTENT_TYPE),
             meme::TEXT.to_string(),
         );
 
-        self.body = body.to_string();
+        self.body = body.to_string().into();
 
         return self;
     }

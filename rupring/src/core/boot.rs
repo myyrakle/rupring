@@ -20,7 +20,5 @@ where
 {
     let app = crate::RupringFactory::create(root_module);
 
-    let port = app.application_properties.server.port;
-
-    app.listen(port).await.unwrap();
+    app.listen().await.unwrap();
 }

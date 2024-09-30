@@ -25,6 +25,7 @@ serde_json = "1.0.108"
 chrono = "0.4.31"
 log = "0.4.20"
 anyhow = "1.0.86"
+flate2 = "1.0.34"
 
 [dependencies.uuid]
 version = "1.6.1"
