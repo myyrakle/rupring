@@ -596,6 +596,10 @@ pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Res
     return rupring::Response::new().text("OK".to_string());
 }
 ```
+
+# Application Properties
+- rupring provides various execution options through a special configuration file called application.properties.
+- Please refer to the corresponding [document](crate::application_properties) for more details.
 */
 
 pub(crate) mod core;
