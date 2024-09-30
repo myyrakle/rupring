@@ -1,3 +1,27 @@
+/*!
+## Intro
+- application.properties is a configuration method influenced by spring.
+
+## How to find it
+- The rupring program searches the current execution path to see if there is a file called application.properties.
+- If it does not exist, application.properties is searched based on the directory of the current executable file.
+- If it is still not there, load it with default values ​​and start.
+
+## Format
+- Similar to spring, it has a Key=Value format separated by newlines.
+
+## Special Options
+| Key | Description | Default |
+| --- | --- | --- |
+| environment | The environment to run in. | dev |
+| server.port | The port to listen on. | 3000 |
+| server.address | The address to listen on. | 0.0.0.0 |
+| server.compression.enabled | Whether to enable compression. | false |
+| server.compression.mime-types | The mime types to compress. | text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml |
+| server.compression.min-response-size | The minimum response size to compress. (byte) | 2048 |
+| server.compression.algorithm | The compression algorithm to use. | gzip |
+*/
+
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
