@@ -79,6 +79,7 @@ pub struct Server {
     pub address: String,
     pub port: u16,
     pub compression: Compression,
+    pub shutdown: String,
 }
 
 impl Default for Server {
@@ -87,6 +88,7 @@ impl Default for Server {
             address: "0.0.0.0".to_string(),
             port: 3000,
             compression: Compression::default(),
+            shutdown: "immediate".to_string(),
         }
     }
 }
@@ -125,6 +127,9 @@ impl ApplicationProperties {
                 }
                 "server.address" => {
                     server.address = value.to_string();
+                }
+                "server.shutdown" => {
+                    server.shutdown = value.to_string();
                 }
                 "server.compression.enabled" => {
                     if let Ok(value) = value.parse::<bool>() {
