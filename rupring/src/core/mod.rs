@@ -11,6 +11,8 @@ pub(crate) mod route;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
 use http_body_util::BodyExt;
@@ -50,16 +52,76 @@ pub async fn run_server(
         format!("Starting Application on {}", socket_address).as_str(),
     );
 
-    let signal_flags = graceful::SignalFlags::new();
-
     // We create a TcpListener and bind it to 127.0.0.1:3000
     let listener = TcpListener::bind(socket_address).await?;
 
     let application_properties = Arc::new(application_properties);
 
+    // for graceful shutdown
+    let signal_flags = graceful::SignalFlags::new();
+    let service_avaliable = Arc::new(AtomicBool::new(true));
+
+    let is_graceful_shutdown = application_properties.server.is_graceful_shutdown();
+    let running_task_count = Arc::new(AtomicU64::new(0));
+
+    if is_graceful_shutdown {
+        if let Err(error) = signal_flags.register_hooks() {
+            print_system_log(
+                Level::Error,
+                format!("Error registering signal hooks: {:?}", error).as_str(),
+            );
+        } else {
+            print_system_log(Level::Info, "Signal hooks registered");
+
+            let service_avaliable = Arc::clone(&service_avaliable);
+            let running_task_count = Arc::clone(&running_task_count);
+            tokio::spawn(async move {
+                let sigterm = Arc::clone(&signal_flags.sigterm);
+                let sigint = Arc::clone(&signal_flags.sigint);
+
+                loop {
+                    if sigterm.load(std::sync::atomic::Ordering::Relaxed) {
+                        print_system_log(Level::Info, "SIGTERM received. Shutting down...");
+                        service_avaliable.store(false, std::sync::atomic::Ordering::Release);
+                        break;
+                    }
+
+                    if sigint.load(std::sync::atomic::Ordering::Relaxed) {
+                        print_system_log(Level::Info, "SIGINT received. Shutting down...");
+                        service_avaliable.store(false, std::sync::atomic::Ordering::Release);
+                        break;
+                    }
+
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                }
+
+                loop {
+                    if running_task_count.load(std::sync::atomic::Ordering::Relaxed) == 0 {
+                        print_system_log(Level::Info, "All tasks are done. Shutting down...");
+                        std::process::exit(0);
+                    }
+
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                }
+            });
+        }
+    }
+
     // We start a loop to continuously accept incoming connections
     loop {
-        let (stream, _) = listener.accept().await?;
+        let (mut stream, _) = listener.accept().await?;
+
+        if is_graceful_shutdown {
+            if !service_avaliable.load(std::sync::atomic::Ordering::Acquire) {
+                print_system_log(Level::Info, "Service is not available");
+
+                // reject new request
+                use tokio::io::AsyncWriteExt;
+                let _ = stream.shutdown();
+
+                continue;
+            }
+        }
 
         // Use an adapter to access something implementing `tokio::io` traits as if they implement
         // `hyper::rt` IO traits.
@@ -70,10 +132,17 @@ pub async fn run_server(
         let application_properties = Arc::clone(&application_properties);
 
         let root_module = root_module.clone();
-        // Spawn a tokio task to serve multiple connections concurrently
+
+        let running_task_count = Arc::clone(&running_task_count);
+
+        // create tokio task per HTTP request
         tokio::task::spawn(async move {
-            // Finally, we bind the incoming connection to our `hello` service
+            if is_graceful_shutdown {
+                running_task_count.fetch_add(1, std::sync::atomic::Ordering::Release);
+            }
+
             if let Err(err) = http1::Builder::new()
+                .keep_alive(false)
                 // `service_fn` converts our function in a `Service`
                 .serve_connection(
                     io,
@@ -90,6 +159,12 @@ pub async fn run_server(
                 .await
             {
                 println!("Error serving connection: {:?}", err);
+            } else {
+                println!("Connection served");
+            }
+
+            if is_graceful_shutdown {
+                running_task_count.fetch_sub(1, std::sync::atomic::Ordering::Release);
             }
         });
     }

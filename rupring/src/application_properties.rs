@@ -93,6 +93,12 @@ impl Default for Server {
     }
 }
 
+impl Server {
+    pub fn is_graceful_shutdown(&self) -> bool {
+        self.shutdown == "graceful"
+    }
+}
+
 impl ApplicationProperties {
     pub fn from_properties(text: String) -> ApplicationProperties {
         let mut server = Server::default();
