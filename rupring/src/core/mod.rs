@@ -1,5 +1,6 @@
 mod banner;
 pub mod boot;
+mod graceful;
 mod parse;
 
 use crate::application_properties;
@@ -48,6 +49,8 @@ pub async fn run_server(
         Level::Info,
         format!("Starting Application on {}", socket_address).as_str(),
     );
+
+    let signal_flags = graceful::SignalFlags::new();
 
     // We create a TcpListener and bind it to 127.0.0.1:3000
     let listener = TcpListener::bind(socket_address).await?;
