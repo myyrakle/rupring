@@ -16,10 +16,12 @@
 | environment | The environment to run in. | dev |
 | server.port | The port to listen on. | 3000 |
 | server.address | The address to listen on. | 0.0.0.0 |
+| server.shutdown | The shutdown mode. (immediate,graceful) | immediate |
+| server.timeout-per-shutdown-phase | The timeout per shutdown phase. (e.g. 30s, 1m, 1h) | 30s |
 | server.compression.enabled | Whether to enable compression. | false |
 | server.compression.mime-types | The mime types to compress. | text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml |
 | server.compression.min-response-size | The minimum response size to compress. (byte) | 2048 |
-| server.compression.algorithm | The compression algorithm to use. (gzip|deflate) | gzip |
+| server.compression.algorithm | The compression algorithm to use. (gzip,deflate) | gzip |
 */
 
 use std::collections::HashMap;
@@ -79,6 +81,8 @@ pub struct Server {
     pub address: String,
     pub port: u16,
     pub compression: Compression,
+    pub shutdown: String,
+    pub timeout_per_shutdown_phase: String,
 }
 
 impl Default for Server {
@@ -87,7 +91,31 @@ impl Default for Server {
             address: "0.0.0.0".to_string(),
             port: 3000,
             compression: Compression::default(),
+            shutdown: "immediate".to_string(),
+            timeout_per_shutdown_phase: "30s".to_string(),
         }
+    }
+}
+
+impl Server {
+    pub fn is_graceful_shutdown(&self) -> bool {
+        self.shutdown == "graceful"
+    }
+
+    pub fn shutdown_timeout_duration(&self) -> std::time::Duration {
+        let timeout = self
+            .timeout_per_shutdown_phase
+            .trim_end_matches(|c| !char::is_numeric(c));
+        let timeout = timeout.parse::<u64>().unwrap_or(30);
+
+        let duration = match self.timeout_per_shutdown_phase.chars().last() {
+            Some('s') => std::time::Duration::from_secs(timeout),
+            Some('m') => std::time::Duration::from_secs(timeout * 60),
+            Some('h') => std::time::Duration::from_secs(timeout * 60 * 60),
+            _ => std::time::Duration::from_secs(30),
+        };
+
+        duration
     }
 }
 
@@ -125,6 +153,12 @@ impl ApplicationProperties {
                 }
                 "server.address" => {
                     server.address = value.to_string();
+                }
+                "server.shutdown" => {
+                    server.shutdown = value.to_string();
+                }
+                "server.timeout-per-shutdown-phase" => {
+                    server.timeout_per_shutdown_phase = value.to_string();
                 }
                 "server.compression.enabled" => {
                     if let Ok(value) = value.parse::<bool>() {
