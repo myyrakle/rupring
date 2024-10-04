@@ -62,6 +62,7 @@ pub async fn run_server(
     let service_avaliable = Arc::new(AtomicBool::new(true));
 
     let is_graceful_shutdown = application_properties.server.is_graceful_shutdown();
+    let shutdown_timeout_duration = application_properties.server.shutdown_timeout_duration();
     let running_task_count = Arc::new(AtomicU64::new(0));
 
     if is_graceful_shutdown {
@@ -95,9 +96,18 @@ pub async fn run_server(
                     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                 }
 
+                let shutdown_request_time = std::time::Instant::now();
+
                 loop {
                     if running_task_count.load(std::sync::atomic::Ordering::Relaxed) == 0 {
                         print_system_log(Level::Info, "All tasks are done. Shutting down...");
+                        std::process::exit(0);
+                    }
+
+                    // timeout 지나면 강제로 종료
+                    let now = std::time::Instant::now();
+                    if now.duration_since(shutdown_request_time) >= shutdown_timeout_duration {
+                        print_system_log(Level::Info, "Timeout reached. Forcing shutdown...");
                         std::process::exit(0);
                     }
 

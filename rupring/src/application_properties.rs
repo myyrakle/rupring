@@ -99,6 +99,22 @@ impl Server {
     pub fn is_graceful_shutdown(&self) -> bool {
         self.shutdown == "graceful"
     }
+
+    pub fn shutdown_timeout_duration(&self) -> std::time::Duration {
+        let timeout = self
+            .timeout_per_shutdown_phase
+            .trim_end_matches(|c| !char::is_numeric(c));
+        let timeout = timeout.parse::<u64>().unwrap_or(30);
+
+        let duration = match self.timeout_per_shutdown_phase.chars().last() {
+            Some('s') => std::time::Duration::from_secs(timeout),
+            Some('m') => std::time::Duration::from_secs(timeout * 60),
+            Some('h') => std::time::Duration::from_secs(timeout * 60 * 60),
+            _ => std::time::Duration::from_secs(30),
+        };
+
+        duration
+    }
 }
 
 impl ApplicationProperties {
