@@ -80,6 +80,7 @@ pub struct Server {
     pub port: u16,
     pub compression: Compression,
     pub shutdown: String,
+    pub timeout_per_shutdown_phase: String,
 }
 
 impl Default for Server {
@@ -89,6 +90,7 @@ impl Default for Server {
             port: 3000,
             compression: Compression::default(),
             shutdown: "immediate".to_string(),
+            timeout_per_shutdown_phase: "30s".to_string(),
         }
     }
 }
@@ -136,6 +138,9 @@ impl ApplicationProperties {
                 }
                 "server.shutdown" => {
                     server.shutdown = value.to_string();
+                }
+                "server.timeout-per-shutdown-phase" => {
+                    server.timeout_per_shutdown_phase = value.to_string();
                 }
                 "server.compression.enabled" => {
                     if let Ok(value) = value.parse::<bool>() {

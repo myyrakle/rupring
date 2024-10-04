@@ -142,7 +142,7 @@ pub async fn run_server(
             }
 
             if let Err(err) = http1::Builder::new()
-                .keep_alive(false)
+                .keep_alive(true)
                 // `service_fn` converts our function in a `Service`
                 .serve_connection(
                     io,
