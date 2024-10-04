@@ -72,7 +72,7 @@ pub async fn run_server(
                 format!("Error registering signal hooks: {:?}", error).as_str(),
             );
         } else {
-            print_system_log(Level::Info, "Signal hooks registered");
+            print_system_log(Level::Info, "Graceful shutdown enabled");
 
             let service_avaliable = Arc::clone(&service_avaliable);
             let running_task_count = Arc::clone(&running_task_count);
@@ -82,13 +82,19 @@ pub async fn run_server(
 
                 loop {
                     if sigterm.load(std::sync::atomic::Ordering::Relaxed) {
-                        print_system_log(Level::Info, "SIGTERM received. Shutting down...");
+                        print_system_log(
+                            Level::Info,
+                            "SIGTERM received. Try to shutdown gracefully...",
+                        );
                         service_avaliable.store(false, std::sync::atomic::Ordering::Release);
                         break;
                     }
 
                     if sigint.load(std::sync::atomic::Ordering::Relaxed) {
-                        print_system_log(Level::Info, "SIGINT received. Shutting down...");
+                        print_system_log(
+                            Level::Info,
+                            "SIGINT received. Try to shutdown gracefully...",
+                        );
                         service_avaliable.store(false, std::sync::atomic::Ordering::Release);
                         break;
                     }
@@ -107,7 +113,10 @@ pub async fn run_server(
                     // timeout 지나면 강제로 종료
                     let now = std::time::Instant::now();
                     if now.duration_since(shutdown_request_time) >= shutdown_timeout_duration {
-                        print_system_log(Level::Info, "Timeout reached. Forcing shutdown...");
+                        print_system_log(
+                            Level::Info,
+                            "Shutdown timeout reached. Forcing shutdown...",
+                        );
                         std::process::exit(0);
                     }
 
@@ -169,8 +178,6 @@ pub async fn run_server(
                 .await
             {
                 println!("Error serving connection: {:?}", err);
-            } else {
-                println!("Connection served");
             }
 
             if is_graceful_shutdown {
