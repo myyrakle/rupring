@@ -1,6 +1,6 @@
 [package]
 name = "rupring"
-version = "0.9.1"
+version = "0.10.0"
 edition = "2021"
 license = "MIT"
 authors = ["myyrakle <sssang97@naver.com>"] 
