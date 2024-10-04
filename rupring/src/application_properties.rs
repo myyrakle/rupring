@@ -16,7 +16,8 @@
 | environment | The environment to run in. | dev |
 | server.port | The port to listen on. | 3000 |
 | server.address | The address to listen on. | 0.0.0.0 |
-| server.shutdown | The shutdown mode. (immediate|graceful) | immediate |
+| server.shutdown | The shutdown mode. (immediate,graceful) | immediate |
+| server.timeout-per-shutdown-phase | The timeout per shutdown phase. (e.g. 30s, 1m, 1h) | 30s |
 | server.compression.enabled | Whether to enable compression. | false |
 | server.compression.mime-types | The mime types to compress. | text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml |
 | server.compression.min-response-size | The minimum response size to compress. (byte) | 2048 |
