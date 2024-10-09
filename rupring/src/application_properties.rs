@@ -127,6 +127,7 @@ impl ApplicationProperties {
 
         let mut key_values = HashMap::new();
 
+        // application.properties 파일에서 추출
         for line in text.lines() {
             let mut parts = line.split("=");
 
@@ -149,6 +150,17 @@ impl ApplicationProperties {
             key_values.insert(key, value);
         }
 
+        // 환경변수에서도 추출
+        let env = std::env::vars().collect::<HashMap<_, _>>();
+        for (key, value) in env {
+            if key_values.contains_key(&key) {
+                continue;
+            }
+
+            key_values.insert(key, value);
+        }
+
+        // 추출한 key-value를 바탕으로 기본 정의된 항목은 바인딩, 그 외는 etc에 저장
         for (key, value) in key_values {
             // TODO: 매크로 기반 파싱 구현
             match key.as_str() {
