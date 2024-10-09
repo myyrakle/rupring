@@ -125,6 +125,8 @@ impl ApplicationProperties {
         let mut environment = "dev".to_string();
         let mut etc = HashMap::new();
 
+        let mut key_values = HashMap::new();
+
         for line in text.lines() {
             let mut parts = line.split("=");
 
@@ -144,6 +146,10 @@ impl ApplicationProperties {
                 value.to_string()
             };
 
+            key_values.insert(key, value);
+        }
+
+        for (key, value) in key_values {
             // TODO: 매크로 기반 파싱 구현
             match key.as_str() {
                 "server.port" => {
