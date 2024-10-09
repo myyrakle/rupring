@@ -216,11 +216,18 @@ impl ApplicationProperties {
 mod tests {
     use super::*;
 
+    fn remove_all_env() {
+        for (key, _) in std::env::vars() {
+            std::env::remove_var(key);
+        }
+    }
+
     #[test]
     fn test_from_properties() {
         struct TestCase {
             name: String,
             input: String,
+            before: fn() -> (),
             expected: ApplicationProperties,
         }
 
@@ -241,6 +248,9 @@ mod tests {
                     etc: HashMap::new(),
                     environment: "dev".to_string(),
                 },
+                before: || {
+                    remove_all_env();
+                },
             },
             TestCase {
                 name: "추가 속성 바인딩".to_string(),
@@ -259,6 +269,9 @@ mod tests {
                     environment: "dev".to_string(),
                     etc: HashMap::from([("foo.bar".to_string(), "hello".to_string())]),
                 },
+                before: || {
+                    remove_all_env();
+                },
             },
             TestCase {
                 name: "따옴표로 감싸기".to_string(),
@@ -275,6 +288,9 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
+                },
+                before: || {
+                    remove_all_env();
                 },
             },
             TestCase {
@@ -293,6 +309,9 @@ mod tests {
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
                 },
+                before: || {
+                    remove_all_env();
+                },
             },
             TestCase {
                 name: "포트 파싱 실패".to_string(),
@@ -309,6 +328,9 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
+                },
+                before: || {
+                    remove_all_env();
                 },
             },
             TestCase {
@@ -328,10 +350,15 @@ mod tests {
                     environment: "prod".to_string(),
                     etc: HashMap::new(),
                 },
+                before: || {
+                    remove_all_env();
+                },
             },
         ];
 
         for tc in test_cases {
+            (tc.before)();
+
             let got = ApplicationProperties::from_properties(tc.input.clone());
             assert_eq!(
                 got, tc.expected,
