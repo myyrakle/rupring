@@ -274,6 +274,27 @@ mod tests {
                 },
             },
             TestCase {
+                name: "추가 속성 바인딩 - 환경변수".to_string(),
+                input: r#"
+                    server.port=8080
+                    server.address=127.0.0.1
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 8080,
+                        ..Default::default()
+                    },
+                    environment: "dev".to_string(),
+                    etc: HashMap::from([("asdf.fdsa".to_string(), "!!".to_string())]),
+                },
+                before: || {
+                    remove_all_env();
+                    std::env::set_var("asdf.fdsa", "!!");
+                },
+            },
+            TestCase {
                 name: "따옴표로 감싸기".to_string(),
                 input: r#"
                     server.port=8080
