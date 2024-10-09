@@ -125,6 +125,9 @@ impl ApplicationProperties {
         let mut environment = "dev".to_string();
         let mut etc = HashMap::new();
 
+        let mut key_values = HashMap::new();
+
+        // application.properties 파일에서 추출
         for line in text.lines() {
             let mut parts = line.split("=");
 
@@ -144,6 +147,21 @@ impl ApplicationProperties {
                 value.to_string()
             };
 
+            key_values.insert(key, value);
+        }
+
+        // 환경변수에서도 추출
+        let env = std::env::vars().collect::<HashMap<_, _>>();
+        for (key, value) in env {
+            if key_values.contains_key(&key) {
+                continue;
+            }
+
+            key_values.insert(key, value);
+        }
+
+        // 추출한 key-value를 바탕으로 기본 정의된 항목은 바인딩, 그 외는 etc에 저장
+        for (key, value) in key_values {
             // TODO: 매크로 기반 파싱 구현
             match key.as_str() {
                 "server.port" => {
@@ -198,11 +216,18 @@ impl ApplicationProperties {
 mod tests {
     use super::*;
 
+    fn remove_all_env() {
+        for (key, _) in std::env::vars() {
+            std::env::remove_var(key);
+        }
+    }
+
     #[test]
     fn test_from_properties() {
         struct TestCase {
             name: String,
             input: String,
+            before: fn() -> (),
             expected: ApplicationProperties,
         }
 
@@ -223,6 +248,9 @@ mod tests {
                     etc: HashMap::new(),
                     environment: "dev".to_string(),
                 },
+                before: || {
+                    remove_all_env();
+                },
             },
             TestCase {
                 name: "추가 속성 바인딩".to_string(),
@@ -241,6 +269,30 @@ mod tests {
                     environment: "dev".to_string(),
                     etc: HashMap::from([("foo.bar".to_string(), "hello".to_string())]),
                 },
+                before: || {
+                    remove_all_env();
+                },
+            },
+            TestCase {
+                name: "추가 속성 바인딩 - 환경변수".to_string(),
+                input: r#"
+                    server.port=8080
+                    server.address=127.0.0.1
+                    "#
+                .to_string(),
+                expected: ApplicationProperties {
+                    server: Server {
+                        address: "127.0.0.1".to_string(),
+                        port: 8080,
+                        ..Default::default()
+                    },
+                    environment: "dev".to_string(),
+                    etc: HashMap::from([("asdf.fdsa".to_string(), "!!".to_string())]),
+                },
+                before: || {
+                    remove_all_env();
+                    std::env::set_var("asdf.fdsa", "!!");
+                },
             },
             TestCase {
                 name: "따옴표로 감싸기".to_string(),
@@ -257,6 +309,9 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
+                },
+                before: || {
+                    remove_all_env();
                 },
             },
             TestCase {
@@ -275,6 +330,9 @@ mod tests {
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
                 },
+                before: || {
+                    remove_all_env();
+                },
             },
             TestCase {
                 name: "포트 파싱 실패".to_string(),
@@ -291,6 +349,9 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
+                },
+                before: || {
+                    remove_all_env();
                 },
             },
             TestCase {
@@ -310,10 +371,15 @@ mod tests {
                     environment: "prod".to_string(),
                     etc: HashMap::new(),
                 },
+                before: || {
+                    remove_all_env();
+                },
             },
         ];
 
         for tc in test_cases {
+            (tc.before)();
+
             let got = ApplicationProperties::from_properties(tc.input.clone());
             assert_eq!(
                 got, tc.expected,
