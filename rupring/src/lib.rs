@@ -794,6 +794,7 @@ use swagger::json::SwaggerOperation;
 use swagger::macros::SwaggerRequestBody;
 use swagger::SwaggerSecurity;
 
+/// Application Properties
 pub mod application_properties;
 
 /// Module interface
@@ -870,6 +871,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     }
 }
 
+/// RupringDoc derive macro
 pub use rupring_macro::RupringDoc;
 
 #[cfg(test)]
