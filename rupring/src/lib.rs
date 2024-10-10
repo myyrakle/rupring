@@ -178,7 +178,7 @@ impl rupring::IProvider for HomeService {
 
 pub(crate) mod core;
 pub use core::boot::run;
-pub(crate) mod di;
+pub mod di;
 
 /// header constants
 pub mod header;
