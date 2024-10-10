@@ -31,10 +31,43 @@ fn main() {
 
 # Request
 - rupring defines HTTP Request through [crate::request::Request] type and provides convenient request processing using macros.
+```rust
+#[rupring::Get(path = /:id)]
+pub fn hello(request: rupring::Request) -> rupring::Response {
+    let method = request.method;
+    assert_eq!(method, rupring::Method::GET);
+
+    let path = request.path;
+    assert_eq!(path, "/");
+
+    let body = request.body;
+    assert_eq!(body, "");
+
+    let headers = request.headers;
+    let content_type = headers.get("content-type").unwrap();
+    assert_eq!(content_type, "text/plain");
+
+    let id = request.path_parameters["id"].clone();
+    assert_eq!(id, "123");
+
+    let query = request.query_parameters["query"].clone();
+    assert_eq!(query, vec!["asdf".to_string()]);
+
+    //...
+
+    response
+}
+```
 - Please refer to the corresponding [document](crate::request) for more details.
 
 # Response
 - rupring defines HTTP Response through [crate::response::Response] type and provides convenient response processing using macros.
+```rust
+#[rupring::Get(path = /)]
+pub fn hello(_request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().text("Hello, World!".to_string())
+}
+```
 - Please refer to the corresponding [document](crate::response) for more details.
 
 # Middleware
