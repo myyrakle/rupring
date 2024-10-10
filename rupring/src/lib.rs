@@ -34,67 +34,8 @@ fn main() {
 - Please refer to the corresponding [document](crate::request) for more details.
 
 # Response
-
-You can create a response like this:
-```rust
-#[rupring::Get(path = /)]
-pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().text("Hello, World!".to_string())
-}
-```
-
-You can also return a json value like this:
-```rust
-#[derive(serde::Serialize)]
-struct User {
-    name: String,
-}
-
-#[rupring::Get(path = /user)]
-pub fn get_user(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().json(User {
-        name: "John".to_string(),
-    })
-}
-```
-
-You can set the status code like this:
-```rust
-#[rupring::Get(path = /asdf)]
-pub fn not_found(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().text("not found".to_string()).status(404)
-}
-```
-
-You can set the header like this:
-```rust
-#[rupring::Get(path = /)]
-pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new()
-        .text("Hello, World!".to_string())
-        .header("content-type", "text/plain".to_string())
-}
-```
-
-If you want, you can receive it as a parameter instead of creating the response directly.
-```rust
-#[rupring::Get(path = /)]
-pub fn hello(_request: rupring::Request, response: rupring::Response) -> rupring::Response {
-    response
-        .text("Hello, World!".to_string())
-        .header("content-type", "text/plain".to_string())
-}
-```
-This is especially useful when you need to inherit and use Response through middleware.
-
-If you want to redirect, you can use Response’s redirect method.
-```rust
-#[rupring::Get(path = /)]
-pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().redirect("/hello")
-}
-```
-This method automatically sets status to 302 unless you set it to 300-308.
+- rupring defines HTTP Response through [crate::response::Response] type and provides convenient response processing using macros.
+- Please refer to the corresponding [document](crate::response) for more details.
 
 # Middleware
 rupring provides middleware features for common logic processing.
