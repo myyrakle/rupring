@@ -7,6 +7,10 @@
 - If it does not exist, application.properties is searched based on the directory of the current executable file.
 - If it is still not there, load it with default values ​​and start.
 
+## Environment Variables
+- Environment variables in the execution context are also loaded into application.properties.
+- If application.properties and the environment variable have the same key, the environment variable is ignored.
+
 ## Format
 - Similar to spring, it has a Key=Value format separated by newlines.
 
