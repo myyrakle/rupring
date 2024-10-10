@@ -594,6 +594,22 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
     return Patch(attr, item);
 }
 
+/**
+## What is RupringDoc?
+- This is a macro used to automatically generate Swagger documents.
+- It also provides functions such as Request Validation.
+
+## Attribute
+1. example: Example of the field value.
+2. description: Description of the field.
+3. required: Whether the field is required.
+4. name: Name of the field.
+5. path_param: Path parameter.
+6. param: Parameter.
+7. query: Query parameter.
+8. body: Body parameter.
+9. ignore: Ignore the field.
+ */
 #[proc_macro_derive(
     RupringDoc,
     attributes(

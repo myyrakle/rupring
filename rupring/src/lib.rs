@@ -30,8 +30,7 @@ fn main() {
 ```
 
 # Request
-You can access any value provided in an HTTP Request through the Request parameter.
-
+- rupring defines HTTP Request through [crate::request::Request] type and provides convenient request processing using macros.
 ```rust
 #[rupring::Get(path = /:id)]
 pub fn hello(request: rupring::Request) -> rupring::Response {
@@ -59,125 +58,17 @@ pub fn hello(request: rupring::Request) -> rupring::Response {
     response
 }
 ```
-
-## Request: Path Param
-
-For path parameters, auto binding is provided through annotation.
-
-The annotation name can be one of `Path`, `path`, or `PathVariable`.
-```rust
-#[rupring::Get(path = /echo/:id)]
-pub fn echo(
-    #[PathVariable="id"] id: i32
-) -> rupring::Response {
-    println!("id: {}", id);
-
-    rupring::Response::new().text(request.body)
-}
-```
-
-If the Path Param is optional, just wrap the type in `Option`.
-```rust
-#[rupring::Get(path = /echo/:id)]
-pub fn echo(
-    #[PathVariable="id"] id: Option<i32>
-) -> rupring::Response {
-    // ...
-
-    rupring::Response::new().text("OK".to_string())
-}
-```
-
-If you need Swagger documentation for the Path Param, you should add the `Description` annotation.
-`Description` can also be used as `Desc`, `desc`, etc.
-```rust
-#[rupring::Get(path = /echo/:id)]
-pub fn echo(
-    #[path="id"] #[desc="asdf"] id: i32
-) -> rupring::Response {
-    println!("id: {}", id);
-
-    rupring::Response::new().text(request.body)
-}
-```
-
-If you want to define a custom type for PathParam, you can implement the ParamStringDeserializer trait.
-```rust
-struct SomeCustomType {}
-
-impl rupring::ParamStringDeserializer<SomeCustomType> for rupring::ParamString {
-    type Error = ();
-
-    fn deserialize(&self) -> Result<SomeCustomType, Self::Error> {
-        //...
-        Ok(SomeCustomType {})
-    }
-}
-```
-
+- Please refer to the corresponding [document](crate::request) for more details.
 
 # Response
-
-You can create a response like this:
+- rupring defines HTTP Response through [crate::response::Response] type and provides convenient response processing using macros.
 ```rust
 #[rupring::Get(path = /)]
 pub fn hello(_request: rupring::Request) -> rupring::Response {
     rupring::Response::new().text("Hello, World!".to_string())
 }
 ```
-
-You can also return a json value like this:
-```rust
-#[derive(serde::Serialize)]
-struct User {
-    name: String,
-}
-
-#[rupring::Get(path = /user)]
-pub fn get_user(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().json(User {
-        name: "John".to_string(),
-    })
-}
-```
-
-You can set the status code like this:
-```rust
-#[rupring::Get(path = /asdf)]
-pub fn not_found(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().text("not found".to_string()).status(404)
-}
-```
-
-You can set the header like this:
-```rust
-#[rupring::Get(path = /)]
-pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new()
-        .text("Hello, World!".to_string())
-        .header("content-type", "text/plain".to_string())
-}
-```
-
-If you want, you can receive it as a parameter instead of creating the response directly.
-```rust
-#[rupring::Get(path = /)]
-pub fn hello(_request: rupring::Request, response: rupring::Response) -> rupring::Response {
-    response
-        .text("Hello, World!".to_string())
-        .header("content-type", "text/plain".to_string())
-}
-```
-This is especially useful when you need to inherit and use Response through middleware.
-
-If you want to redirect, you can use Response’s redirect method.
-```rust
-#[rupring::Get(path = /)]
-pub fn hello(_request: rupring::Request) -> rupring::Response {
-    rupring::Response::new().redirect("/hello")
-}
-```
-This method automatically sets status to 302 unless you set it to 300-308.
+- Please refer to the corresponding [document](crate::response) for more details.
 
 # Middleware
 rupring provides middleware features for common logic processing.
@@ -257,11 +148,7 @@ The priorities in which middleware is applied are as follows:
 
 
 # Dependency Injection
-
-rupring provides DI feature.
-
-If you want to implement and DI a Provider that contains simple functionality, you can do it like this:
-First, define the Provider.
+- Rupring provides powerful DI features through macro and runtime support.
 ```rust
 #[derive(Debug, Clone, Default)]
 pub struct HomeService {}
@@ -278,324 +165,11 @@ impl rupring::IProvider for HomeService {
     }
 }
 ```
-
-Second, add it as a dependency to the module you want to use.
-```rust
-use std::any::Any;
-
-#[derive(Debug, Clone, Default)]
-pub struct HomeService {}
-
-impl rupring::IProvider for HomeService {
-    fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn Any> {
-        Box::new(HomeService {})
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-#[rupring::Controller(prefix=/, routes=[])]
-pub struct HomeController {}
-
-#[derive(Debug, Clone, Copy)]
-#[rupring::Module(controllers=[HomeController{}], modules=[], providers=[HomeService::default()])]
-pub struct RootModule {}
-```
-
-And, you can use it by getting it from the router through the request object.
-```rust
-pub struct HomeService {}
-
-impl HomeService {
-    pub fn hello(&self) -> String {
-        "hello!!".to_string()
-    }
-}
-
-#[rupring::Get(path = /)]
-pub fn hello(request: rupring::Request) -> rupring::Response {
-    let home_service = request.get_provider::<HomeService>().unwrap();
-
-    rupring::Response::new().text(home_service.hello())
-}
-```
-
-If a provider requires another provider, you must specify the dependency cycle as follows:
-```rust
-use std::any::TypeId;
-
-#[derive(Debug, Clone, Default)]
-pub struct HomeRepository {}
-
-pub struct HomeService {
-    home_repository: HomeRepository,
-}
-
-impl HomeService {
-    pub fn hello(&self) -> String {
-        "hello!!".to_string()
-    }
-}
-
-impl rupring::IProvider for HomeService {
-    fn dependencies(&self) -> Vec<TypeId> {
-        vec![TypeId::of::<HomeRepository>()]
-    }
-
-    fn provide(&self, di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
-        Box::new(HomeService {
-            home_repository: di_context.get::<HomeRepository>().map(|e|e.to_owned()).unwrap(),
-        })
-    }
-}
-```
-
-If you need mutables within the provider, you must ensure thread safety through Mutex or Atomic as follows:
-```rust
-use std::sync::{Arc, Mutex};
-
-#[derive(Debug, Clone, Default)]
-pub struct CounterService {
-    counter: Arc<Mutex<i32>>,
-}
-
-impl CounterService {
-    pub fn new() -> Self {
-        CounterService {
-            counter: Arc::new(Mutex::new(0)),
-        }
-    }
-
-    pub fn increment(&self) {
-        let mut counter = self.counter.lock().unwrap();
-        *counter += 1;
-    }
-
-    pub fn get(&self) -> i32 {
-        let counter = self.counter.lock().unwrap();
-        *counter
-    }
-}
-```
-
-If you need to abstract based on a trait, you need to box it twice as follows:
-
-```rust
-use std::any::TypeId;
-
-pub trait IUserService {
-    fn get_user(&self) -> String;
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct UserService {}
-
-impl IUserService for UserService {
-    fn get_user(&self) -> String {
-        "user".to_string()
-    }
-}
-
-impl rupring::IProvider for UserService {
-    fn dependencies(&self) -> Vec<TypeId> {
-        vec![]
-    }
-
-    fn provide(&self, _di_context: &rupring::DIContext) -> Box<dyn std::any::Any> {
-        let service: Box<dyn IUserService> = Box::new(UserService::default());
-        return Box::new(service);
-    }
-}
-
-// ...
-
-#[rupring::Get(path = /user)]
-pub fn get_user(request: rupring::Request) -> rupring::Response {
-    let user_service = request.get_provider::<Box<dyn IUserService>>().unwrap();
-
-    rupring::Response::new().text(user_service.get_user())
-}
-```
-
-Additionally, shortcuts are provided for defining DI components.
-For example, the code below automatically creates an IProvider object "inject_counter_service" that can be passed to modules.
-```rust
-#[derive(Debug, Clone, Default)]
-pub struct SomethingRepository {}
-
-#[derive(Debug, Clone, Default)]
-pub struct CounterService {
-    something: SomethingRepository,
-}
-
-impl CounterService {
-    pub fn new(something: SomethingRepository) -> Self {
-        CounterService { something }
-    }
-}
-
-#[rupring::Injectable]
-fn inject_counter_service(something: SomethingRepository) -> CounterService {
-    CounterService::new(something)
-}
-
-#[derive(Debug, Clone, Copy)]
-#[rupring::Module(
-    controllers=[/*...*/],
-    modules=[/*...*/],
-    providers=[inject_counter_service{}],
-    middlewares=[]
-)]
-pub struct RootModule {}
-```
-It automatically receives DI based on parameters.
-
-The injectable annotation can also be explicitly named.
-```rust
-#[derive(Debug, Clone, Default)]
-pub struct SomethingRepository {}
-
-#[derive(Debug, Clone, Default)]
-pub struct CounterService {
-    something: SomethingRepository,
-}
-
-impl CounterService {
-    pub fn new(something: SomethingRepository) -> Self {
-        CounterService { something }
-    }
-}
-
-#[rupring::Injectable(CounterServiceFactory)] // or #[rupring::Injectable(name=CounterServiceFactory)]
-fn inject_counter_service(something: SomethingRepository) -> CounterService {
-    CounterService::new(something)
-}
-
-#[derive(Debug, Clone, Copy)]
-#[rupring::Module(
-    controllers=[/*...*/],
-    modules=[/*...*/],
-    providers=[CounterServiceFactory{}],
-    middlewares=[]
-)]
-pub struct RootModule {}
-```
+- Please refer to the corresponding [document](crate::di) for more details.
 
 # Swagger
-When rupring starts the server, it automatically serves swagger documents to the `/docs` path.
-
-Additional annotations such as `summary`, `description`, and `tags` are provided for swagger documentation.
-```rust
-#[rupring::Get(path = /echo/:id)]
-#[summary = "echo API"]
-#[description = "It's echo API"]
-#[tags = ["echo"]]
-pub fn echo(
-    #[path="id"] #[description="just integer id"] id: Option<i32>
-) -> rupring::Response {
-    //...
-
-    rupring::Response::new().text("OK".to_string())
-}
-```
-
-Using the RupringDoc derive macro, you can perform document definition for Request Parameter.
-```rust
-use rupring::RupringDoc;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, RupringDoc)]
-pub struct CreateUserRequest {
-    #[desc = "user name"]
-    #[example = "foobar"]
-    pub username: String,
-
-    pub email: String,
-
-    #[desc = "user password"]
-    #[example = "q1w2e3r4"]
-    pub password: String,
-}
-```
-### RupringDoc attribute Details
-1. `#[desc = ""]` or `#[description = ""]`: Description of the field.
-2. `#[example = ""]`: Example value of the field.
-3. `#[name = "id"]`: If the field name is different from the variable name, you can add this annotation.
-4. `#[required]`: If the field is required, you can add this annotation.
-5. `#[path_param = "id"]` or `#[param = "id"]`: If the field is a path parameter, you can add this annotation.
-6. `#[query = "query"]`: If the field is a query parameter, you can add this annotation.
-7. `#[ignore]`: If you want to ignore the field, you can add this annotation.
-
-Then, you can specify request information in the API through the params attribute as follows.
-```rust
-use rupring::RupringDoc;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, RupringDoc)]
-pub struct CreateUserRequest {
-    #[desc = "user name"]
-    #[example = "foobar"]
-    pub username: String,
-
-    pub email: String,
-
-    #[desc = "user password"]
-    #[example = "q1w2e3r4"]
-    pub password: String,
-}
-
-#[rupring::Post(path = /users)]
-#[tags = [user]]
-#[summary = "user create"]
-#[params = CreateUserRequest]
-pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    // ...
-
-    rupring::Response::new().text("OK".to_string())
-}
-```
-
-Response documentation can also be defined through the RupringDoc macro and response attribute.
-```rust
-use rupring::RupringDoc;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, RupringDoc)]
-pub struct GetUserResponse {
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-}
-
-#[rupring::Get(path = /users/:id)]
-#[tags = [user]]
-#[summary = "find user"]
-#[response = GetUserResponse]
-pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    return rupring::Response::new().text("OK".to_string());
-}
-```
-
-If you want to activate BearerAuth for the API, activate the auth attribute as follows. (The default is BearerAuth.
-```rust
-use rupring::RupringDoc;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, RupringDoc)]
-pub struct GetUserResponse {
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-}
-
-#[rupring::Get(path = /users/:id)]
-#[tags = [user]]
-#[summary = "find user"]
-#[response = GetUserResponse]
-#[auth = BearerAuth]
-pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    return rupring::Response::new().text("OK".to_string());
-}
-```
+- When rupring starts the server, it automatically serves swagger documents to the `/docs` path.
+- Please refer to the corresponding [document](crate::swagger) for more details.
 
 # Application Properties
 - rupring provides various execution options through a special configuration file called application.properties.
@@ -604,7 +178,7 @@ pub fn get_user(request: rupring::Request, _: rupring::Response) -> rupring::Res
 
 pub(crate) mod core;
 pub use core::boot::run;
-pub(crate) mod di;
+pub mod di;
 
 /// header constants
 pub mod header;
@@ -794,6 +368,7 @@ use swagger::json::SwaggerOperation;
 use swagger::macros::SwaggerRequestBody;
 use swagger::SwaggerSecurity;
 
+/// Application Properties
 pub mod application_properties;
 
 /// Module interface
@@ -870,6 +445,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     }
 }
 
+/// RupringDoc derive macro
 pub use rupring_macro::RupringDoc;
 
 #[cfg(test)]
