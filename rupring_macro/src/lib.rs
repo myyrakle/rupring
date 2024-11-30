@@ -595,7 +595,7 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 /**
-## What is RupringDoc?
+## What is RupringDto?
 - This is a macro used to automatically generate Swagger documents.
 - It also provides functions such as Request Validation.
 
@@ -611,7 +611,7 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
 9. ignore: Ignore the field.
  */
 #[proc_macro_derive(
-    RupringDoc,
+    RupringDto,
     attributes(
         example,
         description,
@@ -625,7 +625,7 @@ pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
         ignore,
     )
 )]
-pub fn derive_rupring_doc(item: TokenStream) -> TokenStream {
+pub fn derive_rupring_dto(item: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(item as syn::ItemStruct);
     let struct_name = parse::find_struct_name(&ast);
 

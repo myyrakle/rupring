@@ -445,8 +445,8 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     }
 }
 
-/// RupringDoc derive macro
-pub use rupring_macro::RupringDoc;
+/// RupringDto derive macro
+pub use rupring_macro::RupringDto;
 
 #[cfg(test)]
 mod test_proc_macro;
