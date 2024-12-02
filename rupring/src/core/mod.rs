@@ -216,6 +216,18 @@ fn make_address(
     Ok(socket_addr)
 }
 
+fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
+    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
+        .body(Full::new(Bytes::from("Not Found")))
+        .unwrap();
+
+    if let Ok(status) = StatusCode::from_u16(404) {
+        *response.status_mut() = status;
+    }
+
+    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+}
+
 async fn process_request(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
@@ -237,10 +249,9 @@ async fn process_request(
 
     let found_route = match found_route {
         Some(route) => route,
+        // TODO: 404 Handler Customization
         None => {
-            return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
-                "Not Found".to_string(),
-            ))));
+            return default_404_handler();
         }
     };
 
@@ -248,7 +259,7 @@ async fn process_request(
 
     let handler = route.handler();
 
-    let raw_querystring = uri.query().unwrap_or("");
+    let raw_querystring = uri.query().unwrap_or_default();
     let query_parameters = parse::parse_query_parameter(raw_querystring);
 
     let mut headers = HashMap::new();
