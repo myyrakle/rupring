@@ -234,6 +234,7 @@ async fn process_request(
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
     req: Request<hyper::body::Incoming>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
+    // 1. Prepare URI matching
     let di_context = Arc::clone(&di_context);
 
     let uri = req.uri();
@@ -245,6 +246,7 @@ async fn process_request(
         format!("[Request] {} {}", request_method, request_path).as_str(),
     );
 
+    // 2. Find the one that matches the current request among the routes included in the hierarchical module structure.
     let found_route = route::find_route(Box::new(root_module), request_path, request_method);
 
     let found_route = match found_route {
@@ -255,13 +257,18 @@ async fn process_request(
         }
     };
 
+    // 3. Get the handler function for the matched route value,
+    // prepare the request context, and pass it to the handler function.
     let (route, route_path, middlewares) = found_route;
 
     let handler = route.handler();
 
     let raw_querystring = uri.query().unwrap_or_default();
+
+    // 3.1. Parse Query Parameters
     let query_parameters = parse::parse_query_parameter(raw_querystring);
 
+    // 3.2. Parse Headers
     let mut headers = HashMap::new();
     for (header_name, header_value) in req.headers() {
         let header_name = header_name.to_string();
@@ -269,9 +276,9 @@ async fn process_request(
 
         headers.insert(header_name, header_value);
     }
-
     preprocess_headers(&mut headers);
 
+    // 3.3. Parse Path Parameters
     let path_parameters = parse::parse_path_parameter(route_path, request_path);
 
     let request_method = request_method.to_owned();
@@ -291,6 +298,7 @@ async fn process_request(
         }
     };
 
+    // 3.4. Call the handler function
     let response = std::panic::catch_unwind(move || {
         let mut request = crate::Request {
             method: request_method,
@@ -304,6 +312,7 @@ async fn process_request(
 
         let mut response = crate::Response::new();
 
+        // 3.5. middleware chain processing
         for middleware in middlewares {
             let middleware_result =
                 middleware(request, response.clone(), move |request, response| {
@@ -331,6 +340,7 @@ async fn process_request(
         handler.handle(request, response)
     });
 
+    // 4. Unhandled Error Handling
     let response = match response {
         Ok(response) => response,
         Err(_err) => crate::Response::new()
@@ -338,12 +348,14 @@ async fn process_request(
             .text("Internal Server Error".to_string()),
     };
 
+    // 5. Post-Processing Response
+    // ex) Compression, etc.
     let response = post_process_response(application_properties, response);
 
     let status = response.status.clone();
     let headers = response.headers.clone();
 
-    // ---- 최종 응답 처리 ----
+    // 6. Convert to hyper::Response, and return
     let mut response: hyper::Response<Full<Bytes>> = Response::builder()
         .body(Full::new(Bytes::from(response.body)))
         .unwrap();
