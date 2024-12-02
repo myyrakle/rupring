@@ -1,6 +1,6 @@
 use hyper::Method;
 
-pub(crate) fn is_route_matching_request(route_path: String, request_path: String) -> bool {
+pub(crate) fn is_route_matching_request(route_path: String, request_path: &str) -> bool {
     // remove query parameters
     let request_path = request_path.split("?").collect::<Vec<&str>>()[0];
 
@@ -53,8 +53,8 @@ pub(crate) fn normalize_path(prefix: String, path: String) -> String {
 // return (route, route_path, middlewares)
 pub(crate) fn find_route(
     root_module: Box<dyn crate::IModule>,
-    request_path: String,
-    request_method: Method,
+    request_path: &str,
+    request_method: &Method,
 ) -> Option<(
     Box<dyn crate::IRoute + Send + 'static>,
     String,
@@ -70,7 +70,7 @@ pub(crate) fn find_route(
 
             let route_path = normalize_path(prefix.clone(), route.path());
 
-            if !is_route_matching_request(route_path.clone(), request_path.clone()) {
+            if !is_route_matching_request(route_path.clone(), request_path) {
                 continue;
             }
 
@@ -84,7 +84,7 @@ pub(crate) fn find_route(
     }
 
     for child_module in root_module.child_modules() {
-        let result = find_route(child_module, request_path.clone(), request_method.clone());
+        let result = find_route(child_module, request_path, request_method);
 
         match result {
             Some((route, route_path, middlewares)) => {
@@ -157,7 +157,7 @@ mod tests {
         for test_case in test_cases.iter() {
             let result = is_route_matching_request(
                 test_case.route_path.clone(),
-                test_case.request_path.clone(),
+                test_case.request_path.as_str(),
             );
 
             assert_eq!(
@@ -316,8 +316,8 @@ mod tests {
         for test_case in test_cases.iter() {
             let result = find_route(
                 Box::new(RootModule {}),
-                test_case.argument.request_path.clone(),
-                test_case.argument.request_method.clone(),
+                test_case.argument.request_path.as_str(),
+                &test_case.argument.request_method,
             )
             .map(|(_, route_path, _)| route_path);
 

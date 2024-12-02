@@ -138,7 +138,8 @@ pub async fn run_server(
         );
     }
 
-    // We start a loop to continuously accept incoming connections
+    // 5. Main Server Loop
+    // Spawns a new async Task for each request.
     loop {
         let (mut stream, _) = listener.accept().await?;
 
@@ -158,15 +159,15 @@ pub async fn run_server(
         // `hyper::rt` IO traits.
         let io = TokioIo::new(stream);
 
+        // copy for each request
         let di_context = Arc::clone(&di_context);
-
         let application_properties = Arc::clone(&application_properties);
-
         let root_module = root_module.clone();
 
+        // for Graceful Shutdown
         let running_task_count = Arc::clone(&running_task_count);
 
-        // create tokio task per HTTP request
+        // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
             if is_graceful_shutdown {
                 running_task_count.fetch_add(1, std::sync::atomic::Ordering::Release);
@@ -224,19 +225,15 @@ async fn process_request(
     let di_context = Arc::clone(&di_context);
 
     let uri = req.uri();
-    let request_path = uri.path().to_string();
-    let request_method = req.method().to_owned();
+    let request_path = uri.path();
+    let request_method = req.method();
 
     print_system_log(
         Level::Info,
         format!("[Request] {} {}", request_method, request_path).as_str(),
     );
 
-    let found_route = route::find_route(
-        Box::new(root_module),
-        request_path.clone(),
-        request_method.clone(),
-    );
+    let found_route = route::find_route(Box::new(root_module), request_path, request_method);
 
     let found_route = match found_route {
         Some(route) => route,
@@ -264,7 +261,10 @@ async fn process_request(
 
     preprocess_headers(&mut headers);
 
-    let path_parameters = parse::parse_path_parameter(route_path, request_path.clone());
+    let path_parameters = parse::parse_path_parameter(route_path, request_path);
+
+    let request_method = request_method.to_owned();
+    let request_path = request_path.to_owned();
 
     let request_body = match req.collect().await {
         Ok(body) => {
