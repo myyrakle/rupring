@@ -49,11 +49,38 @@ impl Default for ApplicationProperties {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum CompressionAlgorithm {
+    Gzip,
+    Deflate,
+    Unknown(String),
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct Compression {
     pub enabled: bool,
     pub mime_types: Vec<String>,
     pub min_response_size: usize,
-    pub algorithm: String,
+    pub algorithm: CompressionAlgorithm,
+}
+
+impl ToString for CompressionAlgorithm {
+    fn to_string(&self) -> String {
+        match self {
+            CompressionAlgorithm::Gzip => "gzip".to_string(),
+            CompressionAlgorithm::Deflate => "deflate".to_string(),
+            CompressionAlgorithm::Unknown(s) => s.to_string(),
+        }
+    }
+}
+
+impl From<String> for CompressionAlgorithm {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "gzip" => CompressionAlgorithm::Gzip,
+            "deflate" => CompressionAlgorithm::Deflate,
+            _ => CompressionAlgorithm::Unknown(s),
+        }
+    }
 }
 
 impl Default for Compression {
@@ -74,7 +101,7 @@ impl Default for Compression {
             .map(|s| s.to_string())
             .collect(),
             min_response_size: 2048, // 2KB
-            algorithm: "gzip".to_string(),
+            algorithm: CompressionAlgorithm::Gzip,
         }
     }
 }
@@ -197,7 +224,7 @@ impl ApplicationProperties {
                     }
                 }
                 "server.compression.algorithm" => {
-                    server.compression.algorithm = value.to_string();
+                    server.compression.algorithm = value.into();
                 }
                 "environment" => {
                     environment = value.to_string();

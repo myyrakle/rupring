@@ -4,6 +4,7 @@ mod graceful;
 mod parse;
 
 use crate::application_properties;
+use crate::application_properties::CompressionAlgorithm;
 use crate::di;
 use crate::header;
 pub(crate) mod route;
@@ -368,8 +369,8 @@ fn post_process_response(
         return response;
     }
 
-    match application_properties.server.compression.algorithm.as_str() {
-        "gzip" => {
+    match application_properties.server.compression.algorithm {
+        CompressionAlgorithm::Gzip => {
             // compression
             let compressed_bytes = compress_with_gzip(&response.body);
 
@@ -393,7 +394,7 @@ fn post_process_response(
                     .to_string(),
             );
         }
-        "deflate" => {
+        CompressionAlgorithm::Deflate => {
             // compression
             let compressed_bytes = compress_with_deflate(&response.body);
 
