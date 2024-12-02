@@ -32,18 +32,86 @@ use crate::logger::print_system_log;
 use crate::swagger::context::SwaggerContext;
 use crate::IModule;
 
+pub fn handle_graceful_shutdown(
+    application_properties: &application_properties::ApplicationProperties,
+    service_avaliable: Arc<AtomicBool>,
+    running_task_count: Arc<AtomicU64>,
+) {
+    let signal_flags = graceful::SignalFlags::new();
+    let shutdown_timeout_duration = application_properties.server.shutdown_timeout_duration();
+
+    if let Err(error) = signal_flags.register_hooks() {
+        print_system_log(
+            Level::Error,
+            format!("Error registering signal hooks: {:?}", error).as_str(),
+        );
+    } else {
+        print_system_log(Level::Info, "Graceful shutdown enabled");
+
+        let service_avaliable = Arc::clone(&service_avaliable);
+        let running_task_count = Arc::clone(&running_task_count);
+        tokio::spawn(async move {
+            let sigterm = Arc::clone(&signal_flags.sigterm);
+            let sigint = Arc::clone(&signal_flags.sigint);
+
+            loop {
+                if sigterm.load(std::sync::atomic::Ordering::Relaxed) {
+                    print_system_log(
+                        Level::Info,
+                        "SIGTERM received. Try to shutdown gracefully...",
+                    );
+                    service_avaliable.store(false, std::sync::atomic::Ordering::Release);
+                    break;
+                }
+
+                if sigint.load(std::sync::atomic::Ordering::Relaxed) {
+                    print_system_log(
+                        Level::Info,
+                        "SIGINT received. Try to shutdown gracefully...",
+                    );
+                    service_avaliable.store(false, std::sync::atomic::Ordering::Release);
+                    break;
+                }
+
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            }
+
+            let shutdown_request_time = std::time::Instant::now();
+
+            loop {
+                if running_task_count.load(std::sync::atomic::Ordering::Relaxed) == 0 {
+                    print_system_log(Level::Info, "All tasks are done. Shutting down...");
+                    std::process::exit(0);
+                }
+
+                // timeout 지나면 강제로 종료
+                let now = std::time::Instant::now();
+                if now.duration_since(shutdown_request_time) >= shutdown_timeout_duration {
+                    print_system_log(Level::Info, "Shutdown timeout reached. Forcing shutdown...");
+                    std::process::exit(0);
+                }
+
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            }
+        });
+    }
+}
+
 pub async fn run_server(
     application_properties: application_properties::ApplicationProperties,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // 1. DI Context Initialize
     let mut di_context = di::DIContext::new();
     di_context.initialize(Box::new(root_module.clone()));
     let di_context = Arc::new(di_context);
 
+    // 2. Prepare Swagger Serving, if enabled
     if let Some(swagger_context) = di_context.get::<SwaggerContext>() {
         swagger_context.initialize_from_module(root_module.clone());
     }
 
+    // 3. ready, set, go!
     banner::print_banner();
 
     let socket_address = make_address(&application_properties)?;
@@ -53,78 +121,21 @@ pub async fn run_server(
         format!("Starting Application on {}", socket_address).as_str(),
     );
 
-    // We create a TcpListener and bind it to 127.0.0.1:3000
     let listener = TcpListener::bind(socket_address).await?;
 
     let application_properties = Arc::new(application_properties);
 
-    // for graceful shutdown
-    let signal_flags = graceful::SignalFlags::new();
+    // 4. for graceful shutdown
     let service_avaliable = Arc::new(AtomicBool::new(true));
-
     let is_graceful_shutdown = application_properties.server.is_graceful_shutdown();
-    let shutdown_timeout_duration = application_properties.server.shutdown_timeout_duration();
     let running_task_count = Arc::new(AtomicU64::new(0));
 
     if is_graceful_shutdown {
-        if let Err(error) = signal_flags.register_hooks() {
-            print_system_log(
-                Level::Error,
-                format!("Error registering signal hooks: {:?}", error).as_str(),
-            );
-        } else {
-            print_system_log(Level::Info, "Graceful shutdown enabled");
-
-            let service_avaliable = Arc::clone(&service_avaliable);
-            let running_task_count = Arc::clone(&running_task_count);
-            tokio::spawn(async move {
-                let sigterm = Arc::clone(&signal_flags.sigterm);
-                let sigint = Arc::clone(&signal_flags.sigint);
-
-                loop {
-                    if sigterm.load(std::sync::atomic::Ordering::Relaxed) {
-                        print_system_log(
-                            Level::Info,
-                            "SIGTERM received. Try to shutdown gracefully...",
-                        );
-                        service_avaliable.store(false, std::sync::atomic::Ordering::Release);
-                        break;
-                    }
-
-                    if sigint.load(std::sync::atomic::Ordering::Relaxed) {
-                        print_system_log(
-                            Level::Info,
-                            "SIGINT received. Try to shutdown gracefully...",
-                        );
-                        service_avaliable.store(false, std::sync::atomic::Ordering::Release);
-                        break;
-                    }
-
-                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                }
-
-                let shutdown_request_time = std::time::Instant::now();
-
-                loop {
-                    if running_task_count.load(std::sync::atomic::Ordering::Relaxed) == 0 {
-                        print_system_log(Level::Info, "All tasks are done. Shutting down...");
-                        std::process::exit(0);
-                    }
-
-                    // timeout 지나면 강제로 종료
-                    let now = std::time::Instant::now();
-                    if now.duration_since(shutdown_request_time) >= shutdown_timeout_duration {
-                        print_system_log(
-                            Level::Info,
-                            "Shutdown timeout reached. Forcing shutdown...",
-                        );
-                        std::process::exit(0);
-                    }
-
-                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                }
-            });
-        }
+        handle_graceful_shutdown(
+            &application_properties,
+            Arc::clone(&service_avaliable),
+            Arc::clone(&running_task_count),
+        );
     }
 
     // We start a loop to continuously accept incoming connections
