@@ -49,11 +49,38 @@ impl Default for ApplicationProperties {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum CompressionAlgorithm {
+    Gzip,
+    Deflate,
+    Unknown(String),
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct Compression {
     pub enabled: bool,
     pub mime_types: Vec<String>,
     pub min_response_size: usize,
-    pub algorithm: String,
+    pub algorithm: CompressionAlgorithm,
+}
+
+impl ToString for CompressionAlgorithm {
+    fn to_string(&self) -> String {
+        match self {
+            CompressionAlgorithm::Gzip => "gzip".to_string(),
+            CompressionAlgorithm::Deflate => "deflate".to_string(),
+            CompressionAlgorithm::Unknown(s) => s.to_string(),
+        }
+    }
+}
+
+impl From<String> for CompressionAlgorithm {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "gzip" => CompressionAlgorithm::Gzip,
+            "deflate" => CompressionAlgorithm::Deflate,
+            _ => CompressionAlgorithm::Unknown(s),
+        }
+    }
 }
 
 impl Default for Compression {
@@ -74,7 +101,23 @@ impl Default for Compression {
             .map(|s| s.to_string())
             .collect(),
             min_response_size: 2048, // 2KB
-            algorithm: "gzip".to_string(),
+            algorithm: CompressionAlgorithm::Gzip,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ShutdownType {
+    Immediate,
+    Graceful,
+}
+
+impl From<String> for ShutdownType {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "immediate" => ShutdownType::Immediate,
+            "graceful" => ShutdownType::Graceful,
+            _ => ShutdownType::Immediate,
         }
     }
 }
@@ -85,7 +128,7 @@ pub struct Server {
     pub address: String,
     pub port: u16,
     pub compression: Compression,
-    pub shutdown: String,
+    pub shutdown: ShutdownType,
     pub timeout_per_shutdown_phase: String,
 }
 
@@ -95,7 +138,7 @@ impl Default for Server {
             address: "0.0.0.0".to_string(),
             port: 3000,
             compression: Compression::default(),
-            shutdown: "immediate".to_string(),
+            shutdown: ShutdownType::Immediate,
             timeout_per_shutdown_phase: "30s".to_string(),
         }
     }
@@ -103,7 +146,7 @@ impl Default for Server {
 
 impl Server {
     pub fn is_graceful_shutdown(&self) -> bool {
-        self.shutdown == "graceful"
+        self.shutdown == ShutdownType::Graceful
     }
 
     pub fn shutdown_timeout_duration(&self) -> std::time::Duration {
@@ -176,9 +219,7 @@ impl ApplicationProperties {
                 "server.address" => {
                     server.address = value.to_string();
                 }
-                "server.shutdown" => {
-                    server.shutdown = value.to_string();
-                }
+                "server.shutdown" => server.shutdown = value.into(),
                 "server.timeout-per-shutdown-phase" => {
                     server.timeout_per_shutdown_phase = value.to_string();
                 }
@@ -197,7 +238,7 @@ impl ApplicationProperties {
                     }
                 }
                 "server.compression.algorithm" => {
-                    server.compression.algorithm = value.to_string();
+                    server.compression.algorithm = value.into();
                 }
                 "environment" => {
                     environment = value.to_string();

@@ -25,7 +25,7 @@ pub(crate) fn parse_query_parameter(raw_querystring: &str) -> HashMap<String, Ve
 
 pub(crate) fn parse_path_parameter(
     route_path: String,
-    request_path: String,
+    request_path: &str,
 ) -> HashMap<String, String> {
     let mut path_parameters = HashMap::<String, String>::new();
 
@@ -152,8 +152,10 @@ mod tests {
         ];
 
         for test_case in test_cases.iter() {
-            let result =
-                parse_path_parameter(test_case.route_path.clone(), test_case.request_path.clone());
+            let result = parse_path_parameter(
+                test_case.route_path.clone(),
+                test_case.request_path.as_str(),
+            );
 
             assert_eq!(
                 result, test_case.expected,
