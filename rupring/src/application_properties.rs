@@ -106,13 +106,29 @@ impl Default for Compression {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum ShutdownType {
+    Immediate,
+    Graceful,
+}
+
+impl From<String> for ShutdownType {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "immediate" => ShutdownType::Immediate,
+            "graceful" => ShutdownType::Graceful,
+            _ => ShutdownType::Immediate,
+        }
+    }
+}
+
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]
 pub struct Server {
     pub address: String,
     pub port: u16,
     pub compression: Compression,
-    pub shutdown: String,
+    pub shutdown: ShutdownType,
     pub timeout_per_shutdown_phase: String,
 }
 
@@ -122,7 +138,7 @@ impl Default for Server {
             address: "0.0.0.0".to_string(),
             port: 3000,
             compression: Compression::default(),
-            shutdown: "immediate".to_string(),
+            shutdown: ShutdownType::Immediate,
             timeout_per_shutdown_phase: "30s".to_string(),
         }
     }
@@ -130,7 +146,7 @@ impl Default for Server {
 
 impl Server {
     pub fn is_graceful_shutdown(&self) -> bool {
-        self.shutdown == "graceful"
+        self.shutdown == ShutdownType::Graceful
     }
 
     pub fn shutdown_timeout_duration(&self) -> std::time::Duration {
@@ -203,9 +219,7 @@ impl ApplicationProperties {
                 "server.address" => {
                     server.address = value.to_string();
                 }
-                "server.shutdown" => {
-                    server.shutdown = value.to_string();
-                }
+                "server.shutdown" => server.shutdown = value.into(),
                 "server.timeout-per-shutdown-phase" => {
                     server.timeout_per_shutdown_phase = value.to_string();
                 }
