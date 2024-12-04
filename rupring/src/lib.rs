@@ -438,8 +438,14 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     }
 
     /// It receives the port number and runs the server.
-    pub async fn listen(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let result = core::run_server(self.application_properties, self.root_module).await;
+    pub fn listen(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        use tokio::runtime::Builder;
+
+        let runtime = Builder::new_multi_thread().enable_all().build()?;
+
+        let result = runtime.block_on(async {
+            core::run_server(self.application_properties, self.root_module).await
+        });
 
         return result;
     }
