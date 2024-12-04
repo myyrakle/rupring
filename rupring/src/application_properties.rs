@@ -130,6 +130,7 @@ pub struct Server {
     pub compression: Compression,
     pub shutdown: ShutdownType,
     pub timeout_per_shutdown_phase: String,
+    pub thread_limit: Option<usize>,
 }
 
 impl Default for Server {
@@ -140,6 +141,7 @@ impl Default for Server {
             compression: Compression::default(),
             shutdown: ShutdownType::Immediate,
             timeout_per_shutdown_phase: "30s".to_string(),
+            thread_limit: None,
         }
     }
 }
@@ -239,6 +241,11 @@ impl ApplicationProperties {
                 }
                 "server.compression.algorithm" => {
                     server.compression.algorithm = value.into();
+                }
+                "server.thread.limit" => {
+                    if let Ok(value) = value.parse::<usize>() {
+                        server.thread_limit = Some(value);
+                    }
                 }
                 "environment" => {
                     environment = value.to_string();

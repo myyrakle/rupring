@@ -441,6 +441,10 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     pub fn listen(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         use tokio::runtime::Builder;
 
+        let mut runtime_builder = Builder::new_multi_thread();
+
+        runtime_builder.enable_all();
+
         let runtime = Builder::new_multi_thread().enable_all().build()?;
 
         let result = runtime.block_on(async {
