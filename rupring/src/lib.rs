@@ -445,6 +445,10 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
 
         runtime_builder.enable_all();
 
+        if let Some(thread_limit) = self.application_properties.server.thread_limit {
+            runtime_builder.worker_threads(thread_limit);
+        }
+
         let runtime = Builder::new_multi_thread().enable_all().build()?;
 
         let result = runtime.block_on(async {
