@@ -26,6 +26,7 @@
 | server.compression.mime-types | The mime types to compress. | text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml |
 | server.compression.min-response-size | The minimum response size to compress. (byte) | 2048 |
 | server.compression.algorithm | The compression algorithm to use. (gzip,deflate) | gzip |
+| server.thread.limit | The thread limit to use. | None(max) |
 */
 
 use std::collections::HashMap;
@@ -130,6 +131,7 @@ pub struct Server {
     pub compression: Compression,
     pub shutdown: ShutdownType,
     pub timeout_per_shutdown_phase: String,
+    pub thread_limit: Option<usize>,
 }
 
 impl Default for Server {
@@ -140,6 +142,7 @@ impl Default for Server {
             compression: Compression::default(),
             shutdown: ShutdownType::Immediate,
             timeout_per_shutdown_phase: "30s".to_string(),
+            thread_limit: None,
         }
     }
 }
@@ -239,6 +242,11 @@ impl ApplicationProperties {
                 }
                 "server.compression.algorithm" => {
                     server.compression.algorithm = value.into();
+                }
+                "server.thread.limit" => {
+                    if let Ok(value) = value.parse::<usize>() {
+                        server.thread_limit = Some(value);
+                    }
                 }
                 "environment" => {
                     environment = value.to_string();

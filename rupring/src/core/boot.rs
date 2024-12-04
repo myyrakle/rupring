@@ -13,12 +13,11 @@ fn main() {
 }
 ```
 */
-#[tokio::main]
-pub async fn run<T>(root_module: T)
+pub fn run<T>(root_module: T)
 where
     T: IModule + Clone + Copy + Sync + Send + 'static,
 {
     let app = crate::RupringFactory::create(root_module);
 
-    app.listen().await.unwrap();
+    app.listen().unwrap();
 }
