@@ -18,6 +18,7 @@ pub trait IUserService {
     fn list_users(&self, request: ListUsersRequest) -> rupring::Result<ListUsersResponse>;
 }
 
+#[mockall::automock]
 pub trait IUserRepository {
     fn create_user(&self, params: CreateUserParams) -> rupring::Result<i32>;
     fn update_user(&self, params: UpdateUserParams) -> rupring::Result<()>;

@@ -89,6 +89,97 @@ impl IUserService for UserService {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use mockall::predicate::eq;
+
+    use super::*;
+    use crate::domains::users::interface::MockIUserRepository;
+
+    #[test]
+    fn test_create_user() {
+        struct TestCase {
+            name: String,
+            request: CreateUserRequest,
+            expected: CreateUserResponse,
+            want_error: bool,
+            mock_user_repository: fn() -> Arc<dyn IUserRepository>,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                name: "create user success".to_string(),
+                request: CreateUserRequest {
+                    username: "username".to_string(),
+                    email: "email".to_string(),
+                    password: "password".to_string(),
+                },
+                expected: CreateUserResponse {},
+                want_error: false,
+                mock_user_repository: || {
+                    let mut repository = MockIUserRepository::new();
+
+                    repository
+                        .expect_create_user()
+                        .times(1)
+                        .with(eq(CreateUserParams {
+                            name: "username".to_string(),
+                            email: "email".to_string(),
+                            password: "password".to_string(),
+                        }))
+                        .returning(|_| Ok(1));
+
+                    Arc::new(repository)
+                },
+            },
+            TestCase {
+                name: "create user failed".to_string(),
+                request: CreateUserRequest {
+                    username: "username".to_string(),
+                    email: "email".to_string(),
+                    password: "password".to_string(),
+                },
+                expected: CreateUserResponse {},
+                want_error: true,
+                mock_user_repository: || {
+                    let mut repository = MockIUserRepository::new();
+
+                    repository
+                        .expect_create_user()
+                        .times(1)
+                        .with(eq(CreateUserParams {
+                            name: "username".to_string(),
+                            email: "email".to_string(),
+                            password: "password".to_string(),
+                        }))
+                        .returning(|_| Err(rupring::error!("error")));
+
+                    Arc::new(repository)
+                },
+            },
+        ];
+
+        for t in test_cases {
+            let service = UserService::new((t.mock_user_repository)());
+
+            let got = service.create_user(t.request);
+
+            assert_eq!(
+                got.is_err(),
+                t.want_error,
+                "{}: want_error: {}, error: {:?}",
+                t.name,
+                t.want_error,
+                got.err()
+            );
+
+            if let Ok(tokens) = got {
+                assert_eq!(tokens, t.expected, "{}", t.name);
+            }
+        }
+    }
+}
+
 #[rupring::Injectable]
 fn inject_user_service(repository: Arc<dyn IUserRepository>) -> Arc<dyn IUserService> {
     Arc::new(UserService::new(repository))
