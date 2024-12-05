@@ -16,6 +16,7 @@ pub struct GetUserParams {
     pub id: i32,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct CreateUserParams {
     pub name: String,
     pub email: String,

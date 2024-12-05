@@ -24,7 +24,7 @@ pub struct CreateUserRequest {
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CreateUserResponse {}
 
 #[derive(Debug, Serialize, Deserialize, RupringDto)]
