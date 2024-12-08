@@ -115,13 +115,18 @@ pub async fn run_server(
                 // `service_fn` converts our function in a `Service`
                 .serve_connection(
                     io,
-                    service_fn(|req: Request<hyper::body::Incoming>| {
+                    service_fn(|request: Request<hyper::body::Incoming>| {
                         let di_context = Arc::clone(&di_context);
                         let application_properties = Arc::clone(&application_properties);
 
                         async move {
-                            process_request(application_properties, di_context, root_module, req)
-                                .await
+                            process_request(
+                                application_properties,
+                                di_context,
+                                root_module,
+                                request,
+                            )
+                            .await
                         }
                     }),
                 )
@@ -135,6 +140,54 @@ pub async fn run_server(
             }
         });
     }
+}
+
+// #[cfg(feature = "aws_lambda")]
+pub async fn run_server_on_aws_lambda(
+    application_properties: application_properties::ApplicationProperties,
+    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // 1. DI Context Initialize
+    let mut di_context = di::DIContext::new();
+    di_context.initialize(Box::new(root_module.clone()));
+    let di_context = Arc::new(di_context);
+
+    // 2. Prepare Swagger Serving, if enabled
+    if let Some(swagger_context) = di_context.get::<SwaggerContext>() {
+        swagger_context.initialize_from_module(root_module.clone());
+    }
+
+    // 3. ready, set, go!
+    banner::print_banner();
+
+    let socket_address = make_address(&application_properties)?;
+
+    print_system_log(
+        Level::Info,
+        format!("Starting Application on {}", socket_address).as_str(),
+    );
+
+    let application_properties = Arc::new(application_properties);
+
+    // 4. extract request context from AWS Lambda event
+    let hyper_request = hyper::Request::builder()
+        .method("GET")
+        .uri("http://localhost/")
+        .body("".to_string())
+        .unwrap();
+
+    // 5. process request
+    let response = process_request(
+        application_properties,
+        di_context,
+        root_module,
+        hyper_request,
+    )
+    .await;
+
+    // 6. send response to AWS Lambda
+
+    return Ok(());
 }
 
 fn make_address(
@@ -165,18 +218,21 @@ fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
     return Ok::<Response<Full<Bytes>>, Infallible>(response);
 }
 
-async fn process_request(
+async fn process_request<T>(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
-    req: Request<hyper::body::Incoming>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
+    request: Request<T>,
+) -> Result<Response<Full<Bytes>>, Infallible>
+where
+    T: hyper::body::Body,
+{
     // 1. Prepare URI matching
     let di_context = Arc::clone(&di_context);
 
-    let uri = req.uri();
+    let uri = request.uri();
     let request_path = uri.path();
-    let request_method = req.method();
+    let request_method = request.method();
 
     print_system_log(
         Level::Info,
@@ -207,7 +263,7 @@ async fn process_request(
 
     // 3.2. Parse Headers
     let mut headers = HashMap::new();
-    for (header_name, header_value) in req.headers() {
+    for (header_name, header_value) in request.headers() {
         let header_name = header_name.to_string();
         let header_value = header_value.to_str().unwrap_or("").to_string();
 
@@ -221,16 +277,16 @@ async fn process_request(
     let request_method = request_method.to_owned();
     let request_path = request_path.to_owned();
 
-    let request_body = match req.collect().await {
+    let request_body = match request.collect().await {
         Ok(body) => {
             let body = body.to_bytes();
             let body = String::from_utf8(body.to_vec()).unwrap_or("".to_string());
 
             body
         }
-        Err(err) => {
+        Err(_) => {
             return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
-                format!("Error reading request body: {:?}", err),
+                format!("Error reading request body"),
             ))));
         }
     };

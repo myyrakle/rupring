@@ -457,6 +457,27 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
 
         return result;
     }
+
+    // #[cfg(feature = "aws_lambda")]
+    pub fn listen_on_aws_lambda(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        use tokio::runtime::Builder;
+
+        let mut runtime_builder = Builder::new_multi_thread();
+
+        runtime_builder.enable_all();
+
+        if let Some(thread_limit) = self.application_properties.server.thread_limit {
+            runtime_builder.worker_threads(thread_limit);
+        }
+
+        let runtime = Builder::new_multi_thread().enable_all().build()?;
+
+        let result = runtime.block_on(async {
+            core::run_server_on_aws_lambda(self.application_properties, self.root_module).await
+        });
+
+        return result;
+    }
 }
 
 /// RupringDto derive macro
