@@ -37,3 +37,9 @@ features = [
 
 [target.'cfg(target_os = "linux")'.dependencies]
 signal-hook = "0.3.17"
+
+[features] 
+default = []
+
+full = ["aws-lambda"]
+aws-lambda = []
