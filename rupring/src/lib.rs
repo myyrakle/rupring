@@ -174,6 +174,39 @@ impl rupring::IProvider for HomeService {
 # Application Properties
 - rupring provides various execution options through a special configuration file called application.properties.
 - Please refer to the corresponding [document](crate::application_properties) for more details.
+
+# AWS Lambda
+- rupring provides the option to run on AWS Lambda.
+- Supported Lambda Runtimes
+    1. Amazon Linux 2
+    2. Amazon Linux 2023
+
+## How to use
+1. Enable the "aws-lambda" feature flag.
+```
+rupring={ version = "0.12.0", features=["aws-lambda"] }
+```
+
+2. Use the `rupring::run_on_aws_lambda` function instead of `rupring::run`.
+```rust
+fn main() {
+    rupring::run_on_aws_lambda(RootModule {})
+}
+```
+
+3. Compile and create an executable file. (x86_64-unknown-linux-musl)
+```bash
+rustup target add x86_64-unknown-linux-musl
+cargo build --release --target x86_64-unknown-linux-musl
+```
+
+3. Zip the executable file and upload it to the AWS console.
+- The name of the executable file must be `bootstrap`.
+```bash
+zip -j bootstrap.zip ./target/x86_64-unknown-linux-musl/release/bootstrap
+```
+
+4. ...and upload it as a file to the AWS console
 */
 
 pub(crate) mod core;
