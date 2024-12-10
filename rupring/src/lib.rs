@@ -213,7 +213,7 @@ pub(crate) mod core;
 pub(crate) mod utils;
 pub use core::boot::run;
 
-// #[cfg(feature = "aws_lambda")]
+#[cfg(feature = "aws-lambda")]
 pub use core::boot::run_on_aws_lambda;
 
 pub mod di;
