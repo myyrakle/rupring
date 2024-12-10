@@ -41,3 +41,27 @@ pub async fn get_request_context() -> anyhow::Result<RequestContext> {
 
     Ok(request_context)
 }
+
+pub async fn send_response_to_lambda(
+    aws_request_id: String,
+    response: String,
+) -> anyhow::Result<()> {
+    let aws_lambda_runtime_api = match get_aws_lambda_runtime_api() {
+        Some(api) => api,
+        None => return Err(anyhow::anyhow!("AWS_LAMBDA_RUNTIME_API is not set")),
+    };
+
+    let url = Uri::from_str(
+        format!(
+            "http://{aws_lambda_runtime_api}/2018-06-01/runtime/invocation/{aws_request_id}/response"
+        )
+        .as_str(),
+    )?;
+
+    let mut headers = HashMap::new();
+    headers.insert(hyper::header::HOST, "localhost".to_owned());
+
+    let _ = utils::hyper::send_http_request(url, hyper::Method::POST, headers, response).await?;
+
+    Ok(())
+}

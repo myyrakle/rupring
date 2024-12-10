@@ -18,9 +18,11 @@ pub async fn send_http_request(
     headers: HashMap<HeaderName, String>,
     request_body: String,
 ) -> anyhow::Result<HTTPResponse> {
-    let host = url.host().ok_or(anyhow::anyhow!("host is not set"))?;
+    let host = url
+        .authority()
+        .ok_or(anyhow::anyhow!("host:port is not set"))?;
 
-    let stream = TcpStream::connect(host).await?;
+    let stream = TcpStream::connect(host.as_str()).await?;
 
     let (mut sender, connection) =
         hyper::client::conn::http1::handshake(TokioIo::new(stream)).await?;
