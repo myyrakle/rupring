@@ -18,7 +18,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
-use bootings::aws_lambda::LambdaReponse;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use hyper::body::Bytes;
@@ -148,6 +147,8 @@ pub async fn run_server_on_aws_lambda(
     application_properties: application_properties::ApplicationProperties,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use bootings::aws_lambda::LambdaReponse;
+
     // 1. DI Context Initialize
     let mut di_context = di::DIContext::new();
     di_context.initialize(Box::new(root_module.clone()));

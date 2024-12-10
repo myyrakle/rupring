@@ -12,6 +12,7 @@ pub struct HTTPResponse {
     pub body: String,
 }
 
+#[allow(dead_code)]
 pub async fn send_http_request(
     url: Uri,
     method: Method,
