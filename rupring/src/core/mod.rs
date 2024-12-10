@@ -169,6 +169,11 @@ pub async fn run_server_on_aws_lambda(
 
     let application_properties = Arc::new(application_properties);
 
+    // get request context from AWS Lambda
+    let request_context = bootings::aws_lambda::get_request_context().await?;
+
+    println!("!! Request Context: {:?}", request_context);
+
     // 4. extract request context from AWS Lambda event
     let hyper_request = hyper::Request::builder()
         .method("GET")

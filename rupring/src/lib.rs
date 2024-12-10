@@ -177,7 +177,12 @@ impl rupring::IProvider for HomeService {
 */
 
 pub(crate) mod core;
+pub(crate) mod utils;
 pub use core::boot::run;
+
+// #[cfg(feature = "aws_lambda")]
+pub use core::boot::run_on_aws_lambda;
+
 pub mod di;
 
 /// header constants
