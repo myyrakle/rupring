@@ -18,6 +18,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
+use bootings::aws_lambda::LambdaReponse;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use hyper::body::Bytes;
@@ -169,13 +170,8 @@ pub async fn run_server_on_aws_lambda(
 
     let application_properties = Arc::new(application_properties);
 
-    // get request context from AWS Lambda
-
     // 4. extract request context from AWS Lambda event
-
-    let request_context = bootings::aws_lambda::get_request_context().await?;
-
-    println!("!! Request Context: {:?}", request_context);
+    let lambda_request_context = bootings::aws_lambda::get_request_context().await?;
 
     let hyper_request = hyper::Request::builder()
         .method("GET")
@@ -184,18 +180,47 @@ pub async fn run_server_on_aws_lambda(
         .unwrap();
 
     // 5. process request
-    let response = process_request(
+    let mut response = process_request(
         application_properties,
         di_context,
         root_module,
         hyper_request,
     )
-    .await;
+    .await?;
 
-    // 6. send response to AWS Lambda
+    // 6. convert response to AWS Lambda response format
+    let status_code = response.status();
+    let headermap = response.headers();
+
+    let mut headers = HashMap::new();
+
+    for (header_name, header_value) in headermap {
+        let header_name = header_name.to_string();
+        let header_value = header_value.to_str().unwrap_or("").to_string();
+
+        headers.insert(header_name, header_value);
+    }
+
+    let response_body = match response.body_mut().collect().await {
+        Ok(body) => {
+            let body = body.to_bytes();
+            let body = String::from_utf8(body.to_vec()).unwrap_or("".to_string());
+
+            body
+        }
+        Err(err) => {
+            return Err(Box::new(err));
+        }
+    };
+
+    // 7. send response to AWS Lambda
     bootings::aws_lambda::send_response_to_lambda(
-        request_context.aws_request_id,
-        "foo".to_string(),
+        lambda_request_context.aws_request_id,
+        LambdaReponse {
+            status_code: status_code.as_u16(),
+            headers,
+            body: response_body,
+        },
     )
     .await?;
 
