@@ -1,5 +1,7 @@
 mod banner;
 pub mod boot;
+mod bootings;
+mod compression;
 mod graceful;
 mod parse;
 
@@ -16,6 +18,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
+use bootings::aws_lambda::LambdaReponse;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use hyper::body::Bytes;
@@ -31,71 +34,6 @@ use crate::header::preprocess_headers;
 use crate::logger::print_system_log;
 use crate::swagger::context::SwaggerContext;
 use crate::IModule;
-
-pub fn handle_graceful_shutdown(
-    application_properties: &application_properties::ApplicationProperties,
-    service_avaliable: Arc<AtomicBool>,
-    running_task_count: Arc<AtomicU64>,
-) {
-    let signal_flags = graceful::SignalFlags::new();
-    let shutdown_timeout_duration = application_properties.server.shutdown_timeout_duration();
-
-    if let Err(error) = signal_flags.register_hooks() {
-        print_system_log(
-            Level::Error,
-            format!("Error registering signal hooks: {:?}", error).as_str(),
-        );
-    } else {
-        print_system_log(Level::Info, "Graceful shutdown enabled");
-
-        let service_avaliable = Arc::clone(&service_avaliable);
-        let running_task_count = Arc::clone(&running_task_count);
-        tokio::spawn(async move {
-            let sigterm = Arc::clone(&signal_flags.sigterm);
-            let sigint = Arc::clone(&signal_flags.sigint);
-
-            loop {
-                if sigterm.load(std::sync::atomic::Ordering::Relaxed) {
-                    print_system_log(
-                        Level::Info,
-                        "SIGTERM received. Try to shutdown gracefully...",
-                    );
-                    service_avaliable.store(false, std::sync::atomic::Ordering::Release);
-                    break;
-                }
-
-                if sigint.load(std::sync::atomic::Ordering::Relaxed) {
-                    print_system_log(
-                        Level::Info,
-                        "SIGINT received. Try to shutdown gracefully...",
-                    );
-                    service_avaliable.store(false, std::sync::atomic::Ordering::Release);
-                    break;
-                }
-
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-            }
-
-            let shutdown_request_time = std::time::Instant::now();
-
-            loop {
-                if running_task_count.load(std::sync::atomic::Ordering::Relaxed) == 0 {
-                    print_system_log(Level::Info, "All tasks are done. Shutting down...");
-                    std::process::exit(0);
-                }
-
-                // timeout 지나면 강제로 종료
-                let now = std::time::Instant::now();
-                if now.duration_since(shutdown_request_time) >= shutdown_timeout_duration {
-                    print_system_log(Level::Info, "Shutdown timeout reached. Forcing shutdown...");
-                    std::process::exit(0);
-                }
-
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-            }
-        });
-    }
-}
 
 pub async fn run_server(
     application_properties: application_properties::ApplicationProperties,
@@ -131,7 +69,7 @@ pub async fn run_server(
     let running_task_count = Arc::new(AtomicU64::new(0));
 
     if is_graceful_shutdown {
-        handle_graceful_shutdown(
+        graceful::handle_graceful_shutdown(
             &application_properties,
             Arc::clone(&service_avaliable),
             Arc::clone(&running_task_count),
@@ -178,13 +116,18 @@ pub async fn run_server(
                 // `service_fn` converts our function in a `Service`
                 .serve_connection(
                     io,
-                    service_fn(|req: Request<hyper::body::Incoming>| {
+                    service_fn(|request: Request<hyper::body::Incoming>| {
                         let di_context = Arc::clone(&di_context);
                         let application_properties = Arc::clone(&application_properties);
 
                         async move {
-                            process_request(application_properties, di_context, root_module, req)
-                                .await
+                            process_request(
+                                application_properties,
+                                di_context,
+                                root_module,
+                                request,
+                            )
+                            .await
                         }
                     }),
                 )
@@ -198,6 +141,90 @@ pub async fn run_server(
             }
         });
     }
+}
+
+#[cfg(feature = "aws-lambda")]
+pub async fn run_server_on_aws_lambda(
+    application_properties: application_properties::ApplicationProperties,
+    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // 1. DI Context Initialize
+    let mut di_context = di::DIContext::new();
+    di_context.initialize(Box::new(root_module.clone()));
+    let di_context = Arc::new(di_context);
+
+    // 2. Prepare Swagger Serving, if enabled
+    if let Some(swagger_context) = di_context.get::<SwaggerContext>() {
+        swagger_context.initialize_from_module(root_module.clone());
+    }
+
+    // 3. ready, set, go!
+    banner::print_banner();
+
+    let socket_address = make_address(&application_properties)?;
+
+    print_system_log(
+        Level::Info,
+        format!("Starting Application on {}", socket_address).as_str(),
+    );
+
+    let application_properties = Arc::new(application_properties);
+
+    // 4. extract request context from AWS Lambda event
+    let lambda_request_context = bootings::aws_lambda::get_request_context().await?;
+
+    let hyper_request = hyper::Request::builder()
+        .method("GET")
+        .uri("http://localhost/")
+        .body("".to_string())
+        .unwrap();
+
+    // 5. process request
+    let mut response = process_request(
+        application_properties,
+        di_context,
+        root_module,
+        hyper_request,
+    )
+    .await?;
+
+    // 6. convert response to AWS Lambda response format
+    let status_code = response.status();
+    let headermap = response.headers();
+
+    let mut headers = HashMap::new();
+
+    for (header_name, header_value) in headermap {
+        let header_name = header_name.to_string();
+        let header_value = header_value.to_str().unwrap_or("").to_string();
+
+        headers.insert(header_name, header_value);
+    }
+
+    let response_body = match response.body_mut().collect().await {
+        Ok(body) => {
+            let body = body.to_bytes();
+            let body = String::from_utf8(body.to_vec()).unwrap_or("".to_string());
+
+            body
+        }
+        Err(err) => {
+            return Err(Box::new(err));
+        }
+    };
+
+    // 7. send response to AWS Lambda
+    bootings::aws_lambda::send_response_to_lambda(
+        lambda_request_context.aws_request_id,
+        LambdaReponse {
+            status_code: status_code.as_u16(),
+            headers,
+            body: response_body,
+        },
+    )
+    .await?;
+
+    return Ok(());
 }
 
 fn make_address(
@@ -228,18 +255,21 @@ fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
     return Ok::<Response<Full<Bytes>>, Infallible>(response);
 }
 
-async fn process_request(
+async fn process_request<T>(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
-    req: Request<hyper::body::Incoming>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
+    request: Request<T>,
+) -> Result<Response<Full<Bytes>>, Infallible>
+where
+    T: hyper::body::Body,
+{
     // 1. Prepare URI matching
     let di_context = Arc::clone(&di_context);
 
-    let uri = req.uri();
+    let uri = request.uri();
     let request_path = uri.path();
-    let request_method = req.method();
+    let request_method = request.method();
 
     print_system_log(
         Level::Info,
@@ -270,7 +300,7 @@ async fn process_request(
 
     // 3.2. Parse Headers
     let mut headers = HashMap::new();
-    for (header_name, header_value) in req.headers() {
+    for (header_name, header_value) in request.headers() {
         let header_name = header_name.to_string();
         let header_value = header_value.to_str().unwrap_or("").to_string();
 
@@ -284,16 +314,16 @@ async fn process_request(
     let request_method = request_method.to_owned();
     let request_path = request_path.to_owned();
 
-    let request_body = match req.collect().await {
+    let request_body = match request.collect().await {
         Ok(body) => {
             let body = body.to_bytes();
             let body = String::from_utf8(body.to_vec()).unwrap_or("".to_string());
 
             body
         }
-        Err(err) => {
+        Err(_) => {
             return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
-                format!("Error reading request body: {:?}", err),
+                format!("Error reading request body"),
             ))));
         }
     };
@@ -406,7 +436,7 @@ fn post_process_response(
     match application_properties.server.compression.algorithm {
         CompressionAlgorithm::Gzip => {
             // compression
-            let compressed_bytes = compress_with_gzip(&response.body);
+            let compressed_bytes = compression::compress_with_gzip(&response.body);
 
             let compressed_bytes = match compressed_bytes {
                 Ok(compressed_bytes) => compressed_bytes,
@@ -430,7 +460,7 @@ fn post_process_response(
         }
         CompressionAlgorithm::Deflate => {
             // compression
-            let compressed_bytes = compress_with_deflate(&response.body);
+            let compressed_bytes = compression::compress_with_deflate(&response.body);
 
             let compressed_bytes = match compressed_bytes {
                 Ok(compressed_bytes) => compressed_bytes,
@@ -456,25 +486,4 @@ fn post_process_response(
     }
 
     response
-}
-
-fn compress_with_gzip(body: &[u8]) -> anyhow::Result<Vec<u8>> {
-    use std::io::Write;
-
-    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
-    encoder.write_all(body)?;
-    let compressed = encoder.finish()?;
-
-    Ok(compressed)
-}
-
-fn compress_with_deflate(body: &[u8]) -> anyhow::Result<Vec<u8>> {
-    use std::io::Write;
-
-    let mut encoder =
-        flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::default());
-    encoder.write_all(body)?;
-    let compressed = encoder.finish()?;
-
-    Ok(compressed)
 }

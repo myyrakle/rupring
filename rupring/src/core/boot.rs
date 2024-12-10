@@ -21,3 +21,13 @@ where
 
     app.listen().unwrap();
 }
+
+#[cfg(feature = "aws-lambda")]
+pub fn run_on_aws_lambda<T>(root_module: T)
+where
+    T: IModule + Clone + Copy + Sync + Send + 'static,
+{
+    let app = crate::RupringFactory::create(root_module);
+
+    app.listen_on_aws_lambda().unwrap();
+}

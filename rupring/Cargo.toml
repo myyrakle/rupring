@@ -1,6 +1,6 @@
 [package]
 name = "rupring"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2021"
 license = "MIT"
 authors = ["myyrakle <sssang97@naver.com>"] 
@@ -37,3 +37,9 @@ features = [
 
 [target.'cfg(target_os = "linux")'.dependencies]
 signal-hook = "0.3.17"
+
+[features] 
+default = []
+
+full = ["aws-lambda"]
+aws-lambda = []

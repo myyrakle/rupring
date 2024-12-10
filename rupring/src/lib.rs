@@ -174,10 +174,48 @@ impl rupring::IProvider for HomeService {
 # Application Properties
 - rupring provides various execution options through a special configuration file called application.properties.
 - Please refer to the corresponding [document](crate::application_properties) for more details.
+
+# AWS Lambda
+- rupring provides the option to run on AWS Lambda.
+- Supported Lambda Runtimes
+    1. Amazon Linux 2
+    2. Amazon Linux 2023
+
+## How to use
+1. Enable the "aws-lambda" feature flag.
+```ignore
+rupring={ version = "0.12.0", features=["aws-lambda"] }
+```
+
+2. Use the `rupring::run_on_aws_lambda` function instead of `rupring::run`.
+```rust,ignore
+fn main() {
+    rupring::run_on_aws_lambda(RootModule {})
+}
+```
+
+3. Compile and create an executable file. (x86_64-unknown-linux-musl)
+```bash
+rustup target add x86_64-unknown-linux-musl
+cargo build --release --target x86_64-unknown-linux-musl
+```
+
+3. Zip the executable file and upload it to the AWS console.
+- The name of the executable file must be `bootstrap`.
+```bash
+zip -j bootstrap.zip ./target/x86_64-unknown-linux-musl/release/bootstrap
+```
+
+4. ...and upload it as a file to the AWS console
 */
 
 pub(crate) mod core;
+pub(crate) mod utils;
 pub use core::boot::run;
+
+// #[cfg(feature = "aws_lambda")]
+pub use core::boot::run_on_aws_lambda;
+
 pub mod di;
 
 /// header constants
@@ -453,6 +491,27 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
 
         let result = runtime.block_on(async {
             core::run_server(self.application_properties, self.root_module).await
+        });
+
+        return result;
+    }
+
+    #[cfg(feature = "aws-lambda")]
+    pub fn listen_on_aws_lambda(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        use tokio::runtime::Builder;
+
+        let mut runtime_builder = Builder::new_multi_thread();
+
+        runtime_builder.enable_all();
+
+        if let Some(thread_limit) = self.application_properties.server.thread_limit {
+            runtime_builder.worker_threads(thread_limit);
+        }
+
+        let runtime = Builder::new_multi_thread().enable_all().build()?;
+
+        let result = runtime.block_on(async {
+            core::run_server_on_aws_lambda(self.application_properties, self.root_module).await
         });
 
         return result;
