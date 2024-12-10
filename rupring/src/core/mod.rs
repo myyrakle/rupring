@@ -143,7 +143,7 @@ pub async fn run_server(
     }
 }
 
-// #[cfg(feature = "aws_lambda")]
+#[cfg(feature = "aws-lambda")]
 pub async fn run_server_on_aws_lambda(
     application_properties: application_properties::ApplicationProperties,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,

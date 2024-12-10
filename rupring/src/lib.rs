@@ -463,7 +463,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
         return result;
     }
 
-    // #[cfg(feature = "aws_lambda")]
+    #[cfg(feature = "aws-lambda")]
     pub fn listen_on_aws_lambda(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         use tokio::runtime::Builder;
 

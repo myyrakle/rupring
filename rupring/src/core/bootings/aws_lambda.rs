@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use hyper::{HeaderMap, Uri};
+use hyper::Uri;
 use serde::Serialize;
 
 use crate::utils;
