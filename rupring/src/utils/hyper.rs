@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
 use http_body_util::BodyExt;
-use hyper::{Method, Uri};
+use hyper::{header::HeaderName, Method, Uri};
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpStream;
 
+#[allow(dead_code)]
 pub struct HTTPResponse {
     pub status_code: u16,
     pub headers: hyper::HeaderMap,
@@ -12,6 +15,7 @@ pub struct HTTPResponse {
 pub async fn send_http_request(
     url: Uri,
     method: Method,
+    headers: HashMap<HeaderName, String>,
     request_body: String,
 ) -> anyhow::Result<HTTPResponse> {
     let host = url.host().ok_or(anyhow::anyhow!("host is not set"))?;
@@ -27,12 +31,13 @@ pub async fn send_http_request(
         }
     });
 
-    let hyper_request = hyper::Request::builder()
-        .method(method)
-        .uri(url)
-        .header(hyper::header::HOST, "localhost")
-        .body(request_body)
-        .unwrap();
+    let mut hyper_request = hyper::Request::builder().method(method).uri(url);
+
+    for (key, value) in headers.iter() {
+        hyper_request = hyper_request.header(key, value);
+    }
+
+    let hyper_request = hyper_request.body(request_body).unwrap();
 
     let mut response = sender.send_request(hyper_request).await?;
 
