@@ -183,12 +183,12 @@ impl rupring::IProvider for HomeService {
 
 ## How to use
 1. Enable the "aws-lambda" feature flag.
-```
+```ignore
 rupring={ version = "0.12.0", features=["aws-lambda"] }
 ```
 
 2. Use the `rupring::run_on_aws_lambda` function instead of `rupring::run`.
-```rust
+```rust,ignore
 fn main() {
     rupring::run_on_aws_lambda(RootModule {})
 }
