@@ -6,8 +6,7 @@ default-run = "example"
 
 [dependencies]
 mockall = "0.13.1"
-# rupring={ version = "0.11.0" }
-rupring={ path="../rupring", features=["full"] }
+rupring={ version = "0.12.0", path="../rupring", features=["full"] }
 serde = { version="1.0.193", features=["derive"] }
 
 [[bin]]
