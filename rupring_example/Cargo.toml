@@ -2,6 +2,7 @@
 name = "rupring_example"
 version = "0.1.0"
 edition = "2021"
+default-run = "example"
 
 [dependencies]
 mockall = "0.13.1"
@@ -10,5 +11,9 @@ rupring={ path="../rupring", features=["full"] }
 serde = { version="1.0.193", features=["derive"] }
 
 [[bin]]
-name = "bootstrap" 
+name = "example" 
 path = "src/main.rs"
+
+[[bin]]
+name = "bootstrap" 
+path = "src/lambda.rs"
