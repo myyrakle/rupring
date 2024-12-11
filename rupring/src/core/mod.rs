@@ -211,6 +211,15 @@ pub async fn handle_event_on_aws_lambda(
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaReponse;
 
+    if lambda_request_context.status_code == 204 {
+        // Ignore the event if the status code is 204.
+        // This is a way to keep the runtime alive when
+        // there are no events pending to be processed.
+
+        return Ok(());
+    }
+
+    // TODO: build request from LambdaRequestContext
     let hyper_request = hyper::Request::builder()
         .method("GET")
         .uri("http://localhost/")
