@@ -5,6 +5,9 @@ mod compression;
 mod graceful;
 mod parse;
 
+#[cfg(feature = "aws-lambda")]
+use bootings::aws_lambda::LambdaRequestContext;
+
 use crate::application_properties;
 use crate::application_properties::CompressionAlgorithm;
 use crate::di;
@@ -147,7 +150,7 @@ pub async fn run_server_on_aws_lambda(
     application_properties: application_properties::ApplicationProperties,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
-    use bootings::aws_lambda::{LambdaError, LambdaReponse};
+    use bootings::aws_lambda::LambdaError;
 
     // 1. DI Context Initialize
     let mut di_context = di::DIContext::new();
@@ -164,50 +167,63 @@ pub async fn run_server_on_aws_lambda(
 
     let application_properties = Arc::new(application_properties);
 
-    // 4. extract request context from AWS Lambda event
-    let lambda_request_context = bootings::aws_lambda::get_request_context().await?;
+    loop {
+        // 4. extract request context from AWS Lambda event
+        let lambda_request_context = bootings::aws_lambda::get_request_context().await?;
 
-    let aws_request_id = lambda_request_context.aws_request_id.as_str();
+        let di_context = Arc::clone(&di_context);
+        let application_properties = Arc::clone(&application_properties);
+        let root_module = root_module.clone();
 
-    let send_error_to_lambda = |error: &anyhow::Error| {
-        bootings::aws_lambda::send_error_to_lambda(
-            aws_request_id,
-            LambdaError {
-                error_message: error.to_string(),
-                error_type: "InternalServerError".to_string(),
-                stack_trace: Default::default(),
-            },
-        )
-    };
+        tokio::spawn(async move {
+            let aws_request_id = lambda_request_context.aws_request_id.clone();
 
-    let hyper_request = match hyper::Request::builder()
+            let result = handle_event_on_aws_lambda(
+                lambda_request_context,
+                application_properties,
+                di_context,
+                root_module,
+            )
+            .await;
+
+            if let Err(error) = result {
+                bootings::aws_lambda::send_error_to_lambda(
+                    aws_request_id.as_str(),
+                    LambdaError {
+                        error_message: error.to_string(),
+                        error_type: "InternalServerError".to_string(),
+                        stack_trace: Default::default(),
+                    },
+                )
+                .await
+                .unwrap();
+            }
+        });
+    }
+}
+
+#[cfg(feature = "aws-lambda")]
+pub async fn handle_event_on_aws_lambda(
+    lambda_request_context: LambdaRequestContext,
+    application_properties: Arc<application_properties::ApplicationProperties>,
+    di_context: Arc<di::DIContext>,
+    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+) -> anyhow::Result<()> {
+    use bootings::aws_lambda::LambdaReponse;
+
+    let hyper_request = hyper::Request::builder()
         .method("GET")
         .uri("http://localhost/")
-        .body("".to_string())
-    {
-        Ok(hyper_request) => hyper_request,
-        Err(error) => {
-            let error = error.into();
-            send_error_to_lambda(&error).await?;
-            return Err(anyhow::Error::from(error));
-        }
-    };
+        .body("".to_string())?;
 
     // 5. process request
-    let mut response = match process_request(
+    let mut response = process_request(
         application_properties,
         di_context,
         root_module,
         hyper_request,
     )
-    .await
-    {
-        Ok(response) => response,
-        Err(error) => {
-            send_error_to_lambda(&error.into()).await?;
-            return Err(anyhow::Error::from(error));
-        }
-    };
+    .await?;
 
     // 6. convert response to AWS Lambda response format
     let status_code = response.status();
@@ -230,30 +246,22 @@ pub async fn run_server_on_aws_lambda(
             body
         }
         Err(error) => {
-            send_error_to_lambda(&error.into()).await?;
             return Err(anyhow::Error::from(error));
         }
     };
 
     // 7. send response to AWS Lambda
-    match bootings::aws_lambda::send_response_to_lambda(
-        aws_request_id,
+    bootings::aws_lambda::send_response_to_lambda(
+        &lambda_request_context.aws_request_id,
         LambdaReponse {
             status_code: status_code.as_u16(),
             headers,
             body: response_body,
         },
     )
-    .await
-    {
-        Ok(_) => {}
-        Err(error) => {
-            send_error_to_lambda(&error).await?;
-            return Err(anyhow::Error::from(error));
-        }
-    }
+    .await?;
 
-    return Ok(());
+    Ok(())
 }
 
 fn make_address(
