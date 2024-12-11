@@ -1,6 +1,6 @@
 mod banner;
 pub mod boot;
-mod bootings;
+pub(crate) mod bootings;
 mod compression;
 mod graceful;
 mod parse;
@@ -146,8 +146,8 @@ pub async fn run_server(
 pub async fn run_server_on_aws_lambda(
     application_properties: application_properties::ApplicationProperties,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use bootings::aws_lambda::LambdaReponse;
+) -> anyhow::Result<()> {
+    use bootings::aws_lambda::{LambdaError, LambdaReponse};
 
     // 1. DI Context Initialize
     let mut di_context = di::DIContext::new();
@@ -162,32 +162,52 @@ pub async fn run_server_on_aws_lambda(
     // 3. ready, set, go!
     banner::print_banner();
 
-    let socket_address = make_address(&application_properties)?;
-
-    print_system_log(
-        Level::Info,
-        format!("Starting Application on {}", socket_address).as_str(),
-    );
-
     let application_properties = Arc::new(application_properties);
 
     // 4. extract request context from AWS Lambda event
     let lambda_request_context = bootings::aws_lambda::get_request_context().await?;
 
-    let hyper_request = hyper::Request::builder()
+    let aws_request_id = lambda_request_context.aws_request_id.as_str();
+
+    let send_error_to_lambda = |error: &anyhow::Error| {
+        bootings::aws_lambda::send_error_to_lambda(
+            aws_request_id,
+            LambdaError {
+                error_message: error.to_string(),
+                error_type: "InternalServerError".to_string(),
+                stack_trace: Default::default(),
+            },
+        )
+    };
+
+    let hyper_request = match hyper::Request::builder()
         .method("GET")
         .uri("http://localhost/")
         .body("".to_string())
-        .unwrap();
+    {
+        Ok(hyper_request) => hyper_request,
+        Err(error) => {
+            let error = error.into();
+            send_error_to_lambda(&error).await?;
+            return Err(anyhow::Error::from(error));
+        }
+    };
 
     // 5. process request
-    let mut response = process_request(
+    let mut response = match process_request(
         application_properties,
         di_context,
         root_module,
         hyper_request,
     )
-    .await?;
+    .await
+    {
+        Ok(response) => response,
+        Err(error) => {
+            send_error_to_lambda(&error.into()).await?;
+            return Err(anyhow::Error::from(error));
+        }
+    };
 
     // 6. convert response to AWS Lambda response format
     let status_code = response.status();
@@ -209,21 +229,29 @@ pub async fn run_server_on_aws_lambda(
 
             body
         }
-        Err(err) => {
-            return Err(Box::new(err));
+        Err(error) => {
+            send_error_to_lambda(&error.into()).await?;
+            return Err(anyhow::Error::from(error));
         }
     };
 
     // 7. send response to AWS Lambda
-    bootings::aws_lambda::send_response_to_lambda(
-        lambda_request_context.aws_request_id,
+    match bootings::aws_lambda::send_response_to_lambda(
+        aws_request_id,
         LambdaReponse {
             status_code: status_code.as_u16(),
             headers,
             body: response_body,
         },
     )
-    .await?;
+    .await
+    {
+        Ok(_) => {}
+        Err(error) => {
+            send_error_to_lambda(&error).await?;
+            return Err(anyhow::Error::from(error));
+        }
+    }
 
     return Ok(());
 }

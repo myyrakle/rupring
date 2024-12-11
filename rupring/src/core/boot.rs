@@ -29,5 +29,7 @@ where
 {
     let app = crate::RupringFactory::create(root_module);
 
-    app.listen_on_aws_lambda().unwrap();
+    if let Err(error) = app.listen_on_aws_lambda() {
+        println!("Unhandled Error: {:?}", error);
+    }
 }
