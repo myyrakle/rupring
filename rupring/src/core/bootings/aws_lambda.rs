@@ -13,6 +13,7 @@ fn get_aws_lambda_runtime_api() -> Option<String> {
 #[derive(Debug, Default, Clone)]
 pub struct LambdaRequestContext {
     pub aws_request_id: String,
+    pub trace_id: String,
     pub response_body: String,
 }
 
@@ -36,6 +37,10 @@ pub async fn get_request_context() -> anyhow::Result<LambdaRequestContext> {
 
     if let Some(aws_request_id) = response.headers.get("Lambda-Runtime-Aws-Request-Id") {
         request_context.aws_request_id = aws_request_id.to_str()?.to_string();
+    }
+
+    if let Some(trace_id) = response.headers.get("Lambda-Runtime-Trace-Id") {
+        request_context.trace_id = trace_id.to_str()?.to_string();
     }
 
     request_context.response_body = response.body;
