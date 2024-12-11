@@ -54,7 +54,7 @@ pub struct LambdaReponse {
 }
 
 pub async fn send_response_to_lambda(
-    aws_request_id: String,
+    aws_request_id: &str,
     response: LambdaReponse,
 ) -> anyhow::Result<()> {
     let response = serde_json::to_string(&response)?;
@@ -89,10 +89,7 @@ pub struct LambdaError {
     pub stack_trace: Vec<String>,
 }
 
-pub async fn send_error_to_lambda(
-    aws_request_id: String,
-    error: LambdaError,
-) -> anyhow::Result<()> {
+pub async fn send_error_to_lambda(aws_request_id: &str, error: LambdaError) -> anyhow::Result<()> {
     let error = serde_json::to_string(&error)?;
 
     let aws_lambda_runtime_api = match get_aws_lambda_runtime_api() {

@@ -497,7 +497,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     }
 
     #[cfg(feature = "aws-lambda")]
-    pub fn listen_on_aws_lambda(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn listen_on_aws_lambda(self) -> anyhow::Result<()> {
         use tokio::runtime::Builder;
 
         let mut runtime_builder = Builder::new_multi_thread();
