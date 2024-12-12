@@ -6,7 +6,7 @@ mod graceful;
 mod parse;
 
 #[cfg(feature = "aws-lambda")]
-use bootings::aws_lambda::LambdaRequestContext;
+use bootings::aws_lambda::LambdaRequestEvent;
 
 use crate::application_properties;
 use crate::application_properties::CompressionAlgorithm;
@@ -204,7 +204,7 @@ pub async fn run_server_on_aws_lambda(
 
 #[cfg(feature = "aws-lambda")]
 pub async fn handle_event_on_aws_lambda(
-    lambda_request_context: LambdaRequestContext,
+    mut lambda_request_context: LambdaRequestEvent,
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
@@ -219,11 +219,22 @@ pub async fn handle_event_on_aws_lambda(
         return Ok(());
     }
 
-    // TODO: build request from LambdaRequestContext
-    let hyper_request = hyper::Request::builder()
-        .method("GET")
-        .uri("http://localhost/")
-        .body("".to_string())?;
+    let hyper_request_builder = hyper::Request::builder()
+        .method(
+            lambda_request_context
+                .event_payload
+                .request_context
+                .http
+                .method
+                .as_str(),
+        )
+        .uri(lambda_request_context.event_payload.to_full_url());
+
+    let body = std::mem::take(&mut lambda_request_context.event_payload.body);
+
+    let mut hyper_request = hyper_request_builder.body(body.unwrap_or_default())?;
+
+    *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
 
     // 5. process request
     let mut response = process_request(
