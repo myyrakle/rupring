@@ -14,7 +14,9 @@ fn get_aws_lambda_runtime_api() -> Option<String> {
 pub struct LambdaRequestContext {
     pub aws_request_id: String,
     pub trace_id: String,
-    pub response_body: String,
+    pub status_code: u16,
+
+    pub event_payload: String,
 }
 
 pub async fn get_request_context() -> anyhow::Result<LambdaRequestContext> {
@@ -43,7 +45,8 @@ pub async fn get_request_context() -> anyhow::Result<LambdaRequestContext> {
         request_context.trace_id = trace_id.to_str()?.to_string();
     }
 
-    request_context.response_body = response.body;
+    request_context.event_payload = response.body;
+    request_context.status_code = response.status_code;
 
     Ok(request_context)
 }
