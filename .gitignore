@@ -23,3 +23,5 @@ test.json
 .vscode
 
 *.zip
+
+*.http
