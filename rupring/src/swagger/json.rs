@@ -42,7 +42,7 @@ impl Default for SwaggerSchema {
             info: Default::default(),
             host: None,
             base_path: r#""#.to_string(),
-            schemes: vec!["http".to_string(), "https".to_string()],
+            schemes: vec![],
             tags: Default::default(),
             paths: Default::default(),
             definitions: Default::default(),
