@@ -40,7 +40,7 @@ use crate::IModule;
 pub async fn run_server(
     application_properties: application_properties::ApplicationProperties,
     root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> anyhow::Result<()> {
     // 1. DI Context Initialize
     let mut di_context = di::DIContext::new();
     di_context.initialize(Box::new(root_module.clone()));
