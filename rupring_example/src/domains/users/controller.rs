@@ -33,11 +33,11 @@ pub fn get_user(
 
     let response = user_service.get_user(request);
 
-    if let Ok(response) = response {
-        rupring::Response::new().json(response)
-    } else {
-        rupring::Response::new().status(500).text("error")
-    }
+    match  response {
+        Ok(response) =>
+        rupring::Response::new().json(response), 
+        Err(error) => rupring::Response::new().status(500).text(error.to_string())
+    } 
 }
 
 #[rupring::Post(path = /users)]
@@ -60,10 +60,9 @@ pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::
 
     let response = user_service.create_user(request);
 
-    if let Ok(response) = response {
-        rupring::Response::new().json(response)
-    } else {
-        rupring::Response::new().status(500).text("error")
+    match response {
+        Ok(response) => rupring::Response::new().json(response),
+        Err(error) => rupring::Response::new().status(500).text(error.to_string())
     }
 }
 
@@ -86,10 +85,9 @@ pub fn update_user(
 
     let response = user_service.update_user(request);
 
-    if let Ok(response) = response {
-        rupring::Response::new().json(response)
-    } else {
-        rupring::Response::new().status(500).text("error")
+    match response {
+        Ok(response) => rupring::Response::new().json(response),
+        Err(error) => rupring::Response::new().status(500).text(error.to_string())
     }
 }
 
@@ -109,10 +107,9 @@ pub fn delete_user(
 
     let response = user_service.delete_user(request);
 
-    if let Ok(response) = response {
-        rupring::Response::new().json(response)
-    } else {
-        rupring::Response::new().status(500).text("error")
+    match response {
+        Ok(response) => rupring::Response::new().json(response),
+        Err(error) => rupring::Response::new().status(500).text(error.to_string())
     }
 }
 
@@ -141,9 +138,8 @@ pub fn list_users(request: rupring::Request) -> rupring::Response {
 
     let response = user_service.list_users(request);
 
-    if let Ok(response) = response {
-        rupring::Response::new().json(response)
-    } else {
-        rupring::Response::new().status(500).text("error")
+    match response {
+        Ok(response) => rupring::Response::new().json(response),
+        Err(error) => rupring::Response::new().status(500).text(error.to_string())
     }
 }
