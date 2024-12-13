@@ -476,7 +476,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
     }
 
     /// It receives the port number and runs the server.
-    pub fn listen(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn listen(self) -> anyhow::Result<()> {
         use tokio::runtime::Builder;
 
         let mut runtime_builder = Builder::new_multi_thread();
