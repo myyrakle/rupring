@@ -1,4 +1,4 @@
-const RUPRING_TEXT: &'static str = r#",------.                       ,--.                
+const DEFAULT_BANNER_TEXT: &'static str = r#",------.                       ,--.                
 |  .--. ',--.,--. ,---. ,--.--.`--',--,--,  ,---.  
 |  '--'.'|  ||  || .-. ||  .--',--.|      \| .-. | 
 |  |\  \ '  ''  '| '-' '|  |   |  ||  ||  |' '-' ' 
@@ -6,7 +6,7 @@ const RUPRING_TEXT: &'static str = r#",------.                       ,--.
                  `--'                      `---'   "#;
 
 pub fn print_banner() {
-    println!("{}", RUPRING_TEXT);
+    println!("{}", DEFAULT_BANNER_TEXT);
     print_app_info();
     println!("");
 }
