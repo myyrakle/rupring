@@ -1,3 +1,5 @@
+use crate::application_properties::ApplicationProperties;
+
 const DEFAULT_BANNER_TEXT: &'static str = r#",------.                       ,--.                
 |  .--. ',--.,--. ,---. ,--.--.`--',--,--,  ,---.  
 |  '--'.'|  ||  || .-. ||  .--',--.|      \| .-. | 
@@ -5,7 +7,7 @@ const DEFAULT_BANNER_TEXT: &'static str = r#",------.                       ,--.
 `--' '--' `----' |  |-' `--'   `--'`--''--'.`-  /  
                  `--'                      `---'   "#;
 
-pub fn print_banner() {
+pub fn print_banner(application_properties: &ApplicationProperties) {
     println!("{}", DEFAULT_BANNER_TEXT);
     print_app_info();
     println!("");
