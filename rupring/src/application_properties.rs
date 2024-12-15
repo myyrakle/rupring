@@ -273,6 +273,28 @@ impl ApplicationProperties {
                         server.thread_limit = Some(value);
                     }
                 }
+                "server.request-timeout" => {
+                    // * = millisecond
+                    // *s = second
+                    // *m = minute
+                    let timeout = value.trim_end_matches(|c| !char::is_numeric(c));
+
+                    if let Ok(timeout) = timeout.parse::<u64>() {
+                        if timeout == 0 {
+                            continue;
+                        }
+
+                        let duration = match value.chars().last() {
+                            Some('s') => std::time::Duration::from_secs(timeout),
+                            Some('m') => std::time::Duration::from_secs(timeout * 60),
+                            _ => std::time::Duration::from_millis(timeout),
+                        };
+
+                        println!("timeout: {:?}", duration);
+
+                        server.request_timeout = Some(duration);
+                    }
+                }
                 "environment" => {
                     environment = value.to_string();
                 }
