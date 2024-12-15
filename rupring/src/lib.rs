@@ -487,7 +487,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
             runtime_builder.worker_threads(thread_limit);
         }
 
-        let runtime = Builder::new_multi_thread().enable_all().build()?;
+        let runtime = runtime_builder.build()?;
 
         let result = runtime.block_on(async {
             core::run_server(self.application_properties, self.root_module).await
@@ -508,7 +508,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
             runtime_builder.worker_threads(thread_limit);
         }
 
-        let runtime = Builder::new_multi_thread().enable_all().build()?;
+        let runtime = runtime_builder.build()?;
 
         let result = runtime.block_on(async {
             core::run_server_on_aws_lambda(self.application_properties, self.root_module).await

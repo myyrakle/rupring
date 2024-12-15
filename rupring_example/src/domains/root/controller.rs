@@ -18,10 +18,7 @@ pub fn index(request: rupring::Request) -> rupring::Response {
 #[description = "별다른 기능은 없습니다."]
 #[tags = [root]]
 pub fn slow(request: rupring::Request) -> rupring::Response {
-    let body = request.body;
-    println!("body: {}", body);
-
     std::thread::sleep(std::time::Duration::from_secs(30));
 
-    rupring::Response::new().text("123214")
+    rupring::Response::new().text("Slow")
 }
