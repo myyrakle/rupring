@@ -27,6 +27,9 @@
 | server.compression.min-response-size | The minimum response size to compress. (byte) | 2048 |
 | server.compression.algorithm | The compression algorithm to use. (gzip,deflate) | gzip |
 | server.thread.limit | The thread limit to use. | None(max) |
+| banner.enabled | Whether to enable the banner. | true |
+| banner.location | The location of the banner file. | None |
+| banner.charset | The charset of the banner file. (UTF-8, UTF-16) | UTF-8 |
 */
 
 use std::collections::HashMap;
