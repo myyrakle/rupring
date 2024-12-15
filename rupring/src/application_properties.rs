@@ -27,12 +27,13 @@
 | server.compression.min-response-size | The minimum response size to compress. (byte) | 2048 |
 | server.compression.algorithm | The compression algorithm to use. (gzip,deflate) | gzip |
 | server.thread.limit | The thread limit to use. | None(max) |
+| server.request-timeout | The request timeout. (300 = 300 millisecond, 3s = 3 second, 2m = 2 minute) | No Timeout |
 | banner.enabled | Whether to enable the banner. | true |
 | banner.location | The location of the banner file. | None |
 | banner.charset | The charset of the banner file. (UTF-8, UTF-16) | UTF-8 |
 */
 
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ApplicationProperties {
@@ -154,6 +155,7 @@ pub struct Server {
     pub shutdown: ShutdownType,
     pub timeout_per_shutdown_phase: String,
     pub thread_limit: Option<usize>,
+    pub request_timeout: Option<Duration>,
 }
 
 impl Default for Server {
@@ -165,6 +167,7 @@ impl Default for Server {
             shutdown: ShutdownType::Immediate,
             timeout_per_shutdown_phase: "30s".to_string(),
             thread_limit: None,
+            request_timeout: None,
         }
     }
 }
@@ -269,6 +272,28 @@ impl ApplicationProperties {
                 "server.thread.limit" => {
                     if let Ok(value) = value.parse::<usize>() {
                         server.thread_limit = Some(value);
+                    }
+                }
+                "server.request-timeout" => {
+                    // * = millisecond
+                    // *s = second
+                    // *m = minute
+                    let timeout = value.trim_end_matches(|c| !char::is_numeric(c));
+
+                    if let Ok(timeout) = timeout.parse::<u64>() {
+                        if timeout == 0 {
+                            continue;
+                        }
+
+                        let duration = match value.chars().last() {
+                            Some('s') => std::time::Duration::from_secs(timeout),
+                            Some('m') => std::time::Duration::from_secs(timeout * 60),
+                            _ => std::time::Duration::from_millis(timeout),
+                        };
+
+                        println!("timeout: {:?}", duration);
+
+                        server.request_timeout = Some(duration);
                     }
                 }
                 "environment" => {
