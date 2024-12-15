@@ -274,6 +274,12 @@ impl ApplicationProperties {
                 "banner.enabled" => {
                     banner.enabled = value.parse::<bool>().unwrap_or(true);
                 }
+                "banner.location" => {
+                    banner.location = Some(value.to_string());
+                }
+                "banner.charset" => {
+                    banner.charset = value.to_string();
+                }
                 _ => {
                     etc.insert(key, value);
                 }
