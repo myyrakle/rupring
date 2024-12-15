@@ -7,6 +7,7 @@ mod parse;
 
 #[cfg(feature = "aws-lambda")]
 use bootings::aws_lambda::LambdaRequestEvent;
+use tokio::task::JoinError;
 
 use crate::application_properties;
 use crate::application_properties::CompressionAlgorithm;
@@ -109,37 +110,52 @@ pub async fn run_server(
 
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
-            if is_graceful_shutdown {
-                running_task_count.fetch_add(1, std::sync::atomic::Ordering::Release);
-            }
-
             if let Err(err) = http1::Builder::new()
                 .keep_alive(true)
                 // `service_fn` converts our function in a `Service`
                 .serve_connection(
                     io,
-                    service_fn(|request: Request<hyper::body::Incoming>| {
+                    service_fn(move |request: Request<hyper::body::Incoming>| {
                         let di_context = Arc::clone(&di_context);
                         let application_properties = Arc::clone(&application_properties);
 
+                        let running_task_count = Arc::clone(&running_task_count);
+
                         async move {
-                            process_request(
-                                application_properties,
-                                di_context,
-                                root_module,
-                                request,
-                            )
-                            .await
+                            let handle = tokio::spawn(async move {
+                                if is_graceful_shutdown {
+                                    running_task_count
+                                        .fetch_add(1, std::sync::atomic::Ordering::Release);
+                                }
+
+                                let result = process_request(
+                                    application_properties,
+                                    di_context,
+                                    root_module,
+                                    request,
+                                )
+                                .await;
+
+                                if is_graceful_shutdown {
+                                    running_task_count
+                                        .fetch_sub(1, std::sync::atomic::Ordering::Release);
+                                }
+
+                                result
+                            });
+
+                            let result = handle.await;
+
+                            match result {
+                                Ok(response) => response,
+                                Err(error) => default_join_error_handler(error),
+                            }
                         }
                     }),
                 )
                 .await
             {
                 println!("Error serving connection: {:?}", err);
-            }
-
-            if is_graceful_shutdown {
-                running_task_count.fetch_sub(1, std::sync::atomic::Ordering::Release);
             }
         });
     }
@@ -306,6 +322,21 @@ fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
         .unwrap();
 
     if let Ok(status) = StatusCode::from_u16(404) {
+        *response.status_mut() = status;
+    }
+
+    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+}
+
+fn default_join_error_handler(error: JoinError) -> Result<Response<Full<Bytes>>, Infallible> {
+    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
+        .body(Full::new(Bytes::from(format!(
+            "Internal Server Error: {:?}",
+            error
+        ))))
+        .unwrap();
+
+    if let Ok(status) = StatusCode::from_u16(500) {
         *response.status_mut() = status;
     }
 
