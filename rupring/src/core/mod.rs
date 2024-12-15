@@ -127,8 +127,6 @@ pub async fn run_server(
                             if let Some(timeout_duration) =
                                 application_properties.server.request_timeout
                             {
-                                println!("Timeout Duration: {:?}", timeout_duration);
-
                                 let now = Instant::now();
 
                                 let handle = tokio::time::timeout_at(
