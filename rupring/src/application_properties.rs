@@ -35,6 +35,7 @@ use std::collections::HashMap;
 pub struct ApplicationProperties {
     pub server: Server,
     pub environment: String,
+    pub banner: Banner,
 
     pub etc: HashMap<String, String>,
 }
@@ -45,6 +46,7 @@ impl Default for ApplicationProperties {
             server: Server::default(),
             environment: "dev".to_string(),
             etc: HashMap::new(),
+            banner: Banner::default(),
         }
     }
 }
@@ -103,6 +105,23 @@ impl Default for Compression {
             .collect(),
             min_response_size: 2048, // 2KB
             algorithm: CompressionAlgorithm::Gzip,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Banner {
+    pub enabled: bool,
+    pub charset: String,
+    pub location: Option<String>,
+}
+
+impl Default for Banner {
+    fn default() -> Self {
+        Banner {
+            enabled: true,
+            charset: "UTF-8".to_string(),
+            location: None,
         }
     }
 }
@@ -174,6 +193,7 @@ impl ApplicationProperties {
         let mut server = Server::default();
         let mut environment = "dev".to_string();
         let mut etc = HashMap::new();
+        let mut banner = Banner::default();
 
         let mut key_values = HashMap::new();
 
@@ -261,6 +281,7 @@ impl ApplicationProperties {
             server,
             etc,
             environment,
+            banner,
         }
     }
 }
@@ -300,6 +321,7 @@ mod tests {
                     },
                     etc: HashMap::new(),
                     environment: "dev".to_string(),
+                    ..Default::default()
                 },
                 before: || {
                     remove_all_env();
@@ -321,6 +343,7 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::from([("foo.bar".to_string(), "hello".to_string())]),
+                    ..Default::default()
                 },
                 before: || {
                     remove_all_env();
@@ -341,6 +364,7 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::from([("asdf.fdsa".to_string(), "!!".to_string())]),
+                    ..Default::default()
                 },
                 before: || {
                     remove_all_env();
@@ -362,6 +386,7 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
+                    ..Default::default()
                 },
                 before: || {
                     remove_all_env();
@@ -382,6 +407,7 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
+                    ..Default::default()
                 },
                 before: || {
                     remove_all_env();
@@ -402,6 +428,7 @@ mod tests {
                     },
                     environment: "dev".to_string(),
                     etc: HashMap::new(),
+                    ..Default::default()
                 },
                 before: || {
                     remove_all_env();
@@ -423,6 +450,7 @@ mod tests {
                     },
                     environment: "prod".to_string(),
                     etc: HashMap::new(),
+                    ..Default::default()
                 },
                 before: || {
                     remove_all_env();
