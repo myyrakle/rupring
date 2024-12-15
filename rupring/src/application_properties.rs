@@ -32,7 +32,7 @@
 | banner.charset | The charset of the banner file. (UTF-8, UTF-16) | UTF-8 |
 */
 
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ApplicationProperties {
@@ -154,6 +154,7 @@ pub struct Server {
     pub shutdown: ShutdownType,
     pub timeout_per_shutdown_phase: String,
     pub thread_limit: Option<usize>,
+    pub request_timeout: Option<Duration>,
 }
 
 impl Default for Server {
@@ -165,6 +166,7 @@ impl Default for Server {
             shutdown: ShutdownType::Immediate,
             timeout_per_shutdown_phase: "30s".to_string(),
             thread_limit: None,
+            request_timeout: None,
         }
     }
 }
