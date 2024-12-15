@@ -271,6 +271,9 @@ impl ApplicationProperties {
                 "environment" => {
                     environment = value.to_string();
                 }
+                "banner.enabled" => {
+                    banner.enabled = value.parse::<bool>().unwrap_or(true);
+                }
                 _ => {
                     etc.insert(key, value);
                 }

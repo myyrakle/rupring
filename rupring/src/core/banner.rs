@@ -8,6 +8,10 @@ const DEFAULT_BANNER_TEXT: &'static str = r#",------.                       ,--.
                  `--'                      `---'   "#;
 
 pub fn print_banner(application_properties: &ApplicationProperties) {
+    if !application_properties.banner.enabled {
+        return;
+    }
+
     println!("{}", DEFAULT_BANNER_TEXT);
     print_app_info();
     println!("");
