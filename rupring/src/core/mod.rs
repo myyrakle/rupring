@@ -52,7 +52,7 @@ pub async fn run_server(
     }
 
     // 3. ready, set, go!
-    banner::print_banner();
+    banner::print_banner(&application_properties);
 
     let socket_address = make_address(&application_properties)?;
 
@@ -163,7 +163,7 @@ pub async fn run_server_on_aws_lambda(
     }
 
     // 3. ready, set, go!
-    banner::print_banner();
+    banner::print_banner(&application_properties);
 
     let application_properties = Arc::new(application_properties);
 
