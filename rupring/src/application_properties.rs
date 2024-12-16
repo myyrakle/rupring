@@ -146,6 +146,17 @@ impl From<String> for ShutdownType {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Http1 {
+    pub keep_alive: bool,
+}
+
+impl Default for Http1 {
+    fn default() -> Self {
+        Http1 { keep_alive: true }
+    }
+}
+
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]
 pub struct Server {
@@ -156,6 +167,7 @@ pub struct Server {
     pub timeout_per_shutdown_phase: String,
     pub thread_limit: Option<usize>,
     pub request_timeout: Option<Duration>,
+    pub http1: Http1,
 }
 
 impl Default for Server {
@@ -168,6 +180,7 @@ impl Default for Server {
             timeout_per_shutdown_phase: "30s".to_string(),
             thread_limit: None,
             request_timeout: None,
+            http1: Http1::default(),
         }
     }
 }
@@ -294,6 +307,11 @@ impl ApplicationProperties {
                         println!("timeout: {:?}", duration);
 
                         server.request_timeout = Some(duration);
+                    }
+                }
+                "server.http1.keep-alive" => {
+                    if let Ok(value) = value.parse::<bool>() {
+                        server.http1.keep_alive = value;
                     }
                 }
                 "environment" => {
