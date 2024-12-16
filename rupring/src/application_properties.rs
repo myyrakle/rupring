@@ -153,7 +153,7 @@ pub struct Http1 {
 
 impl Default for Http1 {
     fn default() -> Self {
-        Http1 { keep_alive: true }
+        Http1 { keep_alive: false }
     }
 }
 
