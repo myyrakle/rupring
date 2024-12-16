@@ -81,6 +81,8 @@ pub async fn run_server(
         );
     }
 
+    let keep_alive = application_properties.server.http1.keep_alive.to_owned();
+
     // 5. Main Server Loop
     // Spawns a new async Task for each request.
     loop {
@@ -113,7 +115,7 @@ pub async fn run_server(
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
             if let Err(err) = http1::Builder::new()
-                .keep_alive(true)
+                .keep_alive(keep_alive)
                 // `service_fn` converts our function in a `Service`
                 .serve_connection(
                     io,

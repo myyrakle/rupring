@@ -28,6 +28,7 @@
 | server.compression.algorithm | The compression algorithm to use. (gzip,deflate) | gzip |
 | server.thread.limit | The thread limit to use. | None(max) |
 | server.request-timeout | The request timeout. (300 = 300 millisecond, 3s = 3 second, 2m = 2 minute) | No Timeout |
+| server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
 | banner.enabled | Whether to enable the banner. | true |
 | banner.location | The location of the banner file. | None |
 | banner.charset | The charset of the banner file. (UTF-8, UTF-16) | UTF-8 |
@@ -146,6 +147,17 @@ impl From<String> for ShutdownType {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Http1 {
+    pub keep_alive: bool,
+}
+
+impl Default for Http1 {
+    fn default() -> Self {
+        Http1 { keep_alive: false }
+    }
+}
+
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]
 pub struct Server {
@@ -156,6 +168,7 @@ pub struct Server {
     pub timeout_per_shutdown_phase: String,
     pub thread_limit: Option<usize>,
     pub request_timeout: Option<Duration>,
+    pub http1: Http1,
 }
 
 impl Default for Server {
@@ -168,6 +181,7 @@ impl Default for Server {
             timeout_per_shutdown_phase: "30s".to_string(),
             thread_limit: None,
             request_timeout: None,
+            http1: Http1::default(),
         }
     }
 }
@@ -291,9 +305,12 @@ impl ApplicationProperties {
                             _ => std::time::Duration::from_millis(timeout),
                         };
 
-                        println!("timeout: {:?}", duration);
-
                         server.request_timeout = Some(duration);
+                    }
+                }
+                "server.http1.keep-alive" => {
+                    if let Ok(value) = value.parse::<bool>() {
+                        server.http1.keep_alive = value;
                     }
                 }
                 "environment" => {
