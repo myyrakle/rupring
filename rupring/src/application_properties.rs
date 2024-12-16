@@ -305,8 +305,6 @@ impl ApplicationProperties {
                             _ => std::time::Duration::from_millis(timeout),
                         };
 
-                        println!("timeout: {:?}", duration);
-
                         server.request_timeout = Some(duration);
                     }
                 }
