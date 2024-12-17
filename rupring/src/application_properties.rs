@@ -158,6 +158,17 @@ impl Default for Http1 {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Http2 {
+    pub enabled: bool,
+}
+
+impl Default for Http2 {
+    fn default() -> Self {
+        Http2 { enabled: false }
+    }
+}
+
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]
 pub struct Server {
@@ -169,6 +180,7 @@ pub struct Server {
     pub thread_limit: Option<usize>,
     pub request_timeout: Option<Duration>,
     pub http1: Http1,
+    pub http2: Http2,
 }
 
 impl Default for Server {
@@ -182,6 +194,7 @@ impl Default for Server {
             thread_limit: None,
             request_timeout: None,
             http1: Http1::default(),
+            http2: Http2::default(),
         }
     }
 }
@@ -311,6 +324,11 @@ impl ApplicationProperties {
                 "server.http1.keep-alive" => {
                     if let Ok(value) = value.parse::<bool>() {
                         server.http1.keep_alive = value;
+                    }
+                }
+                "server.http2.enabled" => {
+                    if let Ok(value) = value.parse::<bool>() {
+                        server.http2.enabled = value;
                     }
                 }
                 "environment" => {
