@@ -7,6 +7,7 @@ mod parse;
 
 #[cfg(feature = "aws-lambda")]
 use bootings::aws_lambda::LambdaRequestEvent;
+use hyper_util::rt::TokioExecutor;
 use tokio::time::error::Elapsed;
 use tokio::time::Instant;
 
@@ -27,7 +28,6 @@ use std::sync::Arc;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use hyper::body::Bytes;
-use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::StatusCode;
 use hyper::{Request, Response};
@@ -82,6 +82,7 @@ pub async fn run_server(
     }
 
     let keep_alive = application_properties.server.http1.keep_alive.to_owned();
+    let http2_enabled = application_properties.server.http2.enabled.to_owned();
 
     // 5. Main Server Loop
     // Spawns a new async Task for each request.
@@ -114,95 +115,107 @@ pub async fn run_server(
 
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
-            if let Err(err) = http1::Builder::new()
-                .keep_alive(keep_alive)
-                // `service_fn` converts our function in a `Service`
-                .serve_connection(
-                    io,
-                    service_fn(move |request: Request<hyper::body::Incoming>| {
-                        let di_context = Arc::clone(&di_context);
-                        let application_properties = Arc::clone(&application_properties);
+            let service = service_fn(move |request: Request<hyper::body::Incoming>| {
+                let di_context = Arc::clone(&di_context);
+                let application_properties = Arc::clone(&application_properties);
 
-                        let running_task_count = Arc::clone(&running_task_count);
+                let running_task_count = Arc::clone(&running_task_count);
 
-                        async move {
-                            if let Some(timeout_duration) =
-                                application_properties.server.request_timeout
-                            {
-                                let now = Instant::now();
+                async move {
+                    if let Some(timeout_duration) = application_properties.server.request_timeout {
+                        let now = Instant::now();
 
-                                let handle = tokio::time::timeout_at(
-                                    now + timeout_duration,
-                                    tokio::task::spawn(async move {
-                                        if is_graceful_shutdown {
-                                            running_task_count
-                                                .fetch_add(1, std::sync::atomic::Ordering::Release);
-                                        }
-
-                                        let result = process_request(
-                                            application_properties,
-                                            di_context,
-                                            root_module,
-                                            request,
-                                        )
-                                        .await;
-
-                                        if is_graceful_shutdown {
-                                            running_task_count
-                                                .fetch_sub(1, std::sync::atomic::Ordering::Release);
-                                        }
-
-                                        result
-                                    }),
-                                );
-
-                                match handle.await {
-                                    Ok(Ok(response)) => response,
-                                    Ok(Err(error)) => default_join_error_handler(error),
-                                    Err(error) => default_timeout_handler(error),
+                        let handle = tokio::time::timeout_at(
+                            now + timeout_duration,
+                            tokio::task::spawn(async move {
+                                if is_graceful_shutdown {
+                                    running_task_count
+                                        .fetch_add(1, std::sync::atomic::Ordering::Release);
                                 }
-                            } else {
-                                let _running_task_count = Arc::clone(&running_task_count);
 
-                                let handle = tokio::spawn(async move {
-                                    let running_task_count = _running_task_count;
+                                let result = process_request(
+                                    application_properties,
+                                    di_context,
+                                    root_module,
+                                    request,
+                                )
+                                .await;
 
-                                    if is_graceful_shutdown {
-                                        running_task_count
-                                            .fetch_add(1, std::sync::atomic::Ordering::Release);
-                                    }
+                                if is_graceful_shutdown {
+                                    running_task_count
+                                        .fetch_sub(1, std::sync::atomic::Ordering::Release);
+                                }
 
-                                    let result = process_request(
-                                        application_properties,
-                                        di_context,
-                                        root_module,
-                                        request,
-                                    )
-                                    .await;
+                                result
+                            }),
+                        );
 
-                                    if is_graceful_shutdown {
-                                        running_task_count
-                                            .fetch_sub(1, std::sync::atomic::Ordering::Release);
-                                    }
-
-                                    result
-                                });
-
-                                let result = handle.await;
-
-                                let response = match result {
-                                    Ok(response) => response,
-                                    Err(error) => default_join_error_handler(error),
-                                };
-
-                                return response;
-                            }
+                        match handle.await {
+                            Ok(Ok(response)) => response,
+                            Ok(Err(error)) => default_join_error_handler(error),
+                            Err(error) => default_timeout_handler(error),
                         }
-                    }),
-                )
-                .await
-            {
-                println!("Error serving connection: {:?}", err);
+                    } else {
+                        let _running_task_count = Arc::clone(&running_task_count);
+
+                        let handle = tokio::spawn(async move {
+                            let running_task_count = _running_task_count;
+
+                            if is_graceful_shutdown {
+                                running_task_count
+                                    .fetch_add(1, std::sync::atomic::Ordering::Release);
+                            }
+
+                            let result = process_request(
+                                application_properties,
+                                di_context,
+                                root_module,
+                                request,
+                            )
+                            .await;
+
+                            if is_graceful_shutdown {
+                                running_task_count
+                                    .fetch_sub(1, std::sync::atomic::Ordering::Release);
+                            }
+
+                            result
+                        });
+
+                        let result = handle.await;
+
+                        let response = match result {
+                            Ok(response) => response,
+                            Err(error) => default_join_error_handler(error),
+                        };
+
+                        return response;
+                    }
+                }
+            });
+
+            if http2_enabled {
+                let mut http_builder =
+                    hyper_util::server::conn::auto::Builder::new(TokioExecutor::new());
+
+                http_builder.http2().enable_connect_protocol();
+
+                if let Err(err) = http_builder
+                    .serve_connection_with_upgrades(io, service)
+                    .await
+                {
+                    println!("Error serving connection: {:?}", err);
+                }
+            } else {
+                let mut http_builder = hyper::server::conn::http1::Builder::new();
+
+                if keep_alive {
+                    http_builder.keep_alive(keep_alive);
+                }
+
+                if let Err(err) = http_builder.serve_connection(io, service).await {
+                    println!("Error serving connection: {:?}", err);
+                }
             }
         });
     }
