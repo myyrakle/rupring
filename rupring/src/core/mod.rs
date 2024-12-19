@@ -7,7 +7,6 @@ mod parse;
 
 #[cfg(feature = "aws-lambda")]
 use bootings::aws_lambda::LambdaRequestEvent;
-use hyper::server::conn::http2;
 use hyper_util::rt::TokioExecutor;
 use tokio::time::error::Elapsed;
 use tokio::time::Instant;
@@ -29,7 +28,6 @@ use std::sync::Arc;
 use http_body_util::BodyExt;
 use http_body_util::Full;
 use hyper::body::Bytes;
-use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::StatusCode;
 use hyper::{Request, Response};
@@ -196,13 +194,28 @@ pub async fn run_server(
                 }
             });
 
-            if let Err(err) = http1::Builder::new()
-                .keep_alive(keep_alive)
-                // `service_fn` converts our function in a `Service`
-                .serve_connection(io, service)
-                .await
-            {
-                println!("Error serving connection: {:?}", err);
+            if http2_enabled {
+                let mut http_builder =
+                    hyper_util::server::conn::auto::Builder::new(TokioExecutor::new());
+
+                http_builder.http2().enable_connect_protocol();
+
+                if let Err(err) = http_builder
+                    .serve_connection_with_upgrades(io, service)
+                    .await
+                {
+                    println!("Error serving connection: {:?}", err);
+                }
+            } else {
+                let mut http_builder = hyper::server::conn::http1::Builder::new();
+
+                if keep_alive {
+                    http_builder.keep_alive(keep_alive);
+                }
+
+                if let Err(err) = http_builder.serve_connection(io, service).await {
+                    println!("Error serving connection: {:?}", err);
+                }
             }
         });
     }
