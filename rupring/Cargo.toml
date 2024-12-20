@@ -41,5 +41,6 @@ signal-hook = "0.3.17"
 [features] 
 default = []
 
-full = ["aws-lambda"]
+full = ["aws-lambda", "tls"]
 aws-lambda = []
+tls = []

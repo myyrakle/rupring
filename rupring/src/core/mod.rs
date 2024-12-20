@@ -7,6 +7,7 @@ mod parse;
 
 #[cfg(feature = "aws-lambda")]
 use bootings::aws_lambda::LambdaRequestEvent;
+
 use hyper_util::rt::TokioExecutor;
 use tokio::time::error::Elapsed;
 use tokio::time::Instant;
@@ -20,7 +21,6 @@ pub(crate) mod route;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::error::Error;
-
 use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
