@@ -25,3 +25,5 @@ test.json
 *.zip
 
 *.http
+
+*.pem
