@@ -12,8 +12,6 @@ use bootings::tls;
 use hyper_util::rt::TokioExecutor;
 use tokio::time::error::Elapsed;
 use tokio::time::Instant;
-use tokio_rustls::rustls::ServerConfig;
-use tokio_rustls::TlsAcceptor;
 
 use crate::application_properties;
 use crate::application_properties::CompressionAlgorithm;
@@ -88,17 +86,7 @@ pub async fn run_server(
     let keep_alive = application_properties.server.http1.keep_alive.to_owned();
     let http2_enabled = application_properties.server.http2.enabled.to_owned();
 
-    let certs = tls::load_certs("cert.pem")?;
-    // Load private key.
-    let key = tls::load_private_key("key.pem")?;
-
-    // Build TLS configuration.
-    let mut server_config = ServerConfig::builder()
-        .with_no_client_auth()
-        .with_single_cert(certs, key)
-        .map_err(|e| tls::error(e.to_string()))?;
-    server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec(), b"http/1.0".to_vec()];
-    let tls_acceptor = TlsAcceptor::from(Arc::new(server_config));
+    let tls_acceptor = tls::new_tls_acceptor(&application_properties)?;
 
     // 5. Main Server Loop
     // Spawns a new async Task for each request.
@@ -119,10 +107,6 @@ pub async fn run_server(
             }
         }
 
-        // Use an adapter to access something implementing `tokio::io` traits as if they implement
-        // `hyper::rt` IO traits.
-        // let io = TokioIo::new(tcp_stream);
-
         // copy for each request
         let di_context = Arc::clone(&di_context);
         let application_properties = Arc::clone(&application_properties);
@@ -133,8 +117,6 @@ pub async fn run_server(
 
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
-            // let tls_stream = tls_acceptor.accept(tcp_stream).await.unwrap();
-
             let tls_stream = match tls_acceptor.accept(tcp_stream).await {
                 Ok(tls_stream) => tls_stream,
                 Err(err) => {
