@@ -7,6 +7,9 @@ mod parse;
 
 #[cfg(feature = "aws-lambda")]
 use bootings::aws_lambda::LambdaRequestEvent;
+
+#[cfg(feature = "tls")]
+use bootings::tls;
 use hyper_util::rt::TokioExecutor;
 use tokio::time::error::Elapsed;
 use tokio::time::Instant;
@@ -84,10 +87,17 @@ pub async fn run_server(
     let keep_alive = application_properties.server.http1.keep_alive.to_owned();
     let http2_enabled = application_properties.server.http2.enabled.to_owned();
 
+    #[cfg(feature = "tls")]
+    let tls_acceptor = {
+        print_system_log(Level::Info, "TLS Enabled");
+
+        tls::new_tls_acceptor(&application_properties)?
+    };
+
     // 5. Main Server Loop
     // Spawns a new async Task for each request.
     loop {
-        let (mut stream, _) = listener.accept().await?;
+        let (mut tcp_stream, _) = listener.accept().await?;
 
         if is_graceful_shutdown {
             if !service_avaliable.load(std::sync::atomic::Ordering::Acquire) {
@@ -95,15 +105,11 @@ pub async fn run_server(
 
                 // reject new request
                 use tokio::io::AsyncWriteExt;
-                let _ = stream.shutdown();
+                let _ = tcp_stream.shutdown();
 
                 continue;
             }
         }
-
-        // Use an adapter to access something implementing `tokio::io` traits as if they implement
-        // `hyper::rt` IO traits.
-        let io = TokioIo::new(stream);
 
         // copy for each request
         let di_context = Arc::clone(&di_context);
@@ -112,6 +118,9 @@ pub async fn run_server(
 
         // for Graceful Shutdown
         let running_task_count = Arc::clone(&running_task_count);
+
+        #[cfg(feature = "tls")]
+        let tls_acceptor = tls_acceptor.clone();
 
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
@@ -193,6 +202,22 @@ pub async fn run_server(
                     }
                 }
             });
+
+            #[cfg(feature = "tls")]
+            let io = {
+                let tls_stream = match tls_acceptor.accept(tcp_stream).await {
+                    Ok(tls_stream) => tls_stream,
+                    Err(err) => {
+                        eprintln!("failed to perform tls handshake: {err:#}");
+                        return;
+                    }
+                };
+
+                TokioIo::new(tls_stream)
+            };
+
+            #[cfg(not(feature = "tls"))]
+            let io = TokioIo::new(tcp_stream);
 
             if http2_enabled {
                 let mut http_builder =

@@ -29,6 +29,9 @@
 | server.thread.limit | The thread limit to use. | None(max) |
 | server.request-timeout | The request timeout. (300 = 300 millisecond, 3s = 3 second, 2m = 2 minute) | No Timeout |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
+| server.http2.enabled | Whether to enable HTTP/2. | false |
+| server.ssl.key | The SSL key file. (SSL is enabled by feature="tls") | None |
+| server.ssl.cert | The SSL cert file. (SSL is enabled by feature="tls") | None |
 | banner.enabled | Whether to enable the banner. | true |
 | banner.location | The location of the banner file. | None |
 | banner.charset | The charset of the banner file. (UTF-8, UTF-16) | UTF-8 |
@@ -147,6 +150,12 @@ impl From<String> for ShutdownType {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct SSL {
+    pub key: String,
+    pub cert: String,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Http1 {
     pub keep_alive: bool,
@@ -181,6 +190,7 @@ pub struct Server {
     pub request_timeout: Option<Duration>,
     pub http1: Http1,
     pub http2: Http2,
+    pub ssl: SSL,
 }
 
 impl Default for Server {
@@ -195,6 +205,7 @@ impl Default for Server {
             request_timeout: None,
             http1: Http1::default(),
             http2: Http2::default(),
+            ssl: Default::default(),
         }
     }
 }
@@ -330,6 +341,12 @@ impl ApplicationProperties {
                     if let Ok(value) = value.parse::<bool>() {
                         server.http2.enabled = value;
                     }
+                }
+                "server.ssl.key" => {
+                    server.ssl.key = value.to_string();
+                }
+                "server.ssl.cert" => {
+                    server.ssl.cert = value.to_string();
                 }
                 "environment" => {
                     environment = value.to_string();
