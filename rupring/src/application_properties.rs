@@ -340,6 +340,17 @@ impl ApplicationProperties {
                         server.http2.enabled = value;
                     }
                 }
+                "server.ssl.enabled" => {
+                    if let Ok(value) = value.parse::<bool>() {
+                        server.ssl.enabled = value;
+                    }
+                }
+                "server.ssl.key" => {
+                    server.ssl.key = value.to_string();
+                }
+                "server.ssl.cert" => {
+                    server.ssl.cert = value.to_string();
+                }
                 "environment" => {
                     environment = value.to_string();
                 }
