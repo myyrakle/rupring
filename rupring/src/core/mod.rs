@@ -8,6 +8,7 @@ mod parse;
 #[cfg(feature = "aws-lambda")]
 use bootings::aws_lambda::LambdaRequestEvent;
 
+#[cfg(feature = "tls")]
 use bootings::tls;
 use hyper_util::rt::TokioExecutor;
 use tokio::time::error::Elapsed;
