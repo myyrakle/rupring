@@ -30,7 +30,6 @@
 | server.request-timeout | The request timeout. (300 = 300 millisecond, 3s = 3 second, 2m = 2 minute) | No Timeout |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
 | server.http2.enabled | Whether to enable HTTP/2. | false |
-| server.ssl.enabled | Whether to enable SSL. | false |
 | server.ssl.key | The SSL key file. | None |
 | server.ssl.cert | The SSL cert file. | None |
 | banner.enabled | Whether to enable the banner. | true |
@@ -153,7 +152,6 @@ impl From<String> for ShutdownType {
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct SSL {
-    pub enabled: bool,
     pub key: String,
     pub cert: String,
 }
@@ -342,11 +340,6 @@ impl ApplicationProperties {
                 "server.http2.enabled" => {
                     if let Ok(value) = value.parse::<bool>() {
                         server.http2.enabled = value;
-                    }
-                }
-                "server.ssl.enabled" => {
-                    if let Ok(value) = value.parse::<bool>() {
-                        server.ssl.enabled = value;
                     }
                 }
                 "server.ssl.key" => {
