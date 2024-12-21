@@ -29,6 +29,7 @@
 | server.thread.limit | The thread limit to use. | None(max) |
 | server.request-timeout | The request timeout. (300 = 300 millisecond, 3s = 3 second, 2m = 2 minute) | No Timeout |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
+| server.http2.enabled | Whether to enable HTTP/2. | false |
 | banner.enabled | Whether to enable the banner. | true |
 | banner.location | The location of the banner file. | None |
 | banner.charset | The charset of the banner file. (UTF-8, UTF-16) | UTF-8 |
