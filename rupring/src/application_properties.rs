@@ -147,6 +147,13 @@ impl From<String> for ShutdownType {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct SSL {
+    pub enabled: bool,
+    pub key: String,
+    pub cert: String,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Http1 {
     pub keep_alive: bool,
@@ -181,6 +188,7 @@ pub struct Server {
     pub request_timeout: Option<Duration>,
     pub http1: Http1,
     pub http2: Http2,
+    pub ssl: SSL,
 }
 
 impl Default for Server {
@@ -195,6 +203,7 @@ impl Default for Server {
             request_timeout: None,
             http1: Http1::default(),
             http2: Http2::default(),
+            ssl: Default::default(),
         }
     }
 }
