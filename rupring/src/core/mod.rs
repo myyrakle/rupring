@@ -525,8 +525,11 @@ where
             query_parameters,
             headers,
             path_parameters,
+            cookies: HashMap::new(),
             di_context: Arc::clone(&di_context),
         };
+
+        request.parse_cookies_from_headers();
 
         let mut response = crate::Response::new();
 
