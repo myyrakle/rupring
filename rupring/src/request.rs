@@ -87,6 +87,8 @@ impl rupring::ParamStringDeserializer<SomeCustomType> for rupring::ParamString {
 */
 use std::{collections::HashMap, panic::UnwindSafe, sync::Arc};
 
+use hyper::header;
+
 use crate::Method;
 
 #[derive(Debug, Clone)]
@@ -95,9 +97,25 @@ pub struct Request {
     pub path: String,
     pub body: String,
     pub headers: HashMap<String, String>,
+    pub cookies: HashMap<String, String>,
     pub query_parameters: HashMap<String, Vec<String>>,
     pub path_parameters: HashMap<String, String>,
     pub(crate) di_context: Arc<crate::DIContext>,
+}
+
+impl Request {
+    pub fn parse_cookies_from_headers(&mut self) {
+        if let Some(cookie_header) = self.headers.get(header::COOKIE.as_str()) {
+            for cookie in cookie_header.split("; ") {
+                let mut parts = cookie.splitn(2, '=');
+                if let Some(key) = parts.next() {
+                    if let Some(value) = parts.next() {
+                        self.cookies.insert(key.to_string(), value.to_string());
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Request {
