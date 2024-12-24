@@ -254,7 +254,7 @@ impl Response {
     /// ```
     /// use rupring::HeaderName;
     /// let response = rupring::Response::new().header("content-type", "application/json".to_string());
-    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &vec!["application/json".to_string()]);
     pub fn header(mut self, name: &'static str, value: impl ToString) -> Self {
         if let Some(values) = self.headers.get_mut(&HeaderName::from_static(name)) {
             values.push(value.to_string());
@@ -271,9 +271,9 @@ impl Response {
     /// use rupring::HeaderName;
     /// use std::collections::HashMap;
     /// let mut headers = HashMap::new();
-    /// headers.insert(HeaderName::from_static("content-type"), "application/json".to_string());
+    /// headers.insert(HeaderName::from_static("content-type"), vec!["application/json".to_string()]);
     /// let response = rupring::Response::new().headers(headers);
-    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &vec!["application/json".to_string()]);
     pub fn headers(mut self, headers: HashMap<HeaderName, Vec<String>>) -> Self {
         self.headers = headers;
         return self;
@@ -284,7 +284,7 @@ impl Response {
     /// use rupring::HeaderName;
     /// use std::collections::HashMap;
     /// let response = rupring::Response::new().redirect("https://naver.com");
-    /// assert_eq!(response.headers.get(&HeaderName::from_static("location")).unwrap(), &"https://naver.com".to_string());
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("location")).unwrap(), &vec!["https://naver.com".to_string()]);
     pub fn redirect(mut self, url: impl ToString) -> Self {
         if self.status < 300 || self.status > 308 {
             self.status = 302;
