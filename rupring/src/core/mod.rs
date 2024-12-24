@@ -585,9 +585,11 @@ where
         *response.status_mut() = status;
     }
 
-    for (key, value) in headers.iter() {
-        if let Ok(value) = value.parse() {
-            response.headers_mut().insert(key, value);
+    for (key, values) in headers.iter() {
+        for value in values.iter() {
+            if let Ok(value) = value.parse() {
+                response.headers_mut().append(key, value);
+            }
         }
     }
 
@@ -602,21 +604,29 @@ fn post_process_response(
         return response;
     }
 
-    let content_type = response
+    let content_types = response
         .headers
         .get(&crate::HeaderName::from_static(header::CONTENT_TYPE));
 
-    let content_type = match content_type {
-        Some(content_type) => content_type,
+    let content_types = match content_types {
+        Some(content_types) => content_types,
         None => return response,
     };
 
-    if !application_properties
-        .server
-        .compression
-        .mime_types
-        .contains(content_type)
-    {
+    let mut is_compression_content_type = false;
+    for content_type in content_types {
+        if application_properties
+            .server
+            .compression
+            .mime_types
+            .contains(content_type)
+        {
+            is_compression_content_type = true;
+            break;
+        }
+    }
+
+    if !is_compression_content_type {
         return response;
     }
 
@@ -642,11 +652,11 @@ fn post_process_response(
             // add header for compression
             response.headers.insert(
                 crate::HeaderName::from_static(header::CONTENT_ENCODING),
-                application_properties
+                vec![application_properties
                     .server
                     .compression
                     .algorithm
-                    .to_string(),
+                    .to_string()],
             );
         }
         CompressionAlgorithm::Deflate => {
@@ -666,11 +676,11 @@ fn post_process_response(
             // add header for compression
             response.headers.insert(
                 crate::HeaderName::from_static(header::CONTENT_ENCODING),
-                application_properties
+                vec![application_properties
                     .server
                     .compression
                     .algorithm
-                    .to_string(),
+                    .to_string()],
             );
         }
         _ => {}

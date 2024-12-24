@@ -83,11 +83,56 @@ pub struct Cookie {
     pub(crate) same_site: Option<String>,
 }
 
+impl Cookie {
+    pub fn new(name: impl ToString, value: impl ToString) -> Self {
+        Self {
+            name: name.to_string(),
+            value: value.to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn expires(mut self, expires: impl ToString) -> Self {
+        self.expires = Some(expires.to_string());
+        return self;
+    }
+
+    pub fn max_age(mut self, max_age: impl ToString) -> Self {
+        self.max_age = Some(max_age.to_string());
+        return self;
+    }
+
+    pub fn domain(mut self, domain: impl ToString) -> Self {
+        self.domain = Some(domain.to_string());
+        return self;
+    }
+
+    pub fn path(mut self, path: impl ToString) -> Self {
+        self.path = Some(path.to_string());
+        return self;
+    }
+
+    pub fn secure(mut self, secure: bool) -> Self {
+        self.secure = Some(secure);
+        return self;
+    }
+
+    pub fn http_only(mut self, http_only: bool) -> Self {
+        self.http_only = Some(http_only);
+        return self;
+    }
+
+    pub fn same_site(mut self, same_site: impl ToString) -> Self {
+        self.same_site = Some(same_site.to_string());
+        return self;
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
     pub body: Vec<u8>,
-    pub headers: HashMap<HeaderName, String>,
+    pub headers: HashMap<HeaderName, Vec<String>>,
     pub(crate) next: Option<Box<(Request, Response)>>,
     pub(crate) set_cookies: Vec<Cookie>,
 }
@@ -126,7 +171,7 @@ impl Response {
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static(header::CONTENT_TYPE),
-            meme::JSON.into(),
+            vec![meme::JSON.into()],
         );
 
         self.body = match serde_json::to_string(&body) {
@@ -148,7 +193,7 @@ impl Response {
     pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static(header::CONTENT_TYPE),
-            meme::TEXT.to_string(),
+            vec![meme::TEXT.to_string()],
         );
 
         self.body = body.to_string().into();
@@ -171,8 +216,13 @@ impl Response {
     /// let response = rupring::Response::new().header("content-type", "application/json".to_string());
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
     pub fn header(mut self, name: &'static str, value: impl ToString) -> Self {
-        self.headers
-            .insert(HeaderName::from_static(name), value.to_string());
+        if let Some(values) = self.headers.get_mut(&HeaderName::from_static(name)) {
+            values.push(value.to_string());
+        } else {
+            self.headers
+                .insert(HeaderName::from_static(name), vec![value.to_string()]);
+        }
+
         return self;
     }
 
@@ -184,7 +234,7 @@ impl Response {
     /// headers.insert(HeaderName::from_static("content-type"), "application/json".to_string());
     /// let response = rupring::Response::new().headers(headers);
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
-    pub fn headers(mut self, headers: HashMap<HeaderName, String>) -> Self {
+    pub fn headers(mut self, headers: HashMap<HeaderName, Vec<String>>) -> Self {
         self.headers = headers;
         return self;
     }
@@ -214,8 +264,10 @@ impl From<Response> for hyper::Response<Full<Bytes>> {
 
         builder = builder.status(response.status);
 
-        for (header_name, header_value) in response.headers {
-            builder = builder.header(header_name.clone(), header_value);
+        for (header_name, header_values) in response.headers {
+            for header_value in header_values {
+                builder = builder.header(header_name.clone(), header_value);
+            }
         }
 
         let response = builder.body(Full::new(Bytes::from(response.body))).unwrap();

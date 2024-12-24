@@ -10,7 +10,10 @@ pub fn index(request: rupring::Request) -> rupring::Response {
     let body = request.body;
     println!("body: {}", body);
 
-    rupring::Response::new().text("123214")
+    rupring::Response::new()
+        .text("123214")
+        .header(rupring::header::SET_COOKIE, "foo=bar")
+        .header(rupring::header::SET_COOKIE, "baz=qux")
 }
 
 #[rupring::Get(path = /slow)]
