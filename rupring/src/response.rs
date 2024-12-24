@@ -71,11 +71,25 @@ use http_body_util::Full;
 use hyper::body::Bytes;
 
 #[derive(Debug, Clone, Default)]
+pub struct Cookie {
+    pub name: String,
+    pub value: String,
+    pub(crate) expires: Option<String>,
+    pub(crate) max_age: Option<String>,
+    pub(crate) domain: Option<String>,
+    pub(crate) path: Option<String>,
+    pub(crate) secure: Option<bool>,
+    pub(crate) http_only: Option<bool>,
+    pub(crate) same_site: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
     pub body: Vec<u8>,
     pub headers: HashMap<HeaderName, String>,
     pub(crate) next: Option<Box<(Request, Response)>>,
+    pub(crate) set_cookies: Vec<Cookie>,
 }
 
 impl UnwindSafe for Response {}
@@ -92,6 +106,7 @@ impl Response {
             body: Vec::new(),
             headers: Default::default(),
             next: None,
+            set_cookies: Vec::new(),
         }
     }
 
