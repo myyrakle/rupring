@@ -1,3 +1,5 @@
+use rupring::response::Cookie;
+
 #[derive(Debug, Clone)]
 #[rupring::Controller(prefix=/, routes=[index, slow], tags=["root"])]
 pub struct RootController {}
@@ -12,8 +14,8 @@ pub fn index(request: rupring::Request) -> rupring::Response {
 
     rupring::Response::new()
         .text("123214")
-        .header(rupring::header::SET_COOKIE, "foo=bar")
-        .header(rupring::header::SET_COOKIE, "baz=qux")
+        .add_cookie(Cookie::new("name", "value").http_only(true).secure(true))
+        .add_cookie(Cookie::new("name2", "value2").http_only(true).secure(true))
 }
 
 #[rupring::Get(path = /slow)]

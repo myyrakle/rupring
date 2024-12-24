@@ -134,7 +134,6 @@ pub struct Response {
     pub body: Vec<u8>,
     pub headers: HashMap<HeaderName, Vec<String>>,
     pub(crate) next: Option<Box<(Request, Response)>>,
-    pub(crate) set_cookies: Vec<Cookie>,
 }
 
 impl UnwindSafe for Response {}
@@ -151,7 +150,6 @@ impl Response {
             body: Vec::new(),
             headers: Default::default(),
             next: None,
-            set_cookies: Vec::new(),
         }
     }
 
@@ -251,6 +249,52 @@ impl Response {
         }
 
         self.header(header::LOCATION, url)
+    }
+
+    /// add a cookie to the response.
+    /// ```
+    /// use rupring::HeaderName;
+    /// use rupring::response::Cookie;
+    /// let response = rupring::Response::new().add_cookie(Cookie::new("foo", "bar"));
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("set-cookie")).unwrap(), &vec!["foo=bar".to_string()]);
+    /// ```
+    pub fn add_cookie(mut self, cookie: Cookie) -> Self {
+        let mut cookie_str = format!("{}={}", cookie.name, cookie.value);
+
+        if let Some(expires) = cookie.expires {
+            cookie_str.push_str(&format!("; Expires={}", expires));
+        }
+
+        if let Some(max_age) = cookie.max_age {
+            cookie_str.push_str(&format!("; Max-Age={}", max_age));
+        }
+
+        if let Some(domain) = cookie.domain {
+            cookie_str.push_str(&format!("; Domain={}", domain));
+        }
+
+        if let Some(path) = cookie.path {
+            cookie_str.push_str(&format!("; Path={}", path));
+        }
+
+        if let Some(secure) = cookie.secure {
+            cookie_str.push_str(&format!("; Secure={}", secure));
+        }
+
+        if let Some(http_only) = cookie.http_only {
+            cookie_str.push_str(&format!("; HttpOnly={}", http_only));
+        }
+
+        if let Some(same_site) = cookie.same_site {
+            cookie_str.push_str(&format!("; SameSite={}", same_site));
+        }
+
+        self.headers
+            .entry(HeaderName::from_static(header::SET_COOKIE))
+            .or_insert_with(Vec::new)
+            .push(cookie_str);
+
+        return self;
     }
 }
 
