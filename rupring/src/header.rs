@@ -12,6 +12,7 @@ pub const CONTENT_ENCODING: &'static str = "content-encoding";
 pub const USER_AGENT: &'static str = "user-agent";
 pub const HOST: &'static str = "host";
 pub const CONNECTION: &'static str = "connection";
+pub const SET_COOKIE: &'static str = "set-cookie";
 
 // response only headers
 pub const LOCATION: &'static str = "location";
