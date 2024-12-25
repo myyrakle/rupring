@@ -70,11 +70,111 @@ use crate::{header, meme, HeaderName, Request};
 use http_body_util::Full;
 use hyper::body::Bytes;
 
+/// HTTP cookie
+#[derive(Debug, Clone, Default)]
+pub struct Cookie {
+    pub name: String,
+    pub value: String,
+    pub expires: Option<String>,
+    pub max_age: Option<String>,
+    pub domain: Option<String>,
+    pub path: Option<String>,
+    pub secure: Option<bool>,
+    pub http_only: Option<bool>,
+    pub same_site: Option<String>,
+}
+
+impl Cookie {
+    /// Create a new cookie.
+    /// ```
+    /// let cookie = rupring::response::Cookie::new("foo", "bar");
+    /// assert_eq!(cookie.name, "foo");
+    /// assert_eq!(cookie.value, "bar");
+    /// ```
+    pub fn new(name: impl ToString, value: impl ToString) -> Self {
+        Self {
+            name: name.to_string(),
+            value: value.to_string(),
+            ..Default::default()
+        }
+    }
+
+    /// Set the expiration date of the cookie.
+    /// ```
+    /// let cookie = rupring::response::Cookie::new("foo", "bar").expires("Wed, 21 Oct 2015 07:28:00 GMT");
+    /// assert_eq!(cookie.expires.unwrap(), "Wed, 21 Oct 2015 07:28:00 GMT");
+    /// ```
+    pub fn expires(mut self, expires: impl ToString) -> Self {
+        self.expires = Some(expires.to_string());
+        return self;
+    }
+
+    /// Set the maximum age of the cookie.
+    /// ```
+    /// let cookie = rupring::response::Cookie::new("foo", "bar").max_age("3600");
+    /// assert_eq!(cookie.max_age.unwrap(), "3600");
+    /// ```
+    pub fn max_age(mut self, max_age: impl ToString) -> Self {
+        self.max_age = Some(max_age.to_string());
+        return self;
+    }
+
+    /// Set the domain of the cookie.
+    /// ```
+    /// let cookie = rupring::response::Cookie::new("foo", "bar").domain("example.com");
+    /// assert_eq!(cookie.domain.unwrap(), "example.com");
+    /// ```
+    pub fn domain(mut self, domain: impl ToString) -> Self {
+        self.domain = Some(domain.to_string());
+        return self;
+    }
+
+    /// Set the path of the cookie.
+    /// ```
+    /// let cookie = rupring::response::Cookie::new("foo", "bar").path("/path");
+    /// assert_eq!(cookie.path.unwrap(), "/path");
+    /// ```
+    pub fn path(mut self, path: impl ToString) -> Self {
+        self.path = Some(path.to_string());
+        return self;
+    }
+
+    /// Set the secure flag of the cookie.
+    /// ```
+    /// let cookie = rupring::response::Cookie::new("foo", "bar").secure(true);
+    /// assert_eq!(cookie.secure.unwrap(), true);
+    /// ```
+    pub fn secure(mut self, secure: bool) -> Self {
+        self.secure = Some(secure);
+        return self;
+    }
+
+    /// Set the http only flag of the cookie.
+    /// ```
+    /// let cookie = rupring::response::Cookie::new("foo", "bar").http_only(true);
+    /// assert_eq!(cookie.http_only.unwrap(), true);
+    /// ```
+    pub fn http_only(mut self, http_only: bool) -> Self {
+        self.http_only = Some(http_only);
+        return self;
+    }
+
+    /// Set the same site attribute of the cookie.
+    /// ```
+    /// let cookie = rupring::response::Cookie::new("foo", "bar").same_site("Strict");
+    /// assert_eq!(cookie.same_site.unwrap(), "Strict");
+    /// ```
+    pub fn same_site(mut self, same_site: impl ToString) -> Self {
+        self.same_site = Some(same_site.to_string());
+        return self;
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
     pub body: Vec<u8>,
-    pub headers: HashMap<HeaderName, String>,
+    pub headers: HashMap<HeaderName, Vec<String>>,
     pub(crate) next: Option<Box<(Request, Response)>>,
 }
 
@@ -111,7 +211,7 @@ impl Response {
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static(header::CONTENT_TYPE),
-            meme::JSON.into(),
+            vec![meme::JSON.into()],
         );
 
         self.body = match serde_json::to_string(&body) {
@@ -133,7 +233,7 @@ impl Response {
     pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static(header::CONTENT_TYPE),
-            meme::TEXT.to_string(),
+            vec![meme::TEXT.to_string()],
         );
 
         self.body = body.to_string().into();
@@ -154,10 +254,15 @@ impl Response {
     /// ```
     /// use rupring::HeaderName;
     /// let response = rupring::Response::new().header("content-type", "application/json".to_string());
-    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &vec!["application/json".to_string()]);
     pub fn header(mut self, name: &'static str, value: impl ToString) -> Self {
-        self.headers
-            .insert(HeaderName::from_static(name), value.to_string());
+        if let Some(values) = self.headers.get_mut(&HeaderName::from_static(name)) {
+            values.push(value.to_string());
+        } else {
+            self.headers
+                .insert(HeaderName::from_static(name), vec![value.to_string()]);
+        }
+
         return self;
     }
 
@@ -166,10 +271,10 @@ impl Response {
     /// use rupring::HeaderName;
     /// use std::collections::HashMap;
     /// let mut headers = HashMap::new();
-    /// headers.insert(HeaderName::from_static("content-type"), "application/json".to_string());
+    /// headers.insert(HeaderName::from_static("content-type"), vec!["application/json".to_string()]);
     /// let response = rupring::Response::new().headers(headers);
-    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &"application/json".to_string());
-    pub fn headers(mut self, headers: HashMap<HeaderName, String>) -> Self {
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &vec!["application/json".to_string()]);
+    pub fn headers(mut self, headers: HashMap<HeaderName, Vec<String>>) -> Self {
         self.headers = headers;
         return self;
     }
@@ -179,13 +284,59 @@ impl Response {
     /// use rupring::HeaderName;
     /// use std::collections::HashMap;
     /// let response = rupring::Response::new().redirect("https://naver.com");
-    /// assert_eq!(response.headers.get(&HeaderName::from_static("location")).unwrap(), &"https://naver.com".to_string());
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("location")).unwrap(), &vec!["https://naver.com".to_string()]);
     pub fn redirect(mut self, url: impl ToString) -> Self {
         if self.status < 300 || self.status > 308 {
             self.status = 302;
         }
 
         self.header(header::LOCATION, url)
+    }
+
+    /// add a cookie to the response.
+    /// ```
+    /// use rupring::HeaderName;
+    /// use rupring::response::Cookie;
+    /// let response = rupring::Response::new().add_cookie(Cookie::new("foo", "bar"));
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("set-cookie")).unwrap(), &vec!["foo=bar".to_string()]);
+    /// ```
+    pub fn add_cookie(mut self, cookie: Cookie) -> Self {
+        let mut cookie_str = format!("{}={}", cookie.name, cookie.value);
+
+        if let Some(expires) = cookie.expires {
+            cookie_str.push_str(&format!("; Expires={}", expires));
+        }
+
+        if let Some(max_age) = cookie.max_age {
+            cookie_str.push_str(&format!("; Max-Age={}", max_age));
+        }
+
+        if let Some(domain) = cookie.domain {
+            cookie_str.push_str(&format!("; Domain={}", domain));
+        }
+
+        if let Some(path) = cookie.path {
+            cookie_str.push_str(&format!("; Path={}", path));
+        }
+
+        if let Some(secure) = cookie.secure {
+            cookie_str.push_str(&format!("; Secure={}", secure));
+        }
+
+        if let Some(http_only) = cookie.http_only {
+            cookie_str.push_str(&format!("; HttpOnly={}", http_only));
+        }
+
+        if let Some(same_site) = cookie.same_site {
+            cookie_str.push_str(&format!("; SameSite={}", same_site));
+        }
+
+        self.headers
+            .entry(HeaderName::from_static(header::SET_COOKIE))
+            .or_insert_with(Vec::new)
+            .push(cookie_str);
+
+        return self;
     }
 }
 
@@ -199,8 +350,10 @@ impl From<Response> for hyper::Response<Full<Bytes>> {
 
         builder = builder.status(response.status);
 
-        for (header_name, header_value) in response.headers {
-            builder = builder.header(header_name.clone(), header_value);
+        for (header_name, header_values) in response.headers {
+            for header_value in header_values {
+                builder = builder.header(header_name.clone(), header_value);
+            }
         }
 
         let response = builder.body(Full::new(Bytes::from(response.body))).unwrap();
