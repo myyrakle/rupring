@@ -92,6 +92,11 @@ pub async fn run_server(
         tls::new_tls_acceptor(&application_properties)?
     };
 
+    #[cfg(feature = "http2")]
+    {
+        print_system_log(Level::Info, "HTTP/2 Enabled");
+    }
+
     // 5. Main Server Loop
     // Spawns a new async Task for each request.
     loop {
