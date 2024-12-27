@@ -29,7 +29,6 @@
 | server.thread.limit | The thread limit to use. | None(max) |
 | server.request-timeout | The request timeout. (300 = 300 millisecond, 3s = 3 second, 2m = 2 minute) | No Timeout |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
-| server.http2.enabled | Whether to enable HTTP/2. | false |
 | server.ssl.key | The SSL key file. (SSL is enabled by feature="tls") | None |
 | server.ssl.cert | The SSL cert file. (SSL is enabled by feature="tls") | None |
 | banner.enabled | Whether to enable the banner. | true |
@@ -168,13 +167,11 @@ impl Default for Http1 {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Http2 {
-    pub enabled: bool,
-}
+pub struct Http2 {}
 
 impl Default for Http2 {
     fn default() -> Self {
-        Http2 { enabled: false }
+        Http2 {}
     }
 }
 
@@ -335,11 +332,6 @@ impl ApplicationProperties {
                 "server.http1.keep-alive" => {
                     if let Ok(value) = value.parse::<bool>() {
                         server.http1.keep_alive = value;
-                    }
-                }
-                "server.http2.enabled" => {
-                    if let Ok(value) = value.parse::<bool>() {
-                        server.http2.enabled = value;
                     }
                 }
                 "server.ssl.key" => {
