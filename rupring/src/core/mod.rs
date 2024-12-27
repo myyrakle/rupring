@@ -10,7 +10,6 @@ use bootings::aws_lambda::LambdaRequestEvent;
 
 #[cfg(feature = "tls")]
 use bootings::tls;
-use hyper_util::rt::TokioExecutor;
 use tokio::time::error::Elapsed;
 use tokio::time::Instant;
 
@@ -85,7 +84,6 @@ pub async fn run_server(
     }
 
     let keep_alive = application_properties.server.http1.keep_alive.to_owned();
-    let http2_enabled = application_properties.server.http2.enabled.to_owned();
 
     #[cfg(feature = "tls")]
     let tls_acceptor = {
@@ -219,7 +217,10 @@ pub async fn run_server(
             #[cfg(not(feature = "tls"))]
             let io = TokioIo::new(tcp_stream);
 
-            if http2_enabled {
+            #[cfg(feature = "http2")]
+            {
+                use hyper_util::rt::TokioExecutor;
+
                 let mut http_builder =
                     hyper_util::server::conn::auto::Builder::new(TokioExecutor::new());
 
@@ -231,7 +232,10 @@ pub async fn run_server(
                 {
                     println!("Error serving connection: {:?}", err);
                 }
-            } else {
+            }
+
+            #[cfg(not(feature = "http2"))]
+            {
                 let mut http_builder = hyper::server::conn::http1::Builder::new();
 
                 if keep_alive {
