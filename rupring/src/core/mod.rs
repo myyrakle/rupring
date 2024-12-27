@@ -83,6 +83,7 @@ pub async fn run_server(
         );
     }
 
+    #[cfg(not(feature = "http2"))]
     let keep_alive = application_properties.server.http1.keep_alive.to_owned();
 
     #[cfg(feature = "tls")]
