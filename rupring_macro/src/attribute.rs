@@ -36,13 +36,11 @@ pub(crate) fn extract_additional_attributes(
             proc_macro::TokenTree::Punct(ref punct) => {
                 if punct.to_string().as_str() == "#" {
                     // [Key1 = value1, key2, value2, ...] 형태의 attribute를 파싱해서 map에 할당한다.
-                    if let Some(group) = iter.next() {
-                        if let proc_macro::TokenTree::Group(group) = group {
-                            let attributes = parse_attribute(group.stream(), true);
+                    if let Some(proc_macro::TokenTree::Group(group)) = iter.next() {
+                        let attributes = parse_attribute(group.stream(), true);
 
-                            for (key, value) in attributes {
-                                map.insert(key, value);
-                            }
+                        for (key, value) in attributes {
+                            map.insert(key, value);
                         }
                     }
                 } else {
