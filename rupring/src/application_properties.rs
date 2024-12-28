@@ -97,7 +97,7 @@ impl Default for Compression {
     fn default() -> Self {
         Compression {
             enabled: false,
-            mime_types: vec![
+            mime_types: [
                 "text/html",
                 "text/xml",
                 "text/plain",
