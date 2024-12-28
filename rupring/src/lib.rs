@@ -493,7 +493,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
             core::run_server(self.application_properties, self.root_module).await
         });
 
-        return result;
+        result
     }
 
     #[cfg(feature = "aws-lambda")]
@@ -514,7 +514,7 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
             core::run_server_on_aws_lambda(self.application_properties, self.root_module).await
         });
 
-        return result;
+        result
     }
 }
 

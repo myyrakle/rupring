@@ -202,7 +202,7 @@ pub async fn run_server(
                             Err(error) => default_join_error_handler(error),
                         };
 
-                        return response;
+                        response
                     }
                 }
             });
@@ -420,7 +420,7 @@ fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
         *response.status_mut() = status;
     }
 
-    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
@@ -435,7 +435,7 @@ fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infa
         *response.status_mut() = status;
     }
 
-    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 fn default_join_error_handler(error: impl Error) -> Result<Response<Full<Bytes>>, Infallible> {
@@ -450,7 +450,7 @@ fn default_join_error_handler(error: impl Error) -> Result<Response<Full<Bytes>>
         *response.status_mut() = status;
     }
 
-    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 async fn process_request<T>(
@@ -603,7 +603,7 @@ where
         }
     }
 
-    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 fn post_process_response(

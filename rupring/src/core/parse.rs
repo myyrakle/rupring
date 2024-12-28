@@ -20,7 +20,7 @@ pub(crate) fn parse_query_parameter(raw_querystring: &str) -> HashMap<String, Ve
         }
     }
 
-    return query_parameters;
+    query_parameters
 }
 
 pub(crate) fn parse_path_parameter(
@@ -41,7 +41,7 @@ pub(crate) fn parse_path_parameter(
         }
     }
 
-    return path_parameters;
+    path_parameters
 }
 
 #[cfg(test)]

@@ -21,7 +21,7 @@ pub(crate) fn is_route_matching_request(route_path: String, request_path: &str) 
         }
     }
 
-    return true;
+     true
 }
 
 pub(crate) fn normalize_path(prefix: String, path: String) -> String {
@@ -47,7 +47,7 @@ pub(crate) fn normalize_path(prefix: String, path: String) -> String {
         normalized_path.pop();
     }
 
-    return normalized_path;
+     normalized_path
 }
 
 // return (route, route_path, middlewares)
@@ -99,7 +99,7 @@ pub(crate) fn find_route(
         }
     }
 
-    return None;
+     None
 }
 
 #[cfg(test)]

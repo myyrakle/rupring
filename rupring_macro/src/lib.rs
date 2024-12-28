@@ -100,7 +100,7 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
-    return item;
+    item
 }
 
 #[proc_macro_attribute]
@@ -181,31 +181,31 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
-    return item;
+    item
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Service(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Injectable(attr, item);
+    Injectable(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Repository(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Injectable(attr, item);
+    Injectable(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Component(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Injectable(attr, item);
+    Injectable(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Bean(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Injectable(attr, item);
+    Injectable(attr, item)
 }
 
 #[proc_macro_attribute]
@@ -268,7 +268,7 @@ impl rupring::IProvider for {struct_name} {{
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
-    return item;
+    item
 }
 
 fn convert_rust_type_to_js_type(rust_type: &str) -> String {
@@ -531,67 +531,67 @@ impl rupring::IHandler for {handler_name} {{
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
-    return item;
+    item
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Get(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("GET".to_string(), attr, item);
+    MapRoute("GET".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn GetMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Get(attr, item);
+    Get(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Post(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("POST".to_string(), attr, item);
+    MapRoute("POST".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn PostMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Post(attr, item);
+    Post(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Put(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("PUT".to_string(), attr, item);
+    MapRoute("PUT".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn PutMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Put(attr, item);
+    Put(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Delete(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("DELETE".to_string(), attr, item);
+    MapRoute("DELETE".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn DeleteMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Delete(attr, item);
+    Delete(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Patch(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("PATCH".to_string(), attr, item);
+    MapRoute("PATCH".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Patch(attr, item);
+    Patch(attr, item)
 }
 
 /**

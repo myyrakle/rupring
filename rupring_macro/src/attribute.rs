@@ -134,7 +134,7 @@ pub(crate) fn parse_attribute(
         attribute_map.insert(attribute_name, AttributeValue::String("".into()));
     }
 
-    return attribute_map;
+    attribute_map
 }
 
 #[derive(Debug, Clone)]

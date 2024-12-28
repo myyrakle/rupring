@@ -106,7 +106,7 @@ impl Cookie {
     /// ```
     pub fn expires(mut self, expires: impl ToString) -> Self {
         self.expires = Some(expires.to_string());
-        return self;
+        self
     }
 
     /// Set the maximum age of the cookie.
@@ -116,7 +116,7 @@ impl Cookie {
     /// ```
     pub fn max_age(mut self, max_age: impl ToString) -> Self {
         self.max_age = Some(max_age.to_string());
-        return self;
+        self
     }
 
     /// Set the domain of the cookie.
@@ -126,7 +126,7 @@ impl Cookie {
     /// ```
     pub fn domain(mut self, domain: impl ToString) -> Self {
         self.domain = Some(domain.to_string());
-        return self;
+        self
     }
 
     /// Set the path of the cookie.
@@ -136,7 +136,7 @@ impl Cookie {
     /// ```
     pub fn path(mut self, path: impl ToString) -> Self {
         self.path = Some(path.to_string());
-        return self;
+        self
     }
 
     /// Set the secure flag of the cookie.
@@ -146,7 +146,7 @@ impl Cookie {
     /// ```
     pub fn secure(mut self, secure: bool) -> Self {
         self.secure = Some(secure);
-        return self;
+        self
     }
 
     /// Set the http only flag of the cookie.
@@ -156,7 +156,7 @@ impl Cookie {
     /// ```
     pub fn http_only(mut self, http_only: bool) -> Self {
         self.http_only = Some(http_only);
-        return self;
+        self
     }
 
     /// Set the same site attribute of the cookie.
@@ -166,7 +166,7 @@ impl Cookie {
     /// ```
     pub fn same_site(mut self, same_site: impl ToString) -> Self {
         self.same_site = Some(same_site.to_string());
-        return self;
+        self
     }
 }
 
@@ -223,7 +223,7 @@ impl Response {
         }
         .into();
 
-        return self;
+        self
     }
 
     /// Set to return a text value.
@@ -238,7 +238,7 @@ impl Response {
 
         self.body = body.to_string().into();
 
-        return self;
+        self
     }
 
     /// Set status code.
@@ -247,7 +247,7 @@ impl Response {
     /// assert_eq!(response.status, 404);
     pub fn status(mut self, status: u16) -> Self {
         self.status = status;
-        return self;
+        self
     }
 
     /// Set a header.
@@ -263,7 +263,7 @@ impl Response {
                 .insert(HeaderName::from_static(name), vec![value.to_string()]);
         }
 
-        return self;
+        self
     }
 
     /// overwrite headers.
@@ -276,7 +276,7 @@ impl Response {
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &vec!["application/json".to_string()]);
     pub fn headers(mut self, headers: HashMap<HeaderName, Vec<String>>) -> Self {
         self.headers = headers;
-        return self;
+        self
     }
 
     /// redirect to url.
@@ -336,7 +336,7 @@ impl Response {
             .or_insert_with(Vec::new)
             .push(cookie_str);
 
-        return self;
+        self
     }
 }
 
@@ -358,6 +358,6 @@ impl From<Response> for hyper::Response<Full<Bytes>> {
 
         let response = builder.body(Full::new(Bytes::from(response.body))).unwrap();
 
-        return response;
+        response
     }
 }
