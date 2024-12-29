@@ -140,10 +140,10 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
             let scopes = scopes.join("::");
 
-            if scopes.len() > 0 {
-                format!("Box::new({scopes}::{route_name}{{}})")
-            } else {
+            if scopes.is_empty() {
                 format!("Box::new({route_name}{{}})")
+            } else {
+                format!("Box::new({scopes}::{route_name}{{}})")
             }
         })
         .collect::<Vec<String>>()
@@ -354,7 +354,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             .trim_end_matches("\"")
             .to_owned();
 
-        if auth_value.len() == 0 {
+        if auth_value.is_empty() {
             auth_value = "BearerAuth".to_string();
         }
 
@@ -447,7 +447,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let handler_name = rule::make_handler_name(function_name.as_str());
 
     let mut swagger_request_body_code = "".to_string();
-    if request_body.len() > 0 {
+    if !request_body.is_empty() {
         swagger_request_body_code = format!(
             r#"
             fn swagger_request_info(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{
@@ -458,7 +458,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     }
 
     let mut swagger_response_body_code = "".to_string();
-    if response.len() > 0 {
+    if !response.is_empty() {
         swagger_response_body_code = format!(
             r#"
             fn swagger_response_info(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{

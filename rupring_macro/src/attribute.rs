@@ -104,7 +104,7 @@ pub(crate) fn parse_attribute(
                 // filter empty string
                 let attribute_value = attribute_value
                     .into_iter()
-                    .filter(|s| s.len() > 0)
+                    .filter(|s| !s.is_empty())
                     .collect::<Vec<String>>();
 
                 AttributeValue::ListOfString(attribute_value)
