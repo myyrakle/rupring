@@ -184,9 +184,7 @@ impl<T: ToSwaggerDefinitionNode> ToSwaggerDefinitionNode for Vec<T> {
 
 impl<T: ToSwaggerDefinitionNode> ToSwaggerDefinitionNode for Option<T> {
     fn to_swagger_definition(context: &mut SwaggerDefinitionContext) -> SwaggerDefinitionNode {
-        let item = T::to_swagger_definition(context);
-
-        item
+        T::to_swagger_definition(context)
     }
 }
 pub struct SwaggerRequestBody {
@@ -209,15 +207,13 @@ pub fn generate_swagger_request_info<T: ToSwaggerDefinitionNode>() -> Option<Swa
 
     let mut swagger_request_body =
         if let crate::swagger::macros::SwaggerDefinitionNode::Object(def) = root_definition {
-            let swagger_request_body = SwaggerRequestBody {
+            SwaggerRequestBody {
                 definition_name: root_definition_name,
                 definition_value: def.clone(),
                 dependencies: vec![],
                 path_parameters: def.path_parameters.clone(),
                 query_parameters: def.query_parameters.clone(),
-            };
-
-            swagger_request_body
+            }
         } else {
             return None;
         };

@@ -356,8 +356,6 @@ impl From<Response> for hyper::Response<Full<Bytes>> {
             }
         }
 
-        let response = builder.body(Full::new(Bytes::from(response.body))).unwrap();
-
-        response
+        builder.body(Full::new(Bytes::from(response.body))).unwrap()
     }
 }
