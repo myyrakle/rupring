@@ -643,19 +643,17 @@ pub fn derive_rupring_dto(item: TokenStream) -> TokenStream {
     code += "}";
 
     code += "fn to_swagger_definition(context: &mut rupring::swagger::macros::SwaggerDefinitionContext) -> rupring::swagger::macros::SwaggerDefinitionNode {";
-    code += format!(r#"let mut swagger_definition = rupring::swagger::json::SwaggerDefinition {{"#)
-        .as_str();
-    code += format!(r#"type_: "object".to_string(),"#).as_str();
-    code += format!(r#"properties: std::collections::HashMap::new(),"#).as_str();
-    code += format!(r#"required: vec![],"#).as_str();
-    code += format!(r#"path_parameters: vec![],"#).as_str();
-    code += format!(r#"query_parameters: vec![],"#).as_str();
+    code += r#"let mut swagger_definition = rupring::swagger::json::SwaggerDefinition {"#;
+    code += r#"type_: "object".to_string(),"#;
+    code += r#"properties: std::collections::HashMap::new(),"#;
+    code += r#"required: vec![],"#;
+    code += r#"path_parameters: vec![],"#;
+    code += r#"query_parameters: vec![],"#;
     code += "};";
 
     let mut define_struct_for_json = "".to_string();
-    define_struct_for_json += format!("#[allow(non_camel_case_types)]").as_str();
-    define_struct_for_json +=
-        format!(r#"#[derive(serde::Serialize, serde::Deserialize)]"#).as_str();
+    define_struct_for_json += "#[allow(non_camel_case_types)]";
+    define_struct_for_json += r#"#[derive(serde::Serialize, serde::Deserialize)]"#;
     define_struct_for_json += format!(r#"pub struct {struct_name}__JSON {{"#).as_str();
 
     let mut json_field_names = vec![];
@@ -888,7 +886,7 @@ pub fn derive_rupring_dto(item: TokenStream) -> TokenStream {
         .as_str();
     }
 
-    define_struct_for_json += format!(r#"}}"#).as_str();
+    define_struct_for_json += "}";
 
     code += "rupring::swagger::macros::SwaggerDefinitionNode::Object(swagger_definition)";
 
@@ -966,12 +964,12 @@ pub fn derive_rupring_dto(item: TokenStream) -> TokenStream {
         .as_str();
     }
 
-    request_bind_code += format!("}};").as_str();
+    request_bind_code += "};";
 
     request_bind_code += "Ok(bound)";
     request_bind_code += "}";
 
-    request_bind_code += format!(r#"}}"#).as_str();
+    request_bind_code += "}";
 
     code += request_bind_code.as_str();
 
