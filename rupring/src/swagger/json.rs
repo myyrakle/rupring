@@ -130,6 +130,7 @@ pub struct SwaggerTag {
     pub external_docs: Option<SwaggerExternalDoc>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SwaggerTags(pub(crate) Vec<SwaggerTag>);
 
 impl SwaggerTags {

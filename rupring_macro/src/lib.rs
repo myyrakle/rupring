@@ -100,7 +100,7 @@ pub fn Module(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
-    return item;
+    item
 }
 
 #[proc_macro_attribute]
@@ -140,10 +140,10 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
             let scopes = scopes.join("::");
 
-            if scopes.len() > 0 {
-                format!("Box::new({scopes}::{route_name}{{}})")
-            } else {
+            if scopes.is_empty() {
                 format!("Box::new({route_name}{{}})")
+            } else {
+                format!("Box::new({scopes}::{route_name}{{}})")
             }
         })
         .collect::<Vec<String>>()
@@ -181,31 +181,31 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
-    return item;
+    item
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Service(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Injectable(attr, item);
+    Injectable(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Repository(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Injectable(attr, item);
+    Injectable(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Component(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Injectable(attr, item);
+    Injectable(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Bean(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Injectable(attr, item);
+    Injectable(attr, item)
 }
 
 #[proc_macro_attribute]
@@ -268,7 +268,7 @@ impl rupring::IProvider for {struct_name} {{
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
-    return item;
+    item
 }
 
 fn convert_rust_type_to_js_type(rust_type: &str) -> String {
@@ -354,7 +354,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
             .trim_end_matches("\"")
             .to_owned();
 
-        if auth_value.len() == 0 {
+        if auth_value.is_empty() {
             auth_value = "BearerAuth".to_string();
         }
 
@@ -447,7 +447,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let handler_name = rule::make_handler_name(function_name.as_str());
 
     let mut swagger_request_body_code = "".to_string();
-    if request_body.len() > 0 {
+    if !request_body.is_empty() {
         swagger_request_body_code = format!(
             r#"
             fn swagger_request_info(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{
@@ -458,7 +458,7 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     }
 
     let mut swagger_response_body_code = "".to_string();
-    if response.len() > 0 {
+    if !response.is_empty() {
         swagger_response_body_code = format!(
             r#"
             fn swagger_response_info(&self) -> Option<rupring::swagger::macros::SwaggerRequestBody> {{
@@ -531,67 +531,67 @@ impl rupring::IHandler for {handler_name} {{
 
     item.extend(TokenStream::from_str(new_code.as_str()).unwrap());
 
-    return item;
+    item
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Get(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("GET".to_string(), attr, item);
+    MapRoute("GET".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn GetMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Get(attr, item);
+    Get(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Post(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("POST".to_string(), attr, item);
+    MapRoute("POST".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn PostMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Post(attr, item);
+    Post(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Put(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("PUT".to_string(), attr, item);
+    MapRoute("PUT".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn PutMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Put(attr, item);
+    Put(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Delete(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("DELETE".to_string(), attr, item);
+    MapRoute("DELETE".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn DeleteMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Delete(attr, item);
+    Delete(attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn Patch(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return MapRoute("PATCH".to_string(), attr, item);
+    MapRoute("PATCH".to_string(), attr, item)
 }
 
 #[proc_macro_attribute]
 #[allow(non_snake_case)]
 pub fn PatchMapping(attr: TokenStream, item: TokenStream) -> TokenStream {
-    return Patch(attr, item);
+    Patch(attr, item)
 }
 
 /**
@@ -643,19 +643,17 @@ pub fn derive_rupring_dto(item: TokenStream) -> TokenStream {
     code += "}";
 
     code += "fn to_swagger_definition(context: &mut rupring::swagger::macros::SwaggerDefinitionContext) -> rupring::swagger::macros::SwaggerDefinitionNode {";
-    code += format!(r#"let mut swagger_definition = rupring::swagger::json::SwaggerDefinition {{"#)
-        .as_str();
-    code += format!(r#"type_: "object".to_string(),"#).as_str();
-    code += format!(r#"properties: std::collections::HashMap::new(),"#).as_str();
-    code += format!(r#"required: vec![],"#).as_str();
-    code += format!(r#"path_parameters: vec![],"#).as_str();
-    code += format!(r#"query_parameters: vec![],"#).as_str();
+    code += r#"let mut swagger_definition = rupring::swagger::json::SwaggerDefinition {"#;
+    code += r#"type_: "object".to_string(),"#;
+    code += r#"properties: std::collections::HashMap::new(),"#;
+    code += r#"required: vec![],"#;
+    code += r#"path_parameters: vec![],"#;
+    code += r#"query_parameters: vec![],"#;
     code += "};";
 
     let mut define_struct_for_json = "".to_string();
-    define_struct_for_json += format!("#[allow(non_camel_case_types)]").as_str();
-    define_struct_for_json +=
-        format!(r#"#[derive(serde::Serialize, serde::Deserialize)]"#).as_str();
+    define_struct_for_json += "#[allow(non_camel_case_types)]";
+    define_struct_for_json += r#"#[derive(serde::Serialize, serde::Deserialize)]"#;
     define_struct_for_json += format!(r#"pub struct {struct_name}__JSON {{"#).as_str();
 
     let mut json_field_names = vec![];
@@ -888,7 +886,7 @@ pub fn derive_rupring_dto(item: TokenStream) -> TokenStream {
         .as_str();
     }
 
-    define_struct_for_json += format!(r#"}}"#).as_str();
+    define_struct_for_json += "}";
 
     code += "rupring::swagger::macros::SwaggerDefinitionNode::Object(swagger_definition)";
 
@@ -966,12 +964,12 @@ pub fn derive_rupring_dto(item: TokenStream) -> TokenStream {
         .as_str();
     }
 
-    request_bind_code += format!("}};").as_str();
+    request_bind_code += "};";
 
     request_bind_code += "Ok(bound)";
     request_bind_code += "}";
 
-    request_bind_code += format!(r#"}}"#).as_str();
+    request_bind_code += "}";
 
     code += request_bind_code.as_str();
 

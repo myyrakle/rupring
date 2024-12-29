@@ -197,12 +197,10 @@ pub async fn run_server(
 
                         let result = handle.await;
 
-                        let response = match result {
+                        match result {
                             Ok(response) => response,
                             Err(error) => default_join_error_handler(error),
-                        };
-
-                        return response;
+                        }
                     }
                 }
             });
@@ -372,9 +370,7 @@ pub async fn handle_event_on_aws_lambda(
     let response_body = match response.body_mut().collect().await {
         Ok(body) => {
             let body = body.to_bytes();
-            let body = String::from_utf8(body.to_vec()).unwrap_or("".to_string());
-
-            body
+            String::from_utf8(body.to_vec()).unwrap_or("".to_string())
         }
         Err(error) => {
             return Err(anyhow::Error::from(error));
@@ -420,7 +416,7 @@ fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
         *response.status_mut() = status;
     }
 
-    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
@@ -435,7 +431,7 @@ fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infa
         *response.status_mut() = status;
     }
 
-    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 fn default_join_error_handler(error: impl Error) -> Result<Response<Full<Bytes>>, Infallible> {
@@ -450,7 +446,7 @@ fn default_join_error_handler(error: impl Error) -> Result<Response<Full<Bytes>>
         *response.status_mut() = status;
     }
 
-    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 async fn process_request<T>(
@@ -515,9 +511,7 @@ where
     let request_body = match request.collect().await {
         Ok(body) => {
             let body = body.to_bytes();
-            let body = String::from_utf8(body.to_vec()).unwrap_or("".to_string());
-
-            body
+            String::from_utf8(body.to_vec()).unwrap_or("".to_string())
         }
         Err(_) => {
             return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
@@ -603,7 +597,7 @@ where
         }
     }
 
-    return Ok::<Response<Full<Bytes>>, Infallible>(response);
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 fn post_process_response(

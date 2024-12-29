@@ -97,7 +97,7 @@ impl Default for Compression {
     fn default() -> Self {
         Compression {
             enabled: false,
-            mime_types: vec![
+            mime_types: [
                 "text/html",
                 "text/xml",
                 "text/plain",
@@ -155,25 +155,13 @@ pub struct SSL {
     pub cert: String,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Http1 {
     pub keep_alive: bool,
 }
 
-impl Default for Http1 {
-    fn default() -> Self {
-        Http1 { keep_alive: false }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Http2 {}
-
-impl Default for Http2 {
-    fn default() -> Self {
-        Http2 {}
-    }
-}
 
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]

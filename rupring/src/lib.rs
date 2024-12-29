@@ -489,11 +489,9 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
 
         let runtime = runtime_builder.build()?;
 
-        let result = runtime.block_on(async {
+        runtime.block_on(async {
             core::run_server(self.application_properties, self.root_module).await
-        });
-
-        return result;
+        })
     }
 
     #[cfg(feature = "aws-lambda")]
@@ -510,11 +508,9 @@ impl<T: IModule + Clone + Copy + Sync + Send + 'static> RupringFactory<T> {
 
         let runtime = runtime_builder.build()?;
 
-        let result = runtime.block_on(async {
+        runtime.block_on(async {
             core::run_server_on_aws_lambda(self.application_properties, self.root_module).await
-        });
-
-        return result;
+        })
     }
 }
 

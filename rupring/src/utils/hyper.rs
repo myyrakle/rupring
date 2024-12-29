@@ -49,9 +49,7 @@ pub async fn send_http_request(
     let response_body = match response.body_mut().collect().await {
         Ok(body) => {
             let body = body.to_bytes();
-            let body = String::from_utf8(body.to_vec()).unwrap_or("".to_string());
-
-            body
+            String::from_utf8(body.to_vec()).unwrap_or("".to_string())
         }
         Err(err) => {
             return Err(anyhow::anyhow!("Failed to read response body: {:?}", err));

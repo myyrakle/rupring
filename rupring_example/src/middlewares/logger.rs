@@ -5,11 +5,7 @@ pub fn logger_middleware(
     response: rupring::Response,
     next: NextFunction,
 ) -> rupring::Response {
-    println!(
-        "Request: {} {}",
-        request.method.to_string(),
-        request.path.to_string()
-    );
+    println!("Request: {} {}", request.method, request.path);
 
     next(request, response)
 }

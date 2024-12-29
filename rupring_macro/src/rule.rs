@@ -3,7 +3,7 @@ pub(crate) fn make_route_name(function_name: &str) -> String {
 
     route_name.push_str(&format!("Route_{}", function_name));
 
-    return route_name;
+    route_name
 }
 
 pub(crate) fn make_handler_name(function_name: &str) -> String {
@@ -11,5 +11,5 @@ pub(crate) fn make_handler_name(function_name: &str) -> String {
 
     handler_name.push_str(&format!("Handler_{}", function_name));
 
-    return handler_name;
+    handler_name
 }
