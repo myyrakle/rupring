@@ -103,16 +103,14 @@ pub async fn run_server(
     loop {
         let (mut tcp_stream, _) = listener.accept().await?;
 
-        if is_graceful_shutdown {
-            if !service_avaliable.load(std::sync::atomic::Ordering::Acquire) {
-                print_system_log(Level::Info, "Service is not available");
+        if is_graceful_shutdown && !service_avaliable.load(std::sync::atomic::Ordering::Acquire) {
+            print_system_log(Level::Info, "Service is not available");
 
-                // reject new request
-                use tokio::io::AsyncWriteExt;
-                let _ = tcp_stream.shutdown();
+            // reject new request
+            use tokio::io::AsyncWriteExt;
+            let _ = tcp_stream.shutdown();
 
-                continue;
-            }
+            continue;
         }
 
         // copy for each request
