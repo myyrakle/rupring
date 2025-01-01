@@ -27,8 +27,8 @@ pub(crate) fn is_route_matching_request(route_path: String, request_path: &str) 
 pub(crate) fn normalize_path(prefix: String, path: String) -> String {
     let mut normalized_path = "/".to_string();
 
-    if prefix.starts_with("/") {
-        normalized_path.push_str(&prefix[1..]);
+    if let Some(stripped) = prefix.strip_prefix("/") {
+        normalized_path.push_str(stripped);
     } else {
         normalized_path.push_str(&prefix);
     }
@@ -37,8 +37,8 @@ pub(crate) fn normalize_path(prefix: String, path: String) -> String {
         normalized_path.push_str("/");
     }
 
-    if path.starts_with("/") {
-        normalized_path.push_str(&path[1..]);
+    if let Some(stripped) = path.strip_prefix("/") {
+        normalized_path.push_str(stripped);
     } else {
         normalized_path.push_str(&path);
     }

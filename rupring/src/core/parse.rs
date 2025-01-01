@@ -33,8 +33,8 @@ pub(crate) fn parse_path_parameter(
     let request_path = request_path.split("/").collect::<Vec<&str>>();
 
     for (route_path_part, request_path_part) in route_path.iter().zip(request_path.iter()) {
-        if route_path_part.starts_with(":") {
-            let key = route_path_part[1..].to_string();
+        if let Some(key) = route_path_part.strip_prefix(":") {
+            let key = key.to_string();
             let value = request_path_part.to_string();
 
             path_parameters.insert(key, value);
