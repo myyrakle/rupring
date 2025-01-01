@@ -510,7 +510,7 @@ where
         }
         Err(_) => {
             return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
-                format!("Error reading request body"),
+                "Error reading request body",
             ))));
         }
     };
