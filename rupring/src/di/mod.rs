@@ -253,7 +253,7 @@ impl DIContext {
     }
 
     pub fn register(&mut self, value: Box<dyn Any>) {
-        let type_id = (&*value).type_id();
+        let type_id = (*value).type_id();
         if self.containers.contains_key(&type_id) {
             return;
         }
