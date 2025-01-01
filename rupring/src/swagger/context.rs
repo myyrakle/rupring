@@ -151,7 +151,7 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
             let method = to_string(route.method());
 
             if let Some(path) = swagger.paths.get_mut(&normalized_path) {
-                if let Some(_) = path.get(&method) {
+                if path.get(&method).is_some() {
                     continue;
                 }
 
