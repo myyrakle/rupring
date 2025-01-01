@@ -32,8 +32,7 @@ impl IUserService for UserService {
     }
 
     fn update_user(&self, request: UpdateUserRequest) -> rupring::Result<UpdateUserResponse> {
-        let _ = self
-            .repository
+        self.repository
             .update_user(super::model::UpdateUserParams {
                 id: request.id,
                 name: request.username,
