@@ -575,7 +575,7 @@ where
     // ex) Compression, etc.
     let response = post_process_response(application_properties, response);
 
-    let status = response.status.clone();
+    let status = response.status;
     let headers = response.headers.clone();
 
     // 6. Convert to hyper::Response, and return
