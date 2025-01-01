@@ -228,6 +228,7 @@ use std::any::Any;
 use std::panic::RefUnwindSafe;
 use std::{any::TypeId, collections::HashMap};
 
+#[derive(Default)]
 pub struct DIContext {
     pub containers: HashMap<TypeId, Box<dyn Any>>,
     wait_list: Vec<Box<dyn IProvider + 'static>>,
@@ -248,10 +249,7 @@ impl std::fmt::Debug for DIContext {
 
 impl DIContext {
     pub fn new() -> Self {
-        DIContext {
-            containers: HashMap::new(),
-            wait_list: vec![],
-        }
+        Default::default()
     }
 
     pub fn register(&mut self, value: Box<dyn Any>) {
