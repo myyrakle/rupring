@@ -294,8 +294,7 @@ impl DIContext {
         while !self.wait_list.is_empty() {
             let mut has_ready_provider = false;
 
-            let mut i = 0;
-            for provider in self.wait_list.iter() {
+            for (i, provider) in self.wait_list.iter().enumerate() {
                 let dependencies = provider.dependencies();
 
                 let mut is_ready = true;
@@ -315,8 +314,6 @@ impl DIContext {
 
                     break;
                 }
-
-                i += 1;
             }
 
             if !has_ready_provider {
