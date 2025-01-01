@@ -38,7 +38,7 @@ pub fn print_banner(application_properties: &ApplicationProperties) {
     }
 
     print_app_info();
-    println!("");
+    println!();
 }
 
 fn print_app_info() {
