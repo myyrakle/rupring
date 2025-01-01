@@ -116,10 +116,8 @@ pub fn Controller(attr: TokenStream, mut item: TokenStream) -> TokenStream {
     let attribute_map = attribute::parse_attribute(attr.clone(), false);
 
     let prefix = match attribute_map.get("prefix") {
-        Some(prefix) => match prefix {
-            AttributeValue::String(prefix) => prefix.to_owned(),
-            _ => "".to_string(),
-        },
+        Some(AttributeValue::String(prefix)) => prefix.to_owned(),
+        Some(_) => "".to_string(),
         None => "".to_string(),
     };
 
@@ -242,10 +240,8 @@ pub fn Injectable(attr: TokenStream, mut item: TokenStream) -> TokenStream {
         let attribute_map = attribute::parse_attribute(attr.clone(), false);
 
         match attribute_map.get("name") {
-            Some(name) => match name {
-                AttributeValue::String(name) => name.to_owned(),
-                _ => function_name.clone(),
-            },
+            Some(AttributeValue::String(name)) => name.to_owned(),
+            Some(_) => function_name.clone(),
             None => function_name.clone(),
         }
     };
@@ -438,10 +434,8 @@ fn MapRoute(method: String, attr: TokenStream, item: TokenStream) -> TokenStream
     let attribute_map = attribute::parse_attribute(attr.clone(), false);
 
     let path = match attribute_map.get("path") {
-        Some(path) => match path {
-            AttributeValue::String(path) => path.to_owned(),
-            _ => "".to_string(),
-        },
+        Some(AttributeValue::String(path)) => path.to_owned(),
+        Some(_) => "".to_string(),
         None => "".to_string(),
     };
 
