@@ -108,7 +108,9 @@ pub async fn run_server(
 
             // reject new request
             use tokio::io::AsyncWriteExt;
-            let _ = tcp_stream.shutdown();
+            let shutdown_task = tcp_stream.shutdown();
+
+            std::mem::drop(shutdown_task);
 
             continue;
         }
