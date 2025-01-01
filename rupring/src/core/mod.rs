@@ -44,7 +44,7 @@ use crate::IModule;
 
 pub async fn run_server(
     application_properties: application_properties::ApplicationProperties,
-    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     // 1. DI Context Initialize
     let mut di_context = di::DIContext::new();
@@ -131,6 +131,7 @@ pub async fn run_server(
                 let application_properties = Arc::clone(&application_properties);
 
                 let running_task_count = Arc::clone(&running_task_count);
+                let root_module = root_module.clone();
 
                 async move {
                     if let Some(timeout_duration) = application_properties.server.request_timeout {
@@ -255,7 +256,7 @@ pub async fn run_server(
 #[cfg(feature = "aws-lambda")]
 pub async fn run_server_on_aws_lambda(
     application_properties: application_properties::ApplicationProperties,
-    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaError;
 
@@ -314,7 +315,7 @@ pub async fn handle_event_on_aws_lambda(
     mut lambda_request_context: LambdaRequestEvent,
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
-    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaReponse;
 
@@ -447,7 +448,7 @@ fn default_join_error_handler(error: impl Error) -> Result<Response<Full<Bytes>>
 async fn process_request<T>(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
-    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
     request: Request<T>,
 ) -> Result<Response<Full<Bytes>>, Infallible>
 where
