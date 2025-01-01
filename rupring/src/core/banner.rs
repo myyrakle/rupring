@@ -1,6 +1,6 @@
 use crate::application_properties::ApplicationProperties;
 
-const DEFAULT_BANNER_TEXT: &'static str = r#",------.                       ,--.                
+const DEFAULT_BANNER_TEXT: &str = r#",------.                       ,--.                
 |  .--. ',--.,--. ,---. ,--.--.`--',--,--,  ,---.  
 |  '--'.'|  ||  || .-. ||  .--',--.|      \| .-. | 
 |  |\  \ '  ''  '| '-' '|  |   |  ||  ||  |' '-' ' 
