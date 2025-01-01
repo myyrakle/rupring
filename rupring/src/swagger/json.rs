@@ -404,7 +404,7 @@ impl From<&str> for SwaggerPrimitiveType {
 
         let chars = string.chars().collect::<Vec<char>>();
 
-        if chars.len() > 0 {
+        if !chars.is_empty() {
             if chars[0].is_numeric() {
                 return SwaggerPrimitiveType::Number(string.parse().unwrap());
             }

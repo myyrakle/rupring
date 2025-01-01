@@ -228,6 +228,7 @@ use std::any::Any;
 use std::panic::RefUnwindSafe;
 use std::{any::TypeId, collections::HashMap};
 
+#[derive(Default)]
 pub struct DIContext {
     pub containers: HashMap<TypeId, Box<dyn Any>>,
     wait_list: Vec<Box<dyn IProvider + 'static>>,
@@ -248,14 +249,11 @@ impl std::fmt::Debug for DIContext {
 
 impl DIContext {
     pub fn new() -> Self {
-        DIContext {
-            containers: HashMap::new(),
-            wait_list: vec![],
-        }
+        Default::default()
     }
 
     pub fn register(&mut self, value: Box<dyn Any>) {
-        let type_id = (&*value).type_id();
+        let type_id = (*value).type_id();
         if self.containers.contains_key(&type_id) {
             return;
         }
@@ -293,11 +291,10 @@ impl DIContext {
     pub fn initialize(&mut self, root_module: Box<dyn crate::IModule>) {
         self.import_from_modules(root_module);
 
-        while self.wait_list.len() > 0 {
+        while !self.wait_list.is_empty() {
             let mut has_ready_provider = false;
 
-            let mut i = 0;
-            for provider in self.wait_list.iter() {
+            for (i, provider) in self.wait_list.iter().enumerate() {
                 let dependencies = provider.dependencies();
 
                 let mut is_ready = true;
@@ -317,8 +314,6 @@ impl DIContext {
 
                     break;
                 }
-
-                i += 1;
             }
 
             if !has_ready_provider {

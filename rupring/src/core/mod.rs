@@ -44,7 +44,7 @@ use crate::IModule;
 
 pub async fn run_server(
     application_properties: application_properties::ApplicationProperties,
-    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     // 1. DI Context Initialize
     let mut di_context = di::DIContext::new();
@@ -103,16 +103,16 @@ pub async fn run_server(
     loop {
         let (mut tcp_stream, _) = listener.accept().await?;
 
-        if is_graceful_shutdown {
-            if !service_avaliable.load(std::sync::atomic::Ordering::Acquire) {
-                print_system_log(Level::Info, "Service is not available");
+        if is_graceful_shutdown && !service_avaliable.load(std::sync::atomic::Ordering::Acquire) {
+            print_system_log(Level::Info, "Service is not available");
 
-                // reject new request
-                use tokio::io::AsyncWriteExt;
-                let _ = tcp_stream.shutdown();
+            // reject new request
+            use tokio::io::AsyncWriteExt;
+            let shutdown_task = tcp_stream.shutdown();
 
-                continue;
-            }
+            std::mem::drop(shutdown_task);
+
+            continue;
         }
 
         // copy for each request
@@ -133,6 +133,7 @@ pub async fn run_server(
                 let application_properties = Arc::clone(&application_properties);
 
                 let running_task_count = Arc::clone(&running_task_count);
+                let root_module = root_module.clone();
 
                 async move {
                     if let Some(timeout_duration) = application_properties.server.request_timeout {
@@ -257,7 +258,7 @@ pub async fn run_server(
 #[cfg(feature = "aws-lambda")]
 pub async fn run_server_on_aws_lambda(
     application_properties: application_properties::ApplicationProperties,
-    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaError;
 
@@ -316,7 +317,7 @@ pub async fn handle_event_on_aws_lambda(
     mut lambda_request_context: LambdaRequestEvent,
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
-    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaReponse;
 
@@ -421,10 +422,7 @@ fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
 
 fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
     let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(format!(
-            "Request Timeout: {}",
-            error.to_string()
-        ))))
+        .body(Full::new(Bytes::from(format!("Request Timeout: {error}",))))
         .unwrap();
 
     if let Ok(status) = StatusCode::from_u16(500) {
@@ -452,7 +450,7 @@ fn default_join_error_handler(error: impl Error) -> Result<Response<Full<Bytes>>
 async fn process_request<T>(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
-    root_module: impl IModule + Clone + Copy + Send + Sync + 'static,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
     request: Request<T>,
 ) -> Result<Response<Full<Bytes>>, Infallible>
 where
@@ -515,7 +513,7 @@ where
         }
         Err(_) => {
             return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
-                format!("Error reading request body"),
+                "Error reading request body",
             ))));
         }
     };
@@ -577,7 +575,7 @@ where
     // ex) Compression, etc.
     let response = post_process_response(application_properties, response);
 
-    let status = response.status.clone();
+    let status = response.status;
     let headers = response.headers.clone();
 
     // 6. Convert to hyper::Response, and return

@@ -55,12 +55,10 @@ pub(crate) fn manipulate_route_function_parameters(
     let mut new_item = vec![];
     let mut parameters = vec![];
 
-    let mut iter = item.into_iter();
-
     let mut fn_passed = false;
     let mut out_of_parameter = false;
 
-    while let Some(mut token_tree) = iter.next() {
+    for mut token_tree in item.into_iter() {
         match token_tree.clone() {
             proc_macro::TokenTree::Ident(ident) => match ident.to_string().as_str() {
                 "fn" => {
@@ -141,7 +139,7 @@ pub(crate) fn manipulate_route_function_parameters(
                                         }
 
                                         let mut type_ = "".to_string();
-                                        while let Some(token_tree) = iter.next() {
+                                        for token_tree in iter.by_ref() {
                                             let token_tree = token_tree.clone();
                                             let token_tree = token_tree.to_string();
 
@@ -224,10 +222,9 @@ pub(crate) fn manipulate_route_function_parameters(
 
 pub(crate) fn prepend_code_to_function_body(item: TokenStream, code: TokenStream) -> TokenStream {
     let mut new_item = vec![];
-    let mut iter = item.into_iter();
     let mut prepended = false;
 
-    while let Some(token_tree) = iter.next() {
+    for token_tree in item.into_iter() {
         if !prepended {
             if let proc_macro::TokenTree::Group(group) = token_tree.clone() {
                 if group.delimiter() == proc_macro::Delimiter::Brace {
@@ -238,8 +235,8 @@ pub(crate) fn prepend_code_to_function_body(item: TokenStream, code: TokenStream
                     }
 
                     let group_stream = group.stream();
-                    let mut group_iter = group_stream.into_iter();
-                    while let Some(group_token) = group_iter.next() {
+                    let group_iter = group_stream.into_iter();
+                    for group_token in group_iter {
                         new_tokens.push(group_token);
                     }
 

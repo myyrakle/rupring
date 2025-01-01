@@ -109,7 +109,7 @@ pub(crate) fn parse_attribute(
 
                 AttributeValue::ListOfString(attribute_value)
             } else {
-                while let Some(token) = tokens.next() {
+                for token in tokens.by_ref() {
                     let token_string = token.to_string();
 
                     if token_string == "," || token_string == "=" || token_string == ")" {

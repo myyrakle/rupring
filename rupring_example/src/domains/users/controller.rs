@@ -46,7 +46,7 @@ pub fn get_user(
 #[params = crate::domains::users::dto::CreateUserRequest]
 #[auth]
 pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    let user_service = request.get_provider::<Arc<dyn IUserService>>().map(|e|e.clone()).unwrap();
+    let user_service = request.get_provider::<Arc<dyn IUserService>>().cloned().unwrap();
 
     let request = match request::BindFromRequest::bind(request) {
         Ok(request) => request,
@@ -124,12 +124,12 @@ pub fn list_users(request: rupring::Request) -> rupring::Response {
     let limit = request.query_parameters.get("limit").map(|e|e.to_owned()).unwrap_or(vec!["10".to_owned()]);
     let offset = request.query_parameters.get("offset").map(|e|e.to_owned()).unwrap_or(vec!["1".to_owned()]);
 
-    let limit = match limit.get(0).map(|x| x.parse::<i32>()) {
+    let limit = match limit.first().map(|x| x.parse::<i32>()) {
         Some(Ok(limit)) => limit,
         _ => return rupring::Response::new().status(400).text("bad request"),
     };
 
-    let offset = match offset.get(0).map(|x| x.parse::<i32>()) {
+    let offset = match offset.first().map(|x| x.parse::<i32>()) {
         Some(Ok(offset)) => offset,
         _ => return rupring::Response::new().status(400).text("bad request"),
     };

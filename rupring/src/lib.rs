@@ -1,3 +1,7 @@
+#![allow(clippy::single_match)]
+#![allow(clippy::to_string_trait_impl)]
+#![allow(clippy::map_entry)]
+
 /*! # Get Started
 There is only one dependency.
 ```bash

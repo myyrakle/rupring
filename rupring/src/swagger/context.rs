@@ -19,8 +19,10 @@ pub struct SwaggerContext {
 
 impl SwaggerContext {
     pub fn initialize_from_module(&self, module: impl IModule + Clone + 'static) {
-        let mut swagger = SwaggerSchema::default();
-        swagger.tags = unsafe { SWAGGER_TAGS.0.clone() };
+        let mut swagger = SwaggerSchema {
+            tags: unsafe { SWAGGER_TAGS.0.clone() },
+            ..Default::default()
+        };
 
         generate_swagger(&mut swagger, Box::new(module));
 
@@ -149,7 +151,7 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
             let method = to_string(route.method());
 
             if let Some(path) = swagger.paths.get_mut(&normalized_path) {
-                if let Some(_) = path.get(&method) {
+                if path.get(&method).is_some() {
                     continue;
                 }
 
