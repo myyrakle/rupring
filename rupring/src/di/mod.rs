@@ -291,7 +291,7 @@ impl DIContext {
     pub fn initialize(&mut self, root_module: Box<dyn crate::IModule>) {
         self.import_from_modules(root_module);
 
-        while self.wait_list.len() > 0 {
+        while !self.wait_list.is_empty() {
             let mut has_ready_provider = false;
 
             let mut i = 0;
