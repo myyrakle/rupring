@@ -19,8 +19,10 @@ pub struct SwaggerContext {
 
 impl SwaggerContext {
     pub fn initialize_from_module(&self, module: impl IModule + Clone + 'static) {
-        let mut swagger = SwaggerSchema::default();
-        swagger.tags = unsafe { SWAGGER_TAGS.0.clone() };
+        let mut swagger = SwaggerSchema {
+            tags: unsafe { SWAGGER_TAGS.0.clone() },
+            ..Default::default()
+        };
 
         generate_swagger(&mut swagger, Box::new(module));
 
