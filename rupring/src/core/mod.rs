@@ -421,10 +421,7 @@ fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
 
 fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
     let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(format!(
-            "Request Timeout: {}",
-            error.to_string()
-        ))))
+        .body(Full::new(Bytes::from(format!("Request Timeout: {error}",))))
         .unwrap();
 
     if let Ok(status) = StatusCode::from_u16(500) {
