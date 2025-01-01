@@ -333,7 +333,7 @@ impl Response {
 
         self.headers
             .entry(HeaderName::from_static(header::SET_COOKIE))
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(cookie_str);
 
         self
