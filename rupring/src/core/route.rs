@@ -34,7 +34,7 @@ pub(crate) fn normalize_path(prefix: String, path: String) -> String {
     }
 
     if !normalized_path.ends_with("/") {
-        normalized_path.push_str("/");
+        normalized_path.push('/');
     }
 
     if let Some(stripped) = path.strip_prefix("/") {
