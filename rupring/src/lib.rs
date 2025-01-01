@@ -1,4 +1,5 @@
 #![allow(clippy::single_match)]
+#![allow(clippy::to_string_trait_impl)]
 
 /*! # Get Started
 There is only one dependency.
