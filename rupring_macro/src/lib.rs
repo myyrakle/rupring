@@ -1,3 +1,5 @@
+#![allow(clippy::single_match)]
+
 mod attribute;
 mod parse;
 mod rule;

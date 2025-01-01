@@ -1,3 +1,5 @@
+#![allow(clippy::single_match)]
+
 /*! # Get Started
 There is only one dependency.
 ```bash
