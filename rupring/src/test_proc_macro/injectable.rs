@@ -84,20 +84,20 @@ mod test_1대1_inject {
         SomeService { some_repository }
     }
 
+    impl Clone for SomeRepositoryFactory {
+        fn clone(&self) -> Self {
+            SomeRepositoryFactory {}
+        }
+    }
+
+    impl Clone for SomeServiceFactory {
+        fn clone(&self) -> Self {
+            SomeServiceFactory {}
+        }
+    }
+
     #[test]
     fn test_1대1_inject() {
-        impl Clone for SomeRepositoryFactory {
-            fn clone(&self) -> Self {
-                SomeRepositoryFactory {}
-            }
-        }
-
-        impl Clone for SomeServiceFactory {
-            fn clone(&self) -> Self {
-                SomeServiceFactory {}
-            }
-        }
-
         let some_repository_factory = SomeRepositoryFactory {};
         let some_service_factory = SomeServiceFactory {};
 
@@ -165,18 +165,6 @@ mod test_1대1_inject_module_내_테스트 {
 
     #[test]
     fn test_1대1_inject() {
-        impl Clone for foo::SomeRepositoryFactory {
-            fn clone(&self) -> Self {
-                foo::SomeRepositoryFactory {}
-            }
-        }
-
-        impl Clone for SomeServiceFactory {
-            fn clone(&self) -> Self {
-                SomeServiceFactory {}
-            }
-        }
-
         let some_repository_factory = foo::SomeRepositoryFactory {};
         let some_service_factory = SomeServiceFactory {};
 
