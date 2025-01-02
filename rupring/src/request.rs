@@ -134,7 +134,7 @@ impl UnwindSafe for Request {}
 
 impl Request {
     pub fn get_provider<T: 'static>(&self) -> Option<&T> {
-        return self.di_context.get::<T>();
+        self.di_context.get::<T>()
     }
 }
 

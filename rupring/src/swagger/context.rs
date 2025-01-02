@@ -20,7 +20,7 @@ pub struct SwaggerContext {
 impl SwaggerContext {
     pub fn initialize_from_module(&self, module: impl IModule + Clone + 'static) {
         let mut swagger = SwaggerSchema {
-            tags: unsafe { SWAGGER_TAGS.0.clone() },
+            tags: { SWAGGER_TAGS.0.clone() },
             ..Default::default()
         };
 
@@ -51,7 +51,7 @@ fn to_string(method: hyper::Method) -> String {
     }
 }
 
-static mut SWAGGER_TAGS: SwaggerTags = SwaggerTags::new();
+static SWAGGER_TAGS: SwaggerTags = SwaggerTags::new();
 
 fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IModule>) {
     for controller in root_module.controllers() {
