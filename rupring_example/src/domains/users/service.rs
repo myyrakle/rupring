@@ -183,3 +183,5 @@ mod tests {
 fn inject_user_service(repository: Arc<dyn IUserRepository>) -> Box<dyn IUserService> {
     Box::new(UserService::new(repository))
 }
+
+fn foo() {}
