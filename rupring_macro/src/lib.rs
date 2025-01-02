@@ -969,5 +969,5 @@ pub fn derive_rupring_dto(item: TokenStream) -> TokenStream {
 
     code += request_bind_code.as_str();
 
-    return TokenStream::from_str(code.as_str()).unwrap();
+    TokenStream::from_str(code.as_str()).unwrap()
 }
