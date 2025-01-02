@@ -180,6 +180,6 @@ mod tests {
 }
 
 #[rupring::Injectable]
-fn inject_user_service(repository: Arc<dyn IUserRepository>) -> Arc<dyn IUserService> {
-    Arc::new(UserService::new(repository))
+fn inject_user_service(repository: Arc<dyn IUserRepository>) -> Box<dyn IUserService> {
+    Box::new(UserService::new(repository))
 }
