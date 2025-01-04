@@ -13,6 +13,7 @@ pub const USER_AGENT: &str = "user-agent";
 pub const HOST: &str = "host";
 pub const CONNECTION: &str = "connection";
 pub const SET_COOKIE: &str = "set-cookie";
+pub const CONTENT_DISPOSITION: &str = "content-disposition";
 
 // response only headers
 pub const LOCATION: &str = "location";

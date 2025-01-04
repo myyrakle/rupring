@@ -1,7 +1,7 @@
 use rupring::response::Cookie;
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[index, slow], tags=["root"])]
+#[rupring::Controller(prefix=/, routes=[index, slow, download], tags=["root"])]
 pub struct RootController {}
 
 #[rupring::Get(path = /)]
@@ -26,4 +26,12 @@ pub fn slow(request: rupring::Request) -> rupring::Response {
     std::thread::sleep(std::time::Duration::from_secs(30));
 
     rupring::Response::new().text("Slow")
+}
+
+#[rupring::Get(path = /download)]
+#[summary = "단순 다운로드 API입니다."]
+#[description = "별다른 기능은 없습니다."]
+#[tags = [root]]
+pub fn download(request: rupring::Request) -> rupring::Response {
+    rupring::Response::new().download("foo.txt", "Hello, World!")
 }

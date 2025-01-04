@@ -241,6 +241,25 @@ impl Response {
         self
     }
 
+    /// Set `Content-Diposition` header to cause the browser to download the file.
+    /// ```
+    /// use rupring::HeaderName;
+    ///
+    /// let response = rupring::Response::new().download("hello.txt", "Hello World");
+    /// assert_eq!(response.headers.get(&HeaderName::from_static("content-disposition")).unwrap(), &vec!["attachment; filename=\"hello.txt\"".to_string()]);
+    /// assert_eq!(response.body, "Hello World".to_string().into_bytes());
+    /// ```
+    pub fn download(mut self, filename: impl ToString, file: impl Into<Vec<u8>>) -> Self {
+        self.headers.insert(
+            crate::HeaderName::from_static(header::CONTENT_DISPOSITION),
+            vec![format!("attachment; filename=\"{}\"", filename.to_string())],
+        );
+
+        self.body = file.into();
+
+        self
+    }
+
     /// Set status code.
     /// ```
     /// let response = rupring::Response::new().status(404);
