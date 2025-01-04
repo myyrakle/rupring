@@ -245,7 +245,7 @@ impl Response {
     /// ```
     /// use rupring::HeaderName;
     ///
-    /// let response = rupring::Response::new().download("Hello World", "hello.txt");
+    /// let response = rupring::Response::new().download("hello.txt", "Hello World");
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-disposition")).unwrap(), &vec!["attachment; filename=\"hello.txt\"".to_string()]);
     /// assert_eq!(response.body, "Hello World".to_string().into_bytes());
     /// ```
