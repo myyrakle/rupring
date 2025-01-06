@@ -14,6 +14,7 @@ pub const HOST: &str = "host";
 pub const CONNECTION: &str = "connection";
 pub const SET_COOKIE: &str = "set-cookie";
 pub const CONTENT_DISPOSITION: &str = "content-disposition";
+pub const CACHE_CONTROL: &str = "cache-control";
 
 // response only headers
 pub const LOCATION: &str = "location";
