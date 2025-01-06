@@ -170,6 +170,22 @@ impl Cookie {
     }
 }
 
+/// Cache Control Option
+#[derive(Debug, Clone, Default)]
+pub struct CacheControl {
+    pub max_age: Option<String>,
+    pub s_maxage: Option<String>,
+    pub private: Option<bool>,
+    pub no_cache: Option<bool>,
+    pub no_store: Option<bool>,
+    pub no_transform: Option<bool>,
+    pub must_revalidate: Option<bool>,
+    pub proxy_revalidate: Option<bool>,
+    pub immutable: Option<bool>,
+    pub stale_while_revalidate: Option<String>,
+    pub stale_if_error: Option<String>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
