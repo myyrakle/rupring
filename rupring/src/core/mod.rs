@@ -26,6 +26,7 @@ use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
+use std::vec;
 
 use http_body_util::BodyExt;
 use http_body_util::Full;
@@ -506,10 +507,15 @@ where
     let request_method = request_method.to_owned();
     let request_path = request_path.to_owned();
 
-    let request_body = match request.collect().await {
+    let request_body = request.into_body();
+
+    let (request_body, raw_request_body) = match request_body.collect().await {
         Ok(body) => {
-            let body = body.to_bytes();
-            String::from_utf8(body.to_vec()).unwrap_or("".to_string())
+            let raw_body = body.to_bytes().to_vec();
+
+            let body = core::str::from_utf8(&raw_body).unwrap_or("").to_string();
+
+            (body, raw_body)
         }
         Err(_) => {
             return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
@@ -524,6 +530,7 @@ where
             method: request_method,
             path: request_path,
             body: request_body,
+            raw_body: raw_request_body,
             query_parameters,
             headers,
             path_parameters,

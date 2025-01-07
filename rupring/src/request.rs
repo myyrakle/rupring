@@ -96,6 +96,7 @@ pub struct Request {
     pub method: Method,
     pub path: String,
     pub body: String,
+    pub raw_body: Vec<u8>,
     pub headers: HashMap<String, String>,
     pub cookies: HashMap<String, String>,
     pub query_parameters: HashMap<String, Vec<String>>,
@@ -506,4 +507,3 @@ impl ParamStringDeserializer<String> for ParamString {
         Ok(self.0.clone())
     }
 }
-
