@@ -1,7 +1,7 @@
 use rupring::response::Cookie;
 
 #[derive(Debug, Clone)]
-#[rupring::Controller(prefix=/, routes=[index, slow, download], tags=["root"])]
+#[rupring::Controller(prefix=/, routes=[index, slow, download, multipart, multipart_page], tags=["root"])]
 pub struct RootController {}
 
 #[rupring::Get(path = /)]
@@ -34,4 +34,36 @@ pub fn slow(request: rupring::Request) -> rupring::Response {
 #[tags = [root]]
 pub fn download(request: rupring::Request) -> rupring::Response {
     rupring::Response::new().download("foo.txt", "Hello, World!")
+}
+
+#[rupring::Post(path = /multipart-upload)]
+#[summary = "단순 파일 업로드 API입니다."]
+#[description = "별다른 기능은 없습니다."]
+#[tags = [root]]
+pub fn multipart(request: rupring::Request) -> rupring::Response {
+    println!("{}", request.body);
+
+    rupring::Response::new().text("Hello, World!")
+}
+
+#[rupring::Get(path = /multipart-upload-page)]
+#[summary = "단순 파일 업로드 API입니다."]
+#[description = "별다른 기능은 없습니다."]
+#[tags = [root]]
+pub fn multipart_page(request: rupring::Request) -> rupring::Response {
+    rupring::Response::new()
+        .text(
+            r#"
+        <html>
+            <body>
+                <form action="/multipart-upload" method="post" enctype="multipart/form-data">
+                    <input type="file" name="file1" />
+                    <input type="file" name="file2" />
+                    <input type="submit" value="Submit" />
+                </form>
+            </body>
+        </html>
+        "#,
+        )
+        .header("content-type", "text/html")
 }
