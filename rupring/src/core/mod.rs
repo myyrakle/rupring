@@ -3,6 +3,7 @@ pub mod boot;
 pub(crate) mod bootings;
 mod compression;
 mod graceful;
+mod multipart;
 mod parse;
 
 #[cfg(feature = "aws-lambda")]
@@ -491,11 +492,25 @@ where
     // 3.1. Parse Query Parameters
     let query_parameters = parse::parse_query_parameter(raw_querystring);
 
+    let mut multipart_boundary = None;
+
     // 3.2. Parse Headers
     let mut headers = HashMap::new();
     for (header_name, header_value) in request.headers() {
         let header_name = header_name.to_string();
         let header_value = header_value.to_str().unwrap_or("").to_string();
+
+        if header_name == header::CONTENT_TYPE {
+            if header_value.starts_with("multipart/form-data") {
+                multipart_boundary = header_value
+                    .split(";")
+                    .find(|s| s.contains("boundary="))
+                    .map(|s| s.split("boundary=").last())
+                    .flatten()
+                    .map(|s| s.trim())
+                    .map(|s| s.to_string());
+            }
+        }
 
         headers.insert(header_name, header_value);
     }
@@ -507,22 +522,30 @@ where
     let request_method = request_method.to_owned();
     let request_path = request_path.to_owned();
 
-    let request_body = request.into_body();
+    let mut request_body = "".to_string();
+    #[allow(unused_assignments)]
+    let mut raw_request_body = vec![];
+    let mut files = vec![];
 
-    let (request_body, raw_request_body) = match request_body.collect().await {
+    match request.into_body().collect().await {
         Ok(body) => {
-            let raw_body = body.to_bytes().to_vec();
+            raw_request_body = body.to_bytes().to_vec();
 
-            let body = core::str::from_utf8(&raw_body).unwrap_or("").to_string();
-
-            (body, raw_body)
+            if let Some(boundary) = multipart_boundary {
+                files =
+                    multipart::parse_multipart(&raw_request_body, &boundary).unwrap_or_default();
+            } else {
+                request_body = core::str::from_utf8(&raw_request_body)
+                    .unwrap_or("")
+                    .to_string();
+            }
         }
         Err(_) => {
             return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
                 "Error reading request body",
             ))));
         }
-    };
+    }
 
     // 3.4. Call the handler function
     let response = std::panic::catch_unwind(move || {
@@ -535,6 +558,7 @@ where
             headers,
             path_parameters,
             cookies: HashMap::new(),
+            files,
             di_context: Arc::clone(&di_context),
         };
 

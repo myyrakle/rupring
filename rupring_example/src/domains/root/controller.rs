@@ -40,8 +40,13 @@ pub fn download(request: rupring::Request) -> rupring::Response {
 #[summary = "단순 파일 업로드 API입니다."]
 #[description = "별다른 기능은 없습니다."]
 #[tags = [root]]
-pub fn multipart(request: rupring::Request) -> rupring::Response {
-    println!("{}", request.body);
+pub fn multipart(mut request: rupring::Request) -> rupring::Response {
+    let mut i = 0;
+    for file in request.files.iter() {
+        std::fs::write(format!("{i}.foo"), &file.data).unwrap();
+
+        i += 1;
+    }
 
     rupring::Response::new().text("Hello, World!")
 }
