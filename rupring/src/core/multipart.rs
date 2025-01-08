@@ -3,7 +3,7 @@ use crate::request::MultipartFile;
 pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<MultipartFile>> {
     let mut files = vec![];
 
-    let start_boundary = format!("--{boundary}");
+    let start_boundary = format!("\r\n--{boundary}");
 
     let mut i = 0;
     loop {
@@ -13,7 +13,7 @@ pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<Mu
 
         // 첫번째 바운더리 삼키기
         if i == 0 {
-            i += start_boundary.len() + 1;
+            i += boundary.len() + 2;
         }
 
         let mut name = "".to_string();
@@ -27,13 +27,15 @@ pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<Mu
                 break;
             }
 
-            if raw_body[i] == b'\n' {
-                let line = String::from_utf8_lossy(&raw_body[start_index..i]);
-
+            if raw_body[i] == b'\r' && raw_body[i + 1] == b'\n' {
                 let mut header_end = false;
-                if i + 1 < raw_body.len() && raw_body[i + 1] == b'\n' {
+
+                if i + 3 < raw_body.len() && (raw_body[i + 2] == b'\r' && raw_body[i + 3] == b'\n')
+                {
                     header_end = true;
                 }
+
+                let line = String::from_utf8_lossy(&raw_body[start_index..i]);
 
                 if line.starts_with("Content-Disposition") {
                     let parts = line.split(";").map(|s| s.trim());
@@ -64,10 +66,10 @@ pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<Mu
                 }
 
                 if header_end {
-                    i += 2;
+                    i += 4;
                     break;
                 } else {
-                    i += 1;
+                    i += 2;
                     start_index = i;
                     continue;
                 }
@@ -85,8 +87,8 @@ pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<Mu
             }
 
             if raw_body[i..].starts_with(start_boundary.as_bytes()) {
-                data = raw_body[start_index..i - 1].to_vec();
-                i += start_boundary.len();
+                data = raw_body[start_index..i].to_vec();
+                i += start_boundary.len() + 1;
 
                 if raw_body[i..i + 2].starts_with(b"--") {
                     i += 2;
@@ -106,6 +108,14 @@ pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<Mu
         });
 
         i += 1;
+
+        if raw_body.len() > i && raw_body[i] == b'\r' {
+            i += 1;
+        }
+
+        if raw_body.len() > i && raw_body[i] == b'\n' {
+            i += 1;
+        }
     }
 
     Ok(files)
@@ -127,46 +137,41 @@ mod tests {
         }
 
         let test_cases = vec![TestCase {
-            name: "json 파일 2개".into(),
-            raw_body: br#"------WebKitFormBoundarywegos5eij6KIxFTB
-Content-Disposition: form-data; name="file1"; filename="6p63l2zrde5zhibddhbfmemrke.json"
-Content-Type: application/json
-
-{"Item":{"id":{"S":"1"},"value":{"S":"foo"}}}
-{"Item":{"id":{"S":"6"},"value":{"S":"rust"}}}
-
-------WebKitFormBoundarywegos5eij6KIxFTB
-Content-Disposition: form-data; name="file2"; filename="asdfasdf.json"
-Content-Type: application/json
-
-{"Item":{"id":{"S":"4444"},"value":{"S":"bar"}}}
-{"Item":{"id":{"S":"3434"},"value":{"S":"go"}}}
-
-------WebKitFormBoundarywegos5eij6KIxFTB--
-"#,
-            boundary: "----WebKitFormBoundarywegos5eij6KIxFTB",
-            expected: vec![
-                MultipartFile {
-                    name: "file1".to_string(),
-                    filename: "6p63l2zrde5zhibddhbfmemrke.json".to_string(),
-                    content_type: "application/json".to_string(),
-                    data: br#"{"Item":{"id":{"S":"1"},"value":{"S":"foo"}}}
-{"Item":{"id":{"S":"6"},"value":{"S":"rust"}}}
-"#
-                    .to_vec(),
-                },
-                MultipartFile {
-                    name: "file2".to_string(),
-                    filename: "asdfasdf.json".to_string(),
-                    content_type: "application/json".to_string(),
-                    data: br#"{"Item":{"id":{"S":"4444"},"value":{"S":"bar"}}}
-{"Item":{"id":{"S":"3434"},"value":{"S":"go"}}}
-"#
-                    .to_vec(),
-                },
-            ],
-            want_err: false,
-        }];
+                    name: "json 파일 2개".into(),
+                    raw_body: concat!(
+                        "------WebKitFormBoundarywegos5eij6KIxFTB\r\n",
+                        "Content-Disposition: form-data; name=\"file1\"; filename=\"6p63l2zrde5zhibddhbfmemrke.json\"\r\n",
+                        "Content-Type: application/json\r\n",
+                        "\r\n",
+                        "{\"Item\":{\"id\":{\"S\":\"1\"},\"value\":{\"S\":\"foo\"}}}\n",
+                        "{\"Item\":{\"id\":{\"S\":\"6\"},\"value\":{\"S\":\"rust\"}}}\n",
+                        "\r\n",
+                        "------WebKitFormBoundarywegos5eij6KIxFTB\r\n",
+                        "Content-Disposition: form-data; name=\"file2\"; filename=\"asdfasdf.json\"\r\n",
+                        "Content-Type: application/json\r\n",
+                        "\r\n",
+                        "{\"Item\":{\"id\":{\"S\":\"4444\"},\"value\":{\"S\":\"bar\"}}}\n",
+                        "{\"Item\":{\"id\":\"3434\",\"value\":\"go\"}}}\n",
+                        "\r\n",
+                        "------WebKitFormBoundarywegos5eij6KIxFTB--\r\n"
+                    ).as_bytes(),
+                    boundary: "----WebKitFormBoundarywegos5eij6KIxFTB",
+                    expected: vec![
+                        MultipartFile {
+                            name: "file1".to_string(),
+                            filename: "6p63l2zrde5zhibddhbfmemrke.json".to_string(),
+                            content_type: "application/json".to_string(),
+                            data: b"{\"Item\":{\"id\":{\"S\":\"1\"},\"value\":{\"S\":\"foo\"}}}\n{\"Item\":{\"id\":{\"S\":\"6\"},\"value\":{\"S\":\"rust\"}}}\n".to_vec(),
+                        },
+                        MultipartFile {
+                            name: "file2".to_string(),
+                            filename: "asdfasdf.json".to_string(),
+                            content_type: "application/json".to_string(),
+                            data: b"{\"Item\":{\"id\":{\"S\":\"4444\"},\"value\":{\"S\":\"bar\"}}}\n{\"Item\":{\"id\":\"3434\",\"value\":\"go\"}}}\n".to_vec(),
+                        },
+                    ],
+                    want_err: false,
+                }];
 
         for tc in test_cases {
             let expected = tc.expected;
