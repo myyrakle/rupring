@@ -500,16 +500,13 @@ where
         let header_name = header_name.to_string();
         let header_value = header_value.to_str().unwrap_or("").to_string();
 
-        if header_name == header::CONTENT_TYPE {
-            if header_value.starts_with("multipart/form-data") {
-                multipart_boundary = header_value
-                    .split(";")
-                    .find(|s| s.contains("boundary="))
-                    .map(|s| s.split("boundary=").last())
-                    .flatten()
-                    .map(|s| s.trim())
-                    .map(|s| s.to_string());
-            }
+        if header_name == header::CONTENT_TYPE && header_value.starts_with("multipart/form-data") {
+            multipart_boundary = header_value
+                .split(";")
+                .find(|s| s.contains("boundary="))
+                .map(|s| s.split("boundary=").last())
+                .flatten()
+                .map(|s| s.trim().to_string());
         }
 
         headers.insert(header_name, header_value);

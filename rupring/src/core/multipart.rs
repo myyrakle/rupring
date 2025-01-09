@@ -103,7 +103,7 @@ pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<Mu
         files.push(MultipartFile {
             name: name.to_string(),
             filename: filename.to_string(),
-            content_type: content_type,
+            content_type,
             data,
         });
 
