@@ -1,5 +1,8 @@
 use crate::request::MultipartFile;
 
+/*
+멀티파트 bytes를 파싱해서 파일 형태로 변환합니다.
+*/
 pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<MultipartFile>> {
     let mut files = vec![];
 
@@ -109,10 +112,10 @@ pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<Mu
 
         i += 1;
 
+        // 개행 삼키기
         if raw_body.len() > i && raw_body[i] == b'\r' {
             i += 1;
         }
-
         if raw_body.len() > i && raw_body[i] == b'\n' {
             i += 1;
         }
