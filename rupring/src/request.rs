@@ -96,11 +96,21 @@ pub struct Request {
     pub method: Method,
     pub path: String,
     pub body: String,
+    pub raw_body: Vec<u8>,
+    pub files: Vec<MultipartFile>,
     pub headers: HashMap<String, String>,
     pub cookies: HashMap<String, String>,
     pub query_parameters: HashMap<String, Vec<String>>,
     pub path_parameters: HashMap<String, String>,
     pub(crate) di_context: Arc<crate::DIContext>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MultipartFile {
+    pub name: String,
+    pub filename: String,
+    pub content_type: String,
+    pub data: Vec<u8>,
 }
 
 impl Request {
@@ -506,4 +516,3 @@ impl ParamStringDeserializer<String> for ParamString {
         Ok(self.0.clone())
     }
 }
-
