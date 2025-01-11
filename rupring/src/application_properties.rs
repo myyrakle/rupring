@@ -341,6 +341,11 @@ impl ApplicationProperties {
                 "server.ssl.key" => {
                     server.ssl.key = value.to_string();
                 }
+                "server.multipart.auto-parsing-enabled" => {
+                    if let Ok(value) = value.parse::<bool>() {
+                        server.multipart.auto_parsing_enabled = value;
+                    }
+                }
                 "server.ssl.cert" => {
                     server.ssl.cert = value.to_string();
                 }
