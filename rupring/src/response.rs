@@ -333,6 +333,22 @@ impl Response {
         self
     }
 
+    /// set to return a html value.
+    /// ```
+    /// let response = rupring::Response::new().html("<h1>Hello World</h1>".to_string());
+    /// assert_eq!(response.body, "<h1>Hello World</h1>".to_string().into_bytes());
+    /// ```
+    pub fn html(mut self, body: impl ToString) -> Self {
+        self.headers.insert(
+            crate::HeaderName::from_static(header::CONTENT_TYPE),
+            vec![meme::HTML.to_string()],
+        );
+
+        self.body = body.to_string().into();
+
+        self
+    }
+
     /// Set `Content-Diposition` header to cause the browser to download the file.
     /// ```
     /// use rupring::HeaderName;

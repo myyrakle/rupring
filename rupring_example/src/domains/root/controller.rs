@@ -53,9 +53,8 @@ pub fn multipart(mut request: rupring::Request) -> rupring::Response {
 #[description = "별다른 기능은 없습니다."]
 #[tags = [root]]
 pub fn multipart_page(request: rupring::Request) -> rupring::Response {
-    rupring::Response::new()
-        .text(
-            r#"
+    rupring::Response::new().html(
+        r#"
         <html>
             <body>
                 <form action="/multipart-upload" method="post" enctype="multipart/form-data">
@@ -66,6 +65,5 @@ pub fn multipart_page(request: rupring::Request) -> rupring::Response {
             </body>
         </html>
         "#,
-        )
-        .header("content-type", "text/html")
+    )
 }
