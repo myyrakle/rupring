@@ -501,7 +501,10 @@ where
         let header_name = header_name.to_string();
         let header_value = header_value.to_str().unwrap_or("").to_string();
 
-        if header_name == header::CONTENT_TYPE && header_value.starts_with("multipart/form-data") {
+        if application_properties.server.multipart.auto_parsing_enabled
+            && header_name == header::CONTENT_TYPE
+            && header_value.starts_with("multipart/form-data")
+        {
             multipart_boundary = parse_multipart_boundary(&header_value)
         }
 
@@ -524,13 +527,15 @@ where
         Ok(body) => {
             raw_request_body = body.to_bytes().to_vec();
 
-            if let Some(boundary) = multipart_boundary {
-                files =
-                    multipart::parse_multipart(&raw_request_body, &boundary).unwrap_or_default();
-            } else {
-                request_body = core::str::from_utf8(&raw_request_body)
-                    .unwrap_or("")
-                    .to_string();
+            if application_properties.server.multipart.auto_parsing_enabled {
+                if let Some(boundary) = multipart_boundary {
+                    files = multipart::parse_multipart(&raw_request_body, &boundary)
+                        .unwrap_or_default();
+                } else {
+                    request_body = core::str::from_utf8(&raw_request_body)
+                        .unwrap_or("")
+                        .to_string();
+                }
             }
         }
         Err(_) => {
