@@ -132,13 +132,14 @@ impl Request {
 
     /*
     Parse the header value and request body value and save the file information in `Request::files`.
+    There is no need to use this function if the `server.multipart.auto-parsing-enabled` option is true. (default true)
     */
     pub fn parse_multipart(&mut self) -> anyhow::Result<()> {
         for (header_name, header_value) in self.headers.iter() {
             if header_name == header::CONTENT_TYPE.as_str()
                 && header_value.starts_with("multipart/form-data")
             {
-                if let Some(multipart_boundary) = parse_multipart_boundary(&header_value) {
+                if let Some(multipart_boundary) = parse_multipart_boundary(header_value) {
                     self.files = parse_multipart(&self.raw_body, &multipart_boundary)?;
                     return Ok(());
                 }
