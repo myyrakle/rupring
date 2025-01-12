@@ -89,7 +89,10 @@ use std::{collections::HashMap, panic::UnwindSafe, sync::Arc};
 
 use hyper::header;
 
-use crate::Method;
+use crate::{
+    core::multipart::{parse_multipart, parse_multipart_boundary},
+    Method,
+};
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -127,8 +130,24 @@ impl Request {
         }
     }
 
-    pub fn parse_multipart(&mut self) {
-        
+    /*
+    Parse the header value and request body value and save the file information in `Request::files`.
+    */
+    pub fn parse_multipart(&mut self) -> anyhow::Result<()> {
+        for (header_name, header_value) in self.headers.iter() {
+            if header_name == header::CONTENT_TYPE.as_str()
+                && header_value.starts_with("multipart/form-data")
+            {
+                if let Some(multipart_boundary) = parse_multipart_boundary(&header_value) {
+                    self.files = parse_multipart(&self.raw_body, &multipart_boundary)?;
+                    return Ok(());
+                }
+
+                return Err(anyhow::anyhow!("No boundary"));
+            }
+        }
+
+        Err(anyhow::anyhow!("No multipart/form-data"))
     }
 }
 

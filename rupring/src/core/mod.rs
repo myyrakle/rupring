@@ -3,7 +3,7 @@ pub mod boot;
 pub(crate) mod bootings;
 mod compression;
 mod graceful;
-mod multipart;
+pub(crate) mod multipart;
 mod parse;
 
 #[cfg(feature = "aws-lambda")]
