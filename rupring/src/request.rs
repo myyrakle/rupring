@@ -117,7 +117,7 @@ pub struct MultipartFile {
 }
 
 impl Request {
-    pub fn parse_cookies_from_headers(&mut self) {
+    pub fn parse_cookies(&mut self) {
         if let Some(cookie_header) = self.headers.get(header::COOKIE.as_str()) {
             for cookie in cookie_header.split("; ") {
                 let mut parts = cookie.splitn(2, '=');

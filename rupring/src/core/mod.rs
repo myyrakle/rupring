@@ -560,7 +560,7 @@ where
             di_context: Arc::clone(&di_context),
         };
 
-        request.parse_cookies_from_headers();
+        request.parse_cookies();
 
         let mut response = crate::Response::new();
 
