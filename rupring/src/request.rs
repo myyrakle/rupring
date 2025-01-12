@@ -126,6 +126,10 @@ impl Request {
             }
         }
     }
+
+    pub fn parse_multipart(&mut self) {
+        
+    }
 }
 
 impl Request {

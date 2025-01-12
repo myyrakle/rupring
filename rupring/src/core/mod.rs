@@ -11,6 +11,7 @@ use bootings::aws_lambda::LambdaRequestEvent;
 
 #[cfg(feature = "tls")]
 use bootings::tls;
+use multipart::parse_multipart_boundary;
 use tokio::time::error::Elapsed;
 use tokio::time::Instant;
 
@@ -501,12 +502,7 @@ where
         let header_value = header_value.to_str().unwrap_or("").to_string();
 
         if header_name == header::CONTENT_TYPE && header_value.starts_with("multipart/form-data") {
-            multipart_boundary = header_value
-                .split(";")
-                .find(|s| s.contains("boundary="))
-                .map(|s| s.split("boundary=").last())
-                .flatten()
-                .map(|s| s.trim().to_string());
+            multipart_boundary = parse_multipart_boundary(&header_value)
         }
 
         headers.insert(header_name, header_value);

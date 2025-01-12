@@ -1,6 +1,18 @@
 use crate::request::MultipartFile;
 
 /*
+Content-Type: multipart/form-data에 붙어있는 bounary 값을 추출합니다.
+*/
+pub fn parse_multipart_boundary(header_value: &str) -> Option<String> {
+    header_value
+        .split(";")
+        .find(|s| s.contains("boundary="))
+        .map(|s| s.split("boundary=").last())
+        .flatten()
+        .map(|s| s.trim().to_string())
+}
+
+/*
 멀티파트 bytes를 파싱해서 파일 형태로 변환합니다.
 */
 pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<MultipartFile>> {
@@ -189,6 +201,38 @@ mod tests {
 
                 assert_eq!(result, expected, "test case: {:?}", tc.name);
             }
+        }
+    }
+
+    #[test]
+    fn test_parse_multipart_boundary() {
+        #[derive(Debug, PartialEq)]
+        struct TestCase {
+            name: String,
+            header_value: &'static str,
+            expected: Option<String>,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                name: "boundary가 있을 때".into(),
+                header_value:
+                    "multipart/form-data; boundary=----WebKitFormBoundarywegos5eij6KIxFTB",
+                expected: Some("----WebKitFormBoundarywegos5eij6KIxFTB".to_string()),
+            },
+            TestCase {
+                name: "boundary가 없을 때".into(),
+                header_value: "multipart/form-data",
+                expected: None,
+            },
+        ];
+
+        for tc in test_cases {
+            let expected = tc.expected;
+
+            let result = parse_multipart_boundary(tc.header_value);
+
+            assert_eq!(result, expected, "test case: {:?}", tc.name);
         }
     }
 }
