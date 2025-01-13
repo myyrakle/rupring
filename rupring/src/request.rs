@@ -117,6 +117,10 @@ pub struct MultipartFile {
 }
 
 impl Request {
+    /*
+    Parse the header value and save the file information in `Request::cookies`.
+    There is no need to use this function if the `server.cookie.auto-parsing-enabled` option is true. (default true)
+    */
     pub fn parse_cookies(&mut self) {
         if let Some(cookie_header) = self.headers.get(header::COOKIE.as_str()) {
             self.cookies = crate::core::cookie::parse_cookie_header(cookie_header);
