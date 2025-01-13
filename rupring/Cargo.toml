@@ -48,3 +48,6 @@ full = ["aws-lambda"]
 aws-lambda = []
 tls = ["tokio-rustls", "rustls-pemfile", "rustls"]
 http2 = []
+
+[lints]
+workspace = true
