@@ -4,3 +4,9 @@ members = [
     "rupring_macro"
 ]
 resolver = "2"
+
+[workspace.lints.clippy]
+single_match = { level = "allow" }
+to_string_trait_impl = { level = "allow" }
+map_entry = { level = "allow" }
+map_flatten = { level = "allow" }
