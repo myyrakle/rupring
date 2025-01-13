@@ -2,6 +2,7 @@ mod banner;
 pub mod boot;
 pub(crate) mod bootings;
 mod compression;
+pub(crate) mod cookie;
 mod graceful;
 pub(crate) mod multipart;
 mod parse;

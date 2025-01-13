@@ -119,14 +119,7 @@ pub struct MultipartFile {
 impl Request {
     pub fn parse_cookies(&mut self) {
         if let Some(cookie_header) = self.headers.get(header::COOKIE.as_str()) {
-            for cookie in cookie_header.split("; ") {
-                let mut parts = cookie.splitn(2, '=');
-                if let Some(key) = parts.next() {
-                    if let Some(value) = parts.next() {
-                        self.cookies.insert(key.to_string(), value.to_string());
-                    }
-                }
-            }
+            self.cookies = crate::core::cookie::parse_cookie_header(cookie_header);
         }
     }
 
