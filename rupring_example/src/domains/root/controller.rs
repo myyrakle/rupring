@@ -12,6 +12,8 @@ pub fn index(request: rupring::Request) -> rupring::Response {
     let body = request.body;
     println!("body: {}", body);
 
+    println!("cookies: {:?}", request.cookies);
+
     rupring::Response::new()
         .text("123214")
         .add_cookie(Cookie::new("name", "value").http_only(true).secure(true))

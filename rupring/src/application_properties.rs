@@ -32,6 +32,7 @@
 | server.ssl.key | The SSL key file. (SSL is enabled by feature="tls") | None |
 | server.ssl.cert | The SSL cert file. (SSL is enabled by feature="tls") | None |
 | server.multipart.auto-parsing-enabled | Whether to enable auto parsing for multipart. | true |
+| server.cookie.auto-parsing-enabled | Whether to enable auto parsing for cookie. | true |
 | banner.enabled | Whether to enable the banner. | true |
 | banner.location | The location of the banner file. | None |
 | banner.charset | The charset of the banner file. (UTF-8, UTF-16) | UTF-8 |
@@ -177,6 +178,19 @@ impl Default for Multipart {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Cookie {
+    pub auto_parsing_enabled: bool,
+}
+
+impl Default for Cookie {
+    fn default() -> Self {
+        Cookie {
+            auto_parsing_enabled: true,
+        }
+    }
+}
+
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]
 pub struct Server {
@@ -191,6 +205,7 @@ pub struct Server {
     pub http2: Http2,
     pub ssl: SSL,
     pub multipart: Multipart,
+    pub cookie: Cookie,
 }
 
 impl Default for Server {
@@ -207,6 +222,7 @@ impl Default for Server {
             http2: Http2::default(),
             ssl: Default::default(),
             multipart: Default::default(),
+            cookie: Default::default(),
         }
     }
 }
@@ -344,6 +360,11 @@ impl ApplicationProperties {
                 "server.multipart.auto-parsing-enabled" => {
                     if let Ok(value) = value.parse::<bool>() {
                         server.multipart.auto_parsing_enabled = value;
+                    }
+                }
+                "server.cookie.auto-parsing-enabled" => {
+                    if let Ok(value) = value.parse::<bool>() {
+                        server.cookie.auto_parsing_enabled = value;
                     }
                 }
                 "server.ssl.cert" => {

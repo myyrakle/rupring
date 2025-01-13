@@ -2,6 +2,7 @@ mod banner;
 pub mod boot;
 pub(crate) mod bootings;
 mod compression;
+pub(crate) mod cookie;
 mod graceful;
 pub(crate) mod multipart;
 mod parse;
@@ -11,7 +12,6 @@ use bootings::aws_lambda::LambdaRequestEvent;
 
 #[cfg(feature = "tls")]
 use bootings::tls;
-use multipart::parse_multipart_boundary;
 use tokio::time::error::Elapsed;
 use tokio::time::Instant;
 
@@ -489,6 +489,7 @@ where
     let handler = route.handler();
 
     let raw_querystring = uri.query().unwrap_or_default();
+    let mut cookies = HashMap::new();
 
     // 3.1. Parse Query Parameters
     let query_parameters = parse::parse_query_parameter(raw_querystring);
@@ -505,7 +506,13 @@ where
             && header_name == header::CONTENT_TYPE
             && header_value.starts_with("multipart/form-data")
         {
-            multipart_boundary = parse_multipart_boundary(&header_value)
+            multipart_boundary = multipart::parse_multipart_boundary(&header_value)
+        }
+
+        if application_properties.server.cookie.auto_parsing_enabled
+            && header_name == header::COOKIE
+        {
+            cookies = cookie::parse_cookie_header(&header_value);
         }
 
         headers.insert(header_name, header_value);
@@ -555,12 +562,12 @@ where
             query_parameters,
             headers,
             path_parameters,
-            cookies: HashMap::new(),
+            cookies,
             files,
             di_context: Arc::clone(&di_context),
         };
 
-        request.parse_cookies_from_headers();
+        request.parse_cookies();
 
         let mut response = crate::Response::new();
 
