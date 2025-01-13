@@ -509,10 +509,10 @@ where
             multipart_boundary = multipart::parse_multipart_boundary(&header_value)
         }
 
-        if application_properties.server.cookie.auto_parsing_enabled {
-            if header_name == header::COOKIE {
-                cookies = cookie::parse_cookie_header(&header_value);
-            }
+        if application_properties.server.cookie.auto_parsing_enabled
+            && header_name == header::COOKIE
+        {
+            cookies = cookie::parse_cookie_header(&header_value);
         }
 
         headers.insert(header_name, header_value);
@@ -562,7 +562,7 @@ where
             query_parameters,
             headers,
             path_parameters,
-            cookies: cookies,
+            cookies,
             files,
             di_context: Arc::clone(&di_context),
         };
