@@ -214,7 +214,7 @@ pub async fn run_server(
                 let tls_stream = match tls_acceptor.accept(tcp_stream).await {
                     Ok(tls_stream) => tls_stream,
                     Err(err) => {
-                        eprintln!("failed to perform tls handshake: {err:#}");
+                        log::error!("failed to perform tls handshake: {err:#}");
                         return;
                     }
                 };
@@ -238,7 +238,7 @@ pub async fn run_server(
                     .serve_connection_with_upgrades(io, service)
                     .await
                 {
-                    println!("Error serving connection: {:?}", err);
+                    log::debug!("Error serving connection: {:?}", err);
                 }
             }
 
@@ -251,7 +251,7 @@ pub async fn run_server(
                 }
 
                 if let Err(err) = http_builder.serve_connection(io, service).await {
-                    println!("Error serving connection: {:?}", err);
+                    log::debug!("Error serving connection: {:?}", err);
                 }
             }
         });
