@@ -139,6 +139,18 @@ pub async fn run_server(
                 let root_module = root_module.clone();
 
                 async move {
+                    if let Some(max_length) = application_properties.server.request.url.max_length {
+                        let incoming_url_length = request
+                            .uri()
+                            .path_and_query()
+                            .map(|e| e.as_str().len())
+                            .unwrap_or_default();
+
+                        if incoming_url_length > max_length {
+                            return default_uri_too_long_handler();
+                        }
+                    }
+
                     if let Some(timeout_duration) = application_properties.server.request_timeout {
                         let now = Instant::now();
 
@@ -417,6 +429,18 @@ fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
         .unwrap();
 
     if let Ok(status) = StatusCode::from_u16(404) {
+        *response.status_mut() = status;
+    }
+
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
+}
+
+fn default_uri_too_long_handler() -> Result<Response<Full<Bytes>>, Infallible> {
+    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
+        .body(Full::new(Bytes::from("URI Too Long")))
+        .unwrap();
+
+    if let Ok(status) = StatusCode::from_u16(414) {
         *response.status_mut() = status;
     }
 
