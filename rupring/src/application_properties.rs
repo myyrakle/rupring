@@ -28,6 +28,7 @@
 | server.compression.algorithm | The compression algorithm to use. (gzip,deflate) | gzip |
 | server.thread.limit | The thread limit to use. | None(max) |
 | server.request-timeout | The request timeout. (300 = 300 millisecond, 3s = 3 second, 2m = 2 minute) | No Timeout |
+| server.request.uri.max-length | The max length of the request URI. | None |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
 | server.ssl.key | The SSL key file. (SSL is enabled by feature="tls") | None |
 | server.ssl.cert | The SSL cert file. (SSL is enabled by feature="tls") | None |
@@ -191,6 +192,16 @@ impl Default for Cookie {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct RequestURIConfig {
+    pub max_length: Option<usize>,
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct RequestConfig {
+    pub uri: RequestURIConfig,
+}
+
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
 #[derive(Debug, PartialEq, Clone)]
 pub struct Server {
@@ -206,6 +217,7 @@ pub struct Server {
     pub ssl: SSL,
     pub multipart: Multipart,
     pub cookie: Cookie,
+    pub request: RequestConfig,
 }
 
 impl Default for Server {
@@ -223,6 +235,7 @@ impl Default for Server {
             ssl: Default::default(),
             multipart: Default::default(),
             cookie: Default::default(),
+            request: Default::default(),
         }
     }
 }
@@ -347,6 +360,11 @@ impl ApplicationProperties {
                         };
 
                         server.request_timeout = Some(duration);
+                    }
+                }
+                "server.request.uri.max-length" => {
+                    if let Ok(value) = value.parse::<usize>() {
+                        server.request.uri.max_length = Some(value);
                     }
                 }
                 "server.http1.keep-alive" => {
