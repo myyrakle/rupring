@@ -139,7 +139,7 @@ pub async fn run_server(
                 let root_module = root_module.clone();
 
                 async move {
-                    if let Some(max_length) = application_properties.server.request.url.max_length {
+                    if let Some(max_length) = application_properties.server.request.uri.max_length {
                         let incoming_url_length = request
                             .uri()
                             .path_and_query()
