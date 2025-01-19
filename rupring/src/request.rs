@@ -94,6 +94,13 @@ use crate::{
     Method,
 };
 
+#[derive(Debug, Clone, Default)]
+pub struct Metadata {
+    pub header_size: usize,
+    pub body_size: usize,
+    pub number_of_headers: usize,
+}
+
 #[derive(Debug, Clone)]
 pub struct Request {
     pub method: Method,
@@ -105,6 +112,7 @@ pub struct Request {
     pub cookies: HashMap<String, String>,
     pub query_parameters: HashMap<String, Vec<String>>,
     pub path_parameters: HashMap<String, String>,
+    pub metadata: Metadata,
     pub(crate) di_context: Arc<crate::DIContext>,
 }
 

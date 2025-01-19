@@ -19,6 +19,7 @@ use crate::application_properties;
 use crate::application_properties::CompressionAlgorithm;
 use crate::di;
 use crate::header;
+use crate::request::Metadata;
 pub(crate) mod route;
 
 use std::collections::HashMap;
@@ -122,6 +123,12 @@ pub async fn run_server(
         let di_context = Arc::clone(&di_context);
         let application_properties = Arc::clone(&application_properties);
         let root_module = root_module.clone();
+
+        let max_number_of_headers = application_properties
+            .server
+            .request
+            .header
+            .max_number_of_headers;
 
         // for Graceful Shutdown
         let running_task_count = Arc::clone(&running_task_count);
@@ -246,6 +253,10 @@ pub async fn run_server(
 
                 http_builder.http2().enable_connect_protocol();
 
+                if let Some(max_number_of_headers) = max_number_of_headers {
+                    http_builder.http1().max_headers(max_number_of_headers);
+                }
+
                 if let Err(err) = http_builder
                     .serve_connection_with_upgrades(io, service)
                     .await
@@ -258,11 +269,18 @@ pub async fn run_server(
             {
                 let mut http_builder = hyper::server::conn::http1::Builder::new();
 
+                if let Some(max_number_of_headers) = max_number_of_headers {
+                    http_builder.max_headers(max_number_of_headers);
+                }
+
                 if keep_alive {
                     http_builder.keep_alive(keep_alive);
                 }
 
                 if let Err(err) = http_builder.serve_connection(io, service).await {
+                    if err.is_parse_too_large() {
+                        return;
+                    }
                     log::debug!("Error serving connection: {:?}", err);
                 }
             }
@@ -447,6 +465,30 @@ fn default_uri_too_long_handler() -> Result<Response<Full<Bytes>>, Infallible> {
     Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
+fn default_header_size_too_big() -> Result<Response<Full<Bytes>>, Infallible> {
+    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
+        .body(Full::new(Bytes::from("Header Size Too Big")))
+        .unwrap();
+
+    if let Ok(status) = StatusCode::from_u16(400) {
+        *response.status_mut() = status;
+    }
+
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
+}
+
+fn default_header_fields_to_large() -> Result<Response<Full<Bytes>>, Infallible> {
+    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
+        .body(Full::new(Bytes::from("Request Header Fields Too Large")))
+        .unwrap();
+
+    if let Ok(status) = StatusCode::from_u16(431) {
+        *response.status_mut() = status;
+    }
+
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
+}
+
 fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
     let mut response: hyper::Response<Full<Bytes>> = Response::builder()
         .body(Full::new(Bytes::from(format!("Request Timeout: {error}",))))
@@ -489,6 +531,7 @@ where
     let uri = request.uri();
     let request_path = uri.path();
     let request_method = request.method();
+    let mut request_metadata = Metadata::default();
 
     print_system_log(
         Level::Info,
@@ -525,6 +568,26 @@ where
     for (header_name, header_value) in request.headers() {
         let header_name = header_name.to_string();
         let header_value = header_value.to_str().unwrap_or("").to_string();
+
+        request_metadata.header_size += header_name.len() + header_value.len();
+        request_metadata.number_of_headers += 1;
+
+        if let Some(header_max_length) = application_properties.server.request.header.max_length {
+            if request_metadata.header_size > header_max_length {
+                return default_header_size_too_big();
+            }
+        }
+
+        if let Some(max_number_of_headers) = application_properties
+            .server
+            .request
+            .header
+            .max_number_of_headers
+        {
+            if request_metadata.number_of_headers > max_number_of_headers {
+                return default_header_fields_to_large();
+            }
+        }
 
         if application_properties.server.multipart.auto_parsing_enabled
             && header_name == header::CONTENT_TYPE
@@ -588,6 +651,7 @@ where
             path_parameters,
             cookies,
             files,
+            metadata: request_metadata,
             di_context: Arc::clone(&di_context),
         };
 
