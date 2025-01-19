@@ -29,6 +29,7 @@
 | server.thread.limit | The thread limit to use. | None(max) |
 | server.request-timeout | The request timeout. (300 = 300 millisecond, 3s = 3 second, 2m = 2 minute) | No Timeout |
 | server.request.uri.max-length | The max length of the request URI. | None |
+| server.request.header.max-length | The max length of the request header. | None |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
 | server.ssl.key | The SSL key file. (SSL is enabled by feature="tls") | None |
 | server.ssl.cert | The SSL cert file. (SSL is enabled by feature="tls") | None |
@@ -198,8 +199,14 @@ pub struct RequestURIConfig {
 }
 
 #[derive(Debug, PartialEq, Clone, Default)]
+pub struct RequestHeaderConfig {
+    pub max_length: Option<usize>,
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct RequestConfig {
     pub uri: RequestURIConfig,
+    pub header: RequestHeaderConfig,
 }
 
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
@@ -365,6 +372,11 @@ impl ApplicationProperties {
                 "server.request.uri.max-length" => {
                     if let Ok(value) = value.parse::<usize>() {
                         server.request.uri.max_length = Some(value);
+                    }
+                }
+                "server.request.header.max-length" => {
+                    if let Ok(value) = value.parse::<usize>() {
+                        server.request.header.max_length = Some(value);
                     }
                 }
                 "server.http1.keep-alive" => {
