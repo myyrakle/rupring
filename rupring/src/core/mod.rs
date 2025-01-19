@@ -19,6 +19,7 @@ use crate::application_properties;
 use crate::application_properties::CompressionAlgorithm;
 use crate::di;
 use crate::header;
+use crate::request::Metadata;
 pub(crate) mod route;
 
 use std::collections::HashMap;
@@ -489,6 +490,7 @@ where
     let uri = request.uri();
     let request_path = uri.path();
     let request_method = request.method();
+    let mut request_metadata = Metadata::default();
 
     print_system_log(
         Level::Info,
@@ -525,6 +527,9 @@ where
     for (header_name, header_value) in request.headers() {
         let header_name = header_name.to_string();
         let header_value = header_value.to_str().unwrap_or("").to_string();
+
+        request_metadata.header_size += header_name.len() + header_value.len();
+        request_metadata.number_of_headers += 1;
 
         if application_properties.server.multipart.auto_parsing_enabled
             && header_name == header::CONTENT_TYPE
@@ -588,6 +593,7 @@ where
             path_parameters,
             cookies,
             files,
+            metadata: request_metadata,
             di_context: Arc::clone(&di_context),
         };
 
