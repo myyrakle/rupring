@@ -448,6 +448,18 @@ fn default_uri_too_long_handler() -> Result<Response<Full<Bytes>>, Infallible> {
     Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
+fn default_header_size_too_big() -> Result<Response<Full<Bytes>>, Infallible> {
+    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
+        .body(Full::new(Bytes::from("Header Size Too Big")))
+        .unwrap();
+
+    if let Ok(status) = StatusCode::from_u16(400) {
+        *response.status_mut() = status;
+    }
+
+    Ok::<Response<Full<Bytes>>, Infallible>(response)
+}
+
 fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
     let mut response: hyper::Response<Full<Bytes>> = Response::builder()
         .body(Full::new(Bytes::from(format!("Request Timeout: {error}",))))
@@ -530,6 +542,12 @@ where
 
         request_metadata.header_size += header_name.len() + header_value.len();
         request_metadata.number_of_headers += 1;
+
+        if let Some(header_max_length) = application_properties.server.request.header.max_length {
+            if request_metadata.header_size > header_max_length {
+                return default_header_size_too_big();
+            }
+        }
 
         if application_properties.server.multipart.auto_parsing_enabled
             && header_name == header::CONTENT_TYPE
