@@ -41,7 +41,7 @@
 | banner.charset | The charset of the banner file. (UTF-8, UTF-16) | UTF-8 |
 */
 
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, net::SocketAddr, time::Duration};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ApplicationProperties {
@@ -227,6 +227,22 @@ pub struct Server {
     pub multipart: Multipart,
     pub cookie: Cookie,
     pub request: RequestConfig,
+}
+
+impl Server {
+    pub fn make_address(&self) -> anyhow::Result<SocketAddr> {
+        use std::net::{IpAddr, SocketAddr};
+        use std::str::FromStr;
+
+        let port = self.port;
+        let host = self.address.clone();
+
+        let ip = IpAddr::from_str(host.as_str())?;
+
+        let socket_addr = SocketAddr::new(ip, port);
+
+        Ok(socket_addr)
+    }
 }
 
 impl Default for Server {

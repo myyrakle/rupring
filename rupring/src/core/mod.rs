@@ -3,6 +3,7 @@ pub mod boot;
 pub(crate) mod bootings;
 mod compression;
 pub(crate) mod cookie;
+mod error_handler;
 mod graceful;
 pub(crate) mod multipart;
 mod parse;
@@ -12,7 +13,12 @@ use bootings::aws_lambda::LambdaRequestEvent;
 
 #[cfg(feature = "tls")]
 use bootings::tls;
-use tokio::time::error::Elapsed;
+use error_handler::default_404_handler;
+use error_handler::default_header_fields_to_large;
+use error_handler::default_header_size_too_big;
+use error_handler::default_join_error_handler;
+use error_handler::default_timeout_handler;
+use error_handler::default_uri_too_long_handler;
 use tokio::time::Instant;
 
 use crate::application_properties;
@@ -24,8 +30,7 @@ pub(crate) mod route;
 
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::error::Error;
-use std::net::SocketAddr;
+use std::net::IpAddr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
@@ -46,6 +51,10 @@ use crate::logger::print_system_log;
 use crate::swagger::context::SwaggerContext;
 use crate::IModule;
 
+struct RequestAdditionalData {
+    pub ip: IpAddr,
+}
+
 pub async fn run_server(
     application_properties: application_properties::ApplicationProperties,
     root_module: impl IModule + Clone + Send + Sync + 'static,
@@ -63,7 +72,7 @@ pub async fn run_server(
     // 3. ready, set, go!
     banner::print_banner(&application_properties);
 
-    let socket_address = make_address(&application_properties)?;
+    let socket_address = application_properties.server.make_address()?;
 
     print_system_log(
         Level::Info,
@@ -107,6 +116,8 @@ pub async fn run_server(
     loop {
         let (mut tcp_stream, _) = listener.accept().await?;
 
+        let ip = tcp_stream.peer_addr()?.ip();
+
         if is_graceful_shutdown && !service_avaliable.load(std::sync::atomic::Ordering::Acquire) {
             print_system_log(Level::Info, "Service is not available");
 
@@ -139,6 +150,8 @@ pub async fn run_server(
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
             let service = service_fn(move |request: Request<hyper::body::Incoming>| {
+                let request_additional_data = RequestAdditionalData { ip };
+
                 let di_context = Arc::clone(&di_context);
                 let application_properties = Arc::clone(&application_properties);
 
@@ -174,6 +187,7 @@ pub async fn run_server(
                                     di_context,
                                     root_module,
                                     request,
+                                    request_additional_data,
                                 )
                                 .await;
 
@@ -207,6 +221,7 @@ pub async fn run_server(
                                 di_context,
                                 root_module,
                                 request,
+                                request_additional_data,
                             )
                             .await;
 
@@ -353,6 +368,7 @@ pub async fn handle_event_on_aws_lambda(
     root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaReponse;
+    use hyper::Version;
 
     if lambda_request_context.status_code == 204 {
         // Ignore the event if the status code is 204.
@@ -362,7 +378,20 @@ pub async fn handle_event_on_aws_lambda(
         return Ok(());
     }
 
+    let version = match lambda_request_context
+        .event_payload
+        .request_context
+        .http
+        .protocol
+        .as_str()
+    {
+        "HTTP/1.1" => Version::HTTP_11,
+        "HTTP/2" => Version::HTTP_2,
+        _ => Version::HTTP_11,
+    };
+
     let hyper_request_builder = hyper::Request::builder()
+        .version(version)
         .method(
             lambda_request_context
                 .event_payload
@@ -379,12 +408,23 @@ pub async fn handle_event_on_aws_lambda(
 
     *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
 
+    let request_additional_data = RequestAdditionalData {
+        ip: lambda_request_context
+            .event_payload
+            .request_context
+            .http
+            .source_ip
+            .parse()
+            .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0))),
+    };
+
     // 5. process request
     let mut response = process_request(
         application_properties,
         di_context,
         root_module,
         hyper_request,
+        request_additional_data,
     )
     .await?;
 
@@ -425,102 +465,12 @@ pub async fn handle_event_on_aws_lambda(
     Ok(())
 }
 
-fn make_address(
-    application_properties: &application_properties::ApplicationProperties,
-) -> anyhow::Result<SocketAddr> {
-    use std::net::{IpAddr, SocketAddr};
-    use std::str::FromStr;
-
-    let port = application_properties.server.port;
-    let host = application_properties.server.address.clone();
-
-    let ip = IpAddr::from_str(host.as_str())?;
-
-    let socket_addr = SocketAddr::new(ip, port);
-
-    Ok(socket_addr)
-}
-
-fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Not Found")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(404) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_uri_too_long_handler() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("URI Too Long")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(414) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_header_size_too_big() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Header Size Too Big")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(400) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_header_fields_to_large() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Request Header Fields Too Large")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(431) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(format!("Request Timeout: {error}",))))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(500) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_join_error_handler(error: impl Error) -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(format!(
-            "Internal Server Error: {:?}",
-            error
-        ))))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(500) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
 async fn process_request<T>(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
     request: Request<T>,
+    request_additional_data: RequestAdditionalData,
 ) -> Result<Response<Full<Bytes>>, Infallible>
 where
     T: hyper::body::Body,
@@ -531,7 +481,11 @@ where
     let uri = request.uri();
     let request_path = uri.path();
     let request_method = request.method();
-    let mut request_metadata = Metadata::default();
+    let mut request_metadata = Metadata {
+        ip: request_additional_data.ip,
+        protocol: request.version().into(),
+        ..Default::default()
+    };
 
     print_system_log(
         Level::Info,
