@@ -25,6 +25,7 @@ pub(crate) mod route;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::error::Error;
+use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
@@ -45,6 +46,10 @@ use crate::header::preprocess_headers;
 use crate::logger::print_system_log;
 use crate::swagger::context::SwaggerContext;
 use crate::IModule;
+
+struct RequestAdditionalData {
+    pub ip: IpAddr,
+}
 
 pub async fn run_server(
     application_properties: application_properties::ApplicationProperties,
@@ -107,6 +112,8 @@ pub async fn run_server(
     loop {
         let (mut tcp_stream, _) = listener.accept().await?;
 
+        let ip = tcp_stream.peer_addr()?.ip();
+
         if is_graceful_shutdown && !service_avaliable.load(std::sync::atomic::Ordering::Acquire) {
             print_system_log(Level::Info, "Service is not available");
 
@@ -139,6 +146,8 @@ pub async fn run_server(
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
             let service = service_fn(move |request: Request<hyper::body::Incoming>| {
+                let request_additional_data = RequestAdditionalData { ip };
+
                 let di_context = Arc::clone(&di_context);
                 let application_properties = Arc::clone(&application_properties);
 
@@ -174,6 +183,7 @@ pub async fn run_server(
                                     di_context,
                                     root_module,
                                     request,
+                                    request_additional_data,
                                 )
                                 .await;
 
@@ -207,6 +217,7 @@ pub async fn run_server(
                                 di_context,
                                 root_module,
                                 request,
+                                request_additional_data,
                             )
                             .await;
 
@@ -379,12 +390,23 @@ pub async fn handle_event_on_aws_lambda(
 
     *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
 
+    let request_additional_data = RequestAdditionalData {
+        ip: lambda_request_context
+            .event_payload
+            .request_context
+            .http
+            .source_ip
+            .parse()
+            .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0))),
+    };
+
     // 5. process request
     let mut response = process_request(
         application_properties,
         di_context,
         root_module,
         hyper_request,
+        request_additional_data,
     )
     .await?;
 
@@ -521,6 +543,7 @@ async fn process_request<T>(
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
     request: Request<T>,
+    request_additional_data: RequestAdditionalData,
 ) -> Result<Response<Full<Bytes>>, Infallible>
 where
     T: hyper::body::Body,
@@ -531,7 +554,10 @@ where
     let uri = request.uri();
     let request_path = uri.path();
     let request_method = request.method();
-    let mut request_metadata = Metadata::default();
+    let mut request_metadata = Metadata {
+        ip: request_additional_data.ip,
+        ..Default::default()
+    };
 
     print_system_log(
         Level::Info,

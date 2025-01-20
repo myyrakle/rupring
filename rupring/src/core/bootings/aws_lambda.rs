@@ -26,6 +26,10 @@ pub struct LambdaRequestEvent {
 pub struct LambdaRequestHTTP {
     #[serde(rename = "method")]
     pub method: String,
+    #[serde(rename = "protocol")]
+    pub protocol: String,
+    #[serde(rename = "sourceIp")]
+    pub source_ip: String,
 }
 
 #[derive(Debug, Default, Clone, Deserialize)]

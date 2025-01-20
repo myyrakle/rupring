@@ -85,7 +85,12 @@ impl rupring::ParamStringDeserializer<SomeCustomType> for rupring::ParamString {
 }
 ```
 */
-use std::{collections::HashMap, panic::UnwindSafe, sync::Arc};
+use std::{
+    collections::HashMap,
+    net::{IpAddr, Ipv4Addr},
+    panic::UnwindSafe,
+    sync::Arc,
+};
 
 use hyper::header;
 
@@ -94,11 +99,23 @@ use crate::{
     Method,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Metadata {
+    pub ip: IpAddr,
     pub header_size: usize,
     pub body_size: usize,
     pub number_of_headers: usize,
+}
+
+impl Default for Metadata {
+    fn default() -> Self {
+        Self {
+            ip: IpAddr::V4(Ipv4Addr::from_bits(0)),
+            header_size: 0,
+            body_size: 0,
+            number_of_headers: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
