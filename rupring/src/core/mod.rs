@@ -368,6 +368,7 @@ pub async fn handle_event_on_aws_lambda(
     root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaReponse;
+    use hyper::Version;
 
     if lambda_request_context.status_code == 204 {
         // Ignore the event if the status code is 204.
@@ -377,7 +378,20 @@ pub async fn handle_event_on_aws_lambda(
         return Ok(());
     }
 
+    let version = match lambda_request_context
+        .event_payload
+        .request_context
+        .http
+        .protocol
+        .as_str()
+    {
+        "HTTP/1.1" => Version::HTTP_11,
+        "HTTP/2" => Version::HTTP_2,
+        _ => Version::HTTP_11,
+    };
+
     let hyper_request_builder = hyper::Request::builder()
+        .version(version)
         .method(
             lambda_request_context
                 .event_payload
