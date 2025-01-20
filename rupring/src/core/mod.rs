@@ -3,6 +3,7 @@ pub mod boot;
 pub(crate) mod bootings;
 mod compression;
 pub(crate) mod cookie;
+mod error_handler;
 mod graceful;
 pub(crate) mod multipart;
 mod parse;
@@ -12,7 +13,12 @@ use bootings::aws_lambda::LambdaRequestEvent;
 
 #[cfg(feature = "tls")]
 use bootings::tls;
-use tokio::time::error::Elapsed;
+use error_handler::default_404_handler;
+use error_handler::default_header_fields_to_large;
+use error_handler::default_header_size_too_big;
+use error_handler::default_join_error_handler;
+use error_handler::default_timeout_handler;
+use error_handler::default_uri_too_long_handler;
 use tokio::time::Instant;
 
 use crate::application_properties;
@@ -24,7 +30,6 @@ pub(crate) mod route;
 
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::error::Error;
 use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
@@ -461,81 +466,6 @@ fn make_address(
     let socket_addr = SocketAddr::new(ip, port);
 
     Ok(socket_addr)
-}
-
-fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Not Found")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(404) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_uri_too_long_handler() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("URI Too Long")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(414) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_header_size_too_big() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Header Size Too Big")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(400) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_header_fields_to_large() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Request Header Fields Too Large")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(431) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(format!("Request Timeout: {error}",))))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(500) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
-fn default_join_error_handler(error: impl Error) -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(format!(
-            "Internal Server Error: {:?}",
-            error
-        ))))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(500) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
 }
 
 async fn process_request<T>(
