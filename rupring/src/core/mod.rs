@@ -31,7 +31,6 @@ pub(crate) mod route;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::IpAddr;
-use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
@@ -73,7 +72,7 @@ pub async fn run_server(
     // 3. ready, set, go!
     banner::print_banner(&application_properties);
 
-    let socket_address = make_address(&application_properties)?;
+    let socket_address = application_properties.server.make_address()?;
 
     print_system_log(
         Level::Info,
@@ -450,22 +449,6 @@ pub async fn handle_event_on_aws_lambda(
     .await?;
 
     Ok(())
-}
-
-fn make_address(
-    application_properties: &application_properties::ApplicationProperties,
-) -> anyhow::Result<SocketAddr> {
-    use std::net::{IpAddr, SocketAddr};
-    use std::str::FromStr;
-
-    let port = application_properties.server.port;
-    let host = application_properties.server.address.clone();
-
-    let ip = IpAddr::from_str(host.as_str())?;
-
-    let socket_addr = SocketAddr::new(ip, port);
-
-    Ok(socket_addr)
 }
 
 async fn process_request<T>(
