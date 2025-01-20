@@ -486,6 +486,7 @@ where
     let request_method = request.method();
     let mut request_metadata = Metadata {
         ip: request_additional_data.ip,
+        protocol: request.version().into(),
         ..Default::default()
     };
 

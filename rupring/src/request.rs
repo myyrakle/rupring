@@ -92,7 +92,7 @@ use std::{
     sync::Arc,
 };
 
-use hyper::header;
+use hyper::{header, Version};
 
 use crate::{
     core::multipart::{parse_multipart, parse_multipart_boundary},
@@ -100,8 +100,25 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+pub enum Protocol {
+    HTTP1,
+    HTTP2,
+}
+
+impl From<Version> for Protocol {
+    fn from(version: Version) -> Self {
+        match version {
+            Version::HTTP_10 | Version::HTTP_11 => Protocol::HTTP1,
+            Version::HTTP_2 => Protocol::HTTP2,
+            _ => Protocol::HTTP1,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Metadata {
     pub ip: IpAddr,
+    pub protocol: Protocol,
     pub header_size: usize,
     pub body_size: usize,
     pub number_of_headers: usize,
@@ -111,6 +128,7 @@ impl Default for Metadata {
     fn default() -> Self {
         Self {
             ip: IpAddr::V4(Ipv4Addr::from_bits(0)),
+            protocol: Protocol::HTTP1,
             header_size: 0,
             body_size: 0,
             number_of_headers: 0,
