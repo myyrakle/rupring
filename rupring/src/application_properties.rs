@@ -206,9 +206,15 @@ pub struct RequestHeaderConfig {
 }
 
 #[derive(Debug, PartialEq, Clone, Default)]
+pub struct RequestBodyConfig {
+    pub max_length: Option<usize>,
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct RequestConfig {
     pub uri: RequestURIConfig,
     pub header: RequestHeaderConfig,
+    pub body: RequestBodyConfig,
 }
 
 // Reference: https://docs.spring.io/spring-boot/appendix/application-properties/index.html#appendix.application-properties.server
@@ -400,6 +406,11 @@ impl ApplicationProperties {
                 "server.request.header.max-number-of-headers" => {
                     if let Ok(value) = value.parse::<usize>() {
                         server.request.header.max_number_of_headers = Some(value);
+                    }
+                }
+                "server.request.body.max-length" => {
+                    if let Ok(value) = value.parse::<usize>() {
+                        server.request.body.max_length = Some(value);
                     }
                 }
                 "server.http1.keep-alive" => {
