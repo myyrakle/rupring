@@ -31,6 +31,7 @@
 | server.request.uri.max-length | The max length of the request URI. | None |
 | server.request.header.max-length | The max length of the request header. | None |
 | server.request.header.max-number-of-headers | The number of headers to allow. | None |
+| server.request.body.max-length | The max length of the request body. | None |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
 | server.ssl.key | The SSL key file. (SSL is enabled by feature="tls") | None |
 | server.ssl.cert | The SSL cert file. (SSL is enabled by feature="tls") | None |
