@@ -17,6 +17,7 @@ use error_handler::default_404_handler;
 use error_handler::default_header_fields_to_large;
 use error_handler::default_header_size_too_big;
 use error_handler::default_join_error_handler;
+use error_handler::default_payload_too_large_handler;
 use error_handler::default_timeout_handler;
 use error_handler::default_uri_too_long_handler;
 use tokio::time::Instant;
@@ -444,6 +445,7 @@ pub async fn handle_event_on_aws_lambda(
     let response_body = match response.body_mut().collect().await {
         Ok(body) => {
             let body = body.to_bytes();
+
             String::from_utf8(body.to_vec()).unwrap_or("".to_string())
         }
         Err(error) => {
@@ -574,6 +576,12 @@ where
     match request.into_body().collect().await {
         Ok(body) => {
             raw_request_body = body.to_bytes().to_vec();
+
+            if let Some(max_length) = &application_properties.server.request.body.max_length {
+                if raw_request_body.len() > *max_length {
+                    return default_payload_too_large_handler();
+                }
+            }
 
             if application_properties.server.multipart.auto_parsing_enabled {
                 if let Some(boundary) = multipart_boundary {
