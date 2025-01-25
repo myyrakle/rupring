@@ -31,7 +31,7 @@
 | server.request.uri.max-length | The max length of the request URI. | None |
 | server.request.header.max-length | The max length of the request header. | None |
 | server.request.header.max-number-of-headers | The number of headers to allow. | None |
-| server.request.body.max-length | The max length of the request body. | None |
+| server.request.body.max-length | The max length of the request body. | 2MB |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
 | server.ssl.key | The SSL key file. (SSL is enabled by feature="tls") | None |
 | server.ssl.cert | The SSL cert file. (SSL is enabled by feature="tls") | None |
@@ -43,6 +43,32 @@
 */
 
 use std::{collections::HashMap, net::SocketAddr, time::Duration};
+
+// "250", "10KB", '10MB', "10GB" 같은 표현식을 실제 바이트 단위 정수값으로 변환
+pub fn parse_byte_size(size: &str) -> Option<usize> {
+    let size = size.trim();
+    let size = size.to_uppercase();
+
+    let size = if size.ends_with("B") {
+        size[..size.len() - 1].to_string()
+    } else {
+        size
+    };
+
+    let size = size.replace(",", "");
+
+    let size = if size.ends_with("K") {
+        size[..size.len() - 1].parse::<f64>().unwrap_or(0.0) * 1024.0
+    } else if size.ends_with("M") {
+        size[..size.len() - 1].parse::<f64>().unwrap_or(0.0) * 1024.0 * 1024.0
+    } else if size.ends_with("G") {
+        size[..size.len() - 1].parse::<f64>().unwrap_or(0.0) * 1024.0 * 1024.0 * 1024.0
+    } else {
+        size.parse::<f64>().unwrap_or(0.0)
+    };
+
+    Some(size as usize)
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ApplicationProperties {
@@ -395,8 +421,10 @@ impl ApplicationProperties {
                     }
                 }
                 "server.request.uri.max-length" => {
-                    if let Ok(value) = value.parse::<usize>() {
-                        server.request.uri.max_length = Some(value);
+                    if let Ok(value) = value.parse::<String>() {
+                        server.request.uri.max_length = parse_byte_size(&value);
+                    } else {
+                        server.request.uri.max_length = parse_byte_size("2MB");
                     }
                 }
                 "server.request.header.max-length" => {
