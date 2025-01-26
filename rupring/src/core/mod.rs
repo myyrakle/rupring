@@ -17,9 +17,9 @@ use error_handler::default_404_handler;
 use error_handler::default_header_fields_to_large;
 use error_handler::default_header_size_too_big;
 use error_handler::default_join_error_handler;
-use error_handler::default_payload_too_large_handler;
 use error_handler::default_timeout_handler;
 use error_handler::default_uri_too_long_handler;
+use http_body_util::{Limited, BodyExt, Full};
 use tokio::time::Instant;
 
 use crate::application_properties;
@@ -37,8 +37,6 @@ use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use std::vec;
 
-use http_body_util::BodyExt;
-use http_body_util::Full;
 use hyper::body::Bytes;
 use hyper::service::service_fn;
 use hyper::StatusCode;
@@ -369,7 +367,7 @@ pub async fn handle_event_on_aws_lambda(
     root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaReponse;
-    use hyper::Version;
+    use hyper::{body::Incoming, Version};
 
     if lambda_request_context.status_code == 204 {
         // Ignore the event if the status code is 204.
@@ -403,9 +401,9 @@ pub async fn handle_event_on_aws_lambda(
         )
         .uri(lambda_request_context.event_payload.to_full_url());
 
-    let body = std::mem::take(&mut lambda_request_context.event_payload.body);
+    let body = std::mem::take(&mut lambda_request_context.event_payload.body).unwrap_or_default();
 
-    let mut hyper_request = hyper_request_builder.body(body.unwrap_or_default())?;
+    let mut hyper_request = hyper_request_builder.body(body)?;
 
     *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
 
@@ -467,15 +465,13 @@ pub async fn handle_event_on_aws_lambda(
     Ok(())
 }
 
-async fn process_request<T>(
+async fn process_request(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
-    request: Request<T>,
+    request: Request<hyper::body::Incoming>,
     request_additional_data: RequestAdditionalData,
 ) -> Result<Response<Full<Bytes>>, Infallible>
-where
-    T: hyper::body::Body,
 {
     // 1. Prepare URI matching
     let di_context = Arc::clone(&di_context);
@@ -573,15 +569,13 @@ where
     let mut raw_request_body = vec![];
     let mut files = vec![];
 
-    match request.into_body().collect().await {
+    // request body limit (default: 2MB)
+    let body_limit = application_properties.server.request.body.max_length;
+    let limited_request_body_stream = Limited::new(request, body_limit);
+
+    match limited_request_body_stream.collect().await {
         Ok(body) => {
             raw_request_body = body.to_bytes().to_vec();
-
-            if let Some(max_length) = &application_properties.server.request.body.max_length {
-                if raw_request_body.len() > *max_length {
-                    return default_payload_too_large_handler();
-                }
-            }
 
             if application_properties.server.multipart.auto_parsing_enabled {
                 if let Some(boundary) = multipart_boundary {

@@ -232,9 +232,17 @@ pub struct RequestHeaderConfig {
     pub max_number_of_headers: Option<usize>,
 }
 
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct RequestBodyConfig {
-    pub max_length: Option<usize>,
+    pub max_length: usize,
+}
+
+impl Default for RequestBodyConfig {
+    fn default() -> Self {
+        RequestBodyConfig {
+            max_length: 2 * 1000 * 1000, // 2MB
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -421,10 +429,8 @@ impl ApplicationProperties {
                     }
                 }
                 "server.request.uri.max-length" => {
-                    if let Ok(value) = value.parse::<String>() {
-                        server.request.uri.max_length = parse_byte_size(&value);
-                    } else {
-                        server.request.uri.max_length = parse_byte_size("2MB");
+                    if let Ok(value) = value.parse::<usize>() {
+                        server.request.uri.max_length = Some(value);
                     }
                 }
                 "server.request.header.max-length" => {
@@ -438,9 +444,9 @@ impl ApplicationProperties {
                     }
                 }
                 "server.request.body.max-length" => {
-                    if let Ok(value) = value.parse::<usize>() {
-                        server.request.body.max_length = Some(value);
-                    }
+                    if let Some(value) = parse_byte_size(value.as_str()) {
+                        server.request.body.max_length = value;
+                    } 
                 }
                 "server.http1.keep-alive" => {
                     if let Ok(value) = value.parse::<bool>() {
