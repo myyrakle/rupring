@@ -52,6 +52,7 @@ use crate::IModule;
 
 struct RequestAdditionalData {
     pub ip: IpAddr,
+    pub(crate) request_body_on_aws_lambda: Option<String>, // in AWS Lambda mode
 }
 
 pub async fn run_server(
@@ -149,7 +150,7 @@ pub async fn run_server(
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
             let service = service_fn(move |request: Request<hyper::body::Incoming>| {
-                let request_additional_data = RequestAdditionalData { ip };
+                let request_additional_data = RequestAdditionalData { ip, request_body_on_aws_lambda:None };
 
                 let di_context = Arc::clone(&di_context);
                 let application_properties = Arc::clone(&application_properties);
@@ -187,6 +188,9 @@ pub async fn run_server(
                                     root_module,
                                     request,
                                     request_additional_data,
+                                    ProcessRequestOption {
+                                        boot_mode: BootMode:: Normal,
+                                    },
                                 )
                                 .await;
 
@@ -221,6 +225,9 @@ pub async fn run_server(
                                 root_module,
                                 request,
                                 request_additional_data,
+                                ProcessRequestOption {
+                                    boot_mode: BootMode:: Normal,
+                                },
                             )
                             .await;
 
@@ -403,7 +410,7 @@ pub async fn handle_event_on_aws_lambda(
 
     let body = std::mem::take(&mut lambda_request_context.event_payload.body).unwrap_or_default();
 
-    let mut hyper_request = hyper_request_builder.body(body)?;
+    let mut hyper_request = hyper_request_builder.body(Incoming::empty())?;
 
     *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
 
@@ -415,6 +422,7 @@ pub async fn handle_event_on_aws_lambda(
             .source_ip
             .parse()
             .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0))),
+        request_body_on_aws_lambda: Some(body),
     };
 
     // 5. process request
@@ -424,6 +432,9 @@ pub async fn handle_event_on_aws_lambda(
         root_module,
         hyper_request,
         request_additional_data,
+        ProcessRequestOption {
+            boot_mode: BootMode::AWSLambda,
+        },
     )
     .await?;
 
@@ -465,12 +476,30 @@ pub async fn handle_event_on_aws_lambda(
     Ok(())
 }
 
+enum BootMode {
+    Normal,
+    AWSLambda,
+}
+
+struct ProcessRequestOption {
+    pub boot_mode: BootMode,
+}
+
+impl Default for ProcessRequestOption {
+    fn default() -> Self {
+        ProcessRequestOption {
+            boot_mode: BootMode::Normal,
+        }
+    }
+}
+
 async fn process_request(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
     request: Request<hyper::body::Incoming>,
     request_additional_data: RequestAdditionalData,
+    option : ProcessRequestOption,
 ) -> Result<Response<Full<Bytes>>, Infallible>
 {
     // 1. Prepare URI matching
@@ -571,27 +600,37 @@ async fn process_request(
 
     // request body limit (default: 2MB)
     let body_limit = application_properties.server.request.body.max_length;
-    let limited_request_body_stream = Limited::new(request, body_limit);
-
-    match limited_request_body_stream.collect().await {
-        Ok(body) => {
-            raw_request_body = body.to_bytes().to_vec();
-
-            if application_properties.server.multipart.auto_parsing_enabled {
-                if let Some(boundary) = multipart_boundary {
-                    files = multipart::parse_multipart(&raw_request_body, &boundary)
-                        .unwrap_or_default();
-                } else {
-                    request_body = core::str::from_utf8(&raw_request_body)
-                        .unwrap_or("")
-                        .to_string();
-                }
+    
+    match option.boot_mode {
+        BootMode::AWSLambda => {
+            if let Some(request_body_on_aws_lambda) = request_additional_data.request_body_on_aws_lambda {
+                request_body = request_body_on_aws_lambda;
             }
         }
-        Err(_) => {
-            return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
-                "Error reading request body",
-            ))));
+        BootMode::Normal=> {
+            let limited_request_body_stream = Limited::new(request, body_limit);
+
+            match limited_request_body_stream.collect().await {
+                Ok(body) => {
+                    raw_request_body = body.to_bytes().to_vec();
+        
+                    if application_properties.server.multipart.auto_parsing_enabled {
+                        if let Some(boundary) = multipart_boundary {
+                            files = multipart::parse_multipart(&raw_request_body, &boundary)
+                                .unwrap_or_default();
+                        } else {
+                            request_body = core::str::from_utf8(&raw_request_body)
+                                .unwrap_or("")
+                                .to_string();
+                        }
+                    }
+                }
+                Err(_) => {
+                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
+                        "Error reading request body",
+                    ))));
+                }
+            }
         }
     }
 
