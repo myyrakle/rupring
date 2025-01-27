@@ -17,9 +17,9 @@ use error_handler::default_404_handler;
 use error_handler::default_header_fields_to_large;
 use error_handler::default_header_size_too_big;
 use error_handler::default_join_error_handler;
-use error_handler::default_payload_too_large_handler;
 use error_handler::default_timeout_handler;
 use error_handler::default_uri_too_long_handler;
+use http_body_util::{Limited, BodyExt, Full};
 use tokio::time::Instant;
 
 use crate::application_properties;
@@ -37,8 +37,6 @@ use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use std::vec;
 
-use http_body_util::BodyExt;
-use http_body_util::Full;
 use hyper::body::Bytes;
 use hyper::service::service_fn;
 use hyper::StatusCode;
@@ -54,6 +52,7 @@ use crate::IModule;
 
 struct RequestAdditionalData {
     pub ip: IpAddr,
+    pub(crate) request_body_on_aws_lambda: Option<String>, // in AWS Lambda mode
 }
 
 pub async fn run_server(
@@ -151,7 +150,7 @@ pub async fn run_server(
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
             let service = service_fn(move |request: Request<hyper::body::Incoming>| {
-                let request_additional_data = RequestAdditionalData { ip };
+                let request_additional_data = RequestAdditionalData { ip, request_body_on_aws_lambda:None };
 
                 let di_context = Arc::clone(&di_context);
                 let application_properties = Arc::clone(&application_properties);
@@ -189,6 +188,9 @@ pub async fn run_server(
                                     root_module,
                                     request,
                                     request_additional_data,
+                                    ProcessRequestOption {
+                                        boot_mode: BootMode:: Normal,
+                                    },
                                 )
                                 .await;
 
@@ -223,6 +225,9 @@ pub async fn run_server(
                                 root_module,
                                 request,
                                 request_additional_data,
+                                ProcessRequestOption {
+                                    boot_mode: BootMode:: Normal,
+                                },
                             )
                             .await;
 
@@ -369,7 +374,7 @@ pub async fn handle_event_on_aws_lambda(
     root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaReponse;
-    use hyper::Version;
+    use hyper::{body::Incoming, Version};
 
     if lambda_request_context.status_code == 204 {
         // Ignore the event if the status code is 204.
@@ -403,9 +408,9 @@ pub async fn handle_event_on_aws_lambda(
         )
         .uri(lambda_request_context.event_payload.to_full_url());
 
-    let body = std::mem::take(&mut lambda_request_context.event_payload.body);
+    let body = std::mem::take(&mut lambda_request_context.event_payload.body).unwrap_or_default();
 
-    let mut hyper_request = hyper_request_builder.body(body.unwrap_or_default())?;
+    let mut hyper_request = hyper_request_builder.body(Incoming::empty())?;
 
     *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
 
@@ -417,6 +422,7 @@ pub async fn handle_event_on_aws_lambda(
             .source_ip
             .parse()
             .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0))),
+        request_body_on_aws_lambda: Some(body),
     };
 
     // 5. process request
@@ -426,6 +432,9 @@ pub async fn handle_event_on_aws_lambda(
         root_module,
         hyper_request,
         request_additional_data,
+        ProcessRequestOption {
+            boot_mode: BootMode::AWSLambda,
+        },
     )
     .await?;
 
@@ -467,15 +476,31 @@ pub async fn handle_event_on_aws_lambda(
     Ok(())
 }
 
-async fn process_request<T>(
+enum BootMode {
+    Normal,
+    AWSLambda,
+}
+
+struct ProcessRequestOption {
+    pub boot_mode: BootMode,
+}
+
+impl Default for ProcessRequestOption {
+    fn default() -> Self {
+        ProcessRequestOption {
+            boot_mode: BootMode::Normal,
+        }
+    }
+}
+
+async fn process_request(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
-    request: Request<T>,
+    request: Request<hyper::body::Incoming>,
     request_additional_data: RequestAdditionalData,
+    option : ProcessRequestOption,
 ) -> Result<Response<Full<Bytes>>, Infallible>
-where
-    T: hyper::body::Body,
 {
     // 1. Prepare URI matching
     let di_context = Arc::clone(&di_context);
@@ -573,31 +598,42 @@ where
     let mut raw_request_body = vec![];
     let mut files = vec![];
 
-    match request.into_body().collect().await {
-        Ok(body) => {
-            raw_request_body = body.to_bytes().to_vec();
-
-            if let Some(max_length) = &application_properties.server.request.body.max_length {
-                if raw_request_body.len() > *max_length {
-                    return default_payload_too_large_handler();
-                }
+    // request body limit (default: 2MB)
+    let body_limit = application_properties.server.request.body.max_length;
+    
+    match option.boot_mode {
+        BootMode::AWSLambda => {
+            if let Some(request_body_on_aws_lambda) = request_additional_data.request_body_on_aws_lambda {
+                request_body = request_body_on_aws_lambda;
             }
 
-            if application_properties.server.multipart.auto_parsing_enabled {
-                if let Some(boundary) = multipart_boundary {
-                    files = multipart::parse_multipart(&raw_request_body, &boundary)
-                        .unwrap_or_default();
-                } else {
-                    request_body = core::str::from_utf8(&raw_request_body)
-                        .unwrap_or("")
-                        .to_string();
-                }
-            }
+            // TODO: Payload Too Large 처리 추가 
+            // TODO: 멀티파트 파싱 로직 추가
         }
-        Err(_) => {
-            return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
-                "Error reading request body",
-            ))));
+        BootMode::Normal=> {
+            let limited_request_body_stream = Limited::new(request, body_limit);
+
+            match limited_request_body_stream.collect().await {
+                Ok(body) => {
+                    raw_request_body = body.to_bytes().to_vec();
+        
+                    if application_properties.server.multipart.auto_parsing_enabled {
+                        if let Some(boundary) = multipart_boundary {
+                            files = multipart::parse_multipart(&raw_request_body, &boundary)
+                                .unwrap_or_default();
+                        } else {
+                            request_body = core::str::from_utf8(&raw_request_body)
+                                .unwrap_or("")
+                                .to_string();
+                        }
+                    }
+                }
+                Err(_) => {
+                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
+                        "Error reading request body",
+                    ))));
+                }
+            }
         }
     }
 

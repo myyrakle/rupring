@@ -5,18 +5,6 @@ use std::convert::Infallible;
 use std::error::Error;
 use tokio::time::error::Elapsed;
 
-pub(crate) fn default_payload_too_large_handler() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Payload Too Large")))
-        .unwrap();
-
-    if let Ok(status) = StatusCode::from_u16(413) {
-        *response.status_mut() = status;
-    }
-
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
-}
-
 pub(crate) fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
     let mut response: hyper::Response<Full<Bytes>> = Response::builder()
         .body(Full::new(Bytes::from("Not Found")))

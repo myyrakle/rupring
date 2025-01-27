@@ -31,7 +31,7 @@
 | server.request.uri.max-length | The max length of the request URI. | None |
 | server.request.header.max-length | The max length of the request header. | None |
 | server.request.header.max-number-of-headers | The number of headers to allow. | None |
-| server.request.body.max-length | The max length of the request body. | None |
+| server.request.body.max-length | The max length of the request body. | 2MB |
 | server.http1.keep-alive | Whether to keep-alive for HTTP/1. (false=disable, true=enable) | false |
 | server.ssl.key | The SSL key file. (SSL is enabled by feature="tls") | None |
 | server.ssl.cert | The SSL cert file. (SSL is enabled by feature="tls") | None |
@@ -43,6 +43,32 @@
 */
 
 use std::{collections::HashMap, net::SocketAddr, time::Duration};
+
+// "250", "10KB", '10MB', "10GB" 같은 표현식을 실제 바이트 단위 정수값으로 변환
+pub fn parse_byte_size(size: &str) -> Option<usize> {
+    let size = size.trim();
+    let size = size.to_uppercase();
+
+    let size = if size.ends_with("B") {
+        size[..size.len() - 1].to_string()
+    } else {
+        size
+    };
+
+    let size = size.replace(",", "");
+
+    let size = if size.ends_with("K") {
+        size[..size.len() - 1].parse::<f64>().unwrap_or(0.0) * 1024.0
+    } else if size.ends_with("M") {
+        size[..size.len() - 1].parse::<f64>().unwrap_or(0.0) * 1024.0 * 1024.0
+    } else if size.ends_with("G") {
+        size[..size.len() - 1].parse::<f64>().unwrap_or(0.0) * 1024.0 * 1024.0 * 1024.0
+    } else {
+        size.parse::<f64>().unwrap_or(0.0)
+    };
+
+    Some(size as usize)
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ApplicationProperties {
@@ -206,9 +232,17 @@ pub struct RequestHeaderConfig {
     pub max_number_of_headers: Option<usize>,
 }
 
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct RequestBodyConfig {
-    pub max_length: Option<usize>,
+    pub max_length: usize,
+}
+
+impl Default for RequestBodyConfig {
+    fn default() -> Self {
+        RequestBodyConfig {
+            max_length: 2 * 1000 * 1000, // 2MB
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -410,9 +444,9 @@ impl ApplicationProperties {
                     }
                 }
                 "server.request.body.max-length" => {
-                    if let Ok(value) = value.parse::<usize>() {
-                        server.request.body.max_length = Some(value);
-                    }
+                    if let Some(value) = parse_byte_size(value.as_str()) {
+                        server.request.body.max_length = value;
+                    } 
                 }
                 "server.http1.keep-alive" => {
                     if let Ok(value) = value.parse::<bool>() {
