@@ -17,9 +17,10 @@ use error_handler::default_404_handler;
 use error_handler::default_header_fields_to_large;
 use error_handler::default_header_size_too_big;
 use error_handler::default_join_error_handler;
+use error_handler::default_payload_too_large_handler;
 use error_handler::default_timeout_handler;
 use error_handler::default_uri_too_long_handler;
-use http_body_util::{Limited, BodyExt, Full};
+use http_body_util::{BodyExt, Full, Limited};
 use tokio::time::Instant;
 
 use crate::application_properties;
@@ -150,7 +151,10 @@ pub async fn run_server(
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
             let service = service_fn(move |request: Request<hyper::body::Incoming>| {
-                let request_additional_data = RequestAdditionalData { ip, request_body_on_aws_lambda:None };
+                let request_additional_data = RequestAdditionalData {
+                    ip,
+                    request_body_on_aws_lambda: None,
+                };
 
                 let di_context = Arc::clone(&di_context);
                 let application_properties = Arc::clone(&application_properties);
@@ -189,7 +193,7 @@ pub async fn run_server(
                                     request,
                                     request_additional_data,
                                     ProcessRequestOption {
-                                        boot_mode: BootMode:: Normal,
+                                        boot_mode: BootMode::Normal,
                                     },
                                 )
                                 .await;
@@ -226,7 +230,7 @@ pub async fn run_server(
                                 request,
                                 request_additional_data,
                                 ProcessRequestOption {
-                                    boot_mode: BootMode:: Normal,
+                                    boot_mode: BootMode::Normal,
                                 },
                             )
                             .await;
@@ -499,9 +503,8 @@ async fn process_request(
     root_module: impl IModule + Clone + Send + Sync + 'static,
     request: Request<hyper::body::Incoming>,
     request_additional_data: RequestAdditionalData,
-    option : ProcessRequestOption,
-) -> Result<Response<Full<Bytes>>, Infallible>
-{
+    option: ProcessRequestOption,
+) -> Result<Response<Full<Bytes>>, Infallible> {
     // 1. Prepare URI matching
     let di_context = Arc::clone(&di_context);
 
@@ -600,23 +603,30 @@ async fn process_request(
 
     // request body limit (default: 2MB)
     let body_limit = application_properties.server.request.body.max_length;
-    
+
     match option.boot_mode {
         BootMode::AWSLambda => {
-            if let Some(request_body_on_aws_lambda) = request_additional_data.request_body_on_aws_lambda {
+            if let Some(request_body_on_aws_lambda) =
+                request_additional_data.request_body_on_aws_lambda
+            {
+                if request_body_on_aws_lambda.len()
+                    > application_properties.server.request.body.max_length
+                {
+                    return default_payload_too_large_handler();
+                }
+
                 request_body = request_body_on_aws_lambda;
             }
 
-            // TODO: Payload Too Large 처리 추가 
             // TODO: 멀티파트 파싱 로직 추가
         }
-        BootMode::Normal=> {
+        BootMode::Normal => {
             let limited_request_body_stream = Limited::new(request, body_limit);
 
             match limited_request_body_stream.collect().await {
                 Ok(body) => {
                     raw_request_body = body.to_bytes().to_vec();
-        
+
                     if application_properties.server.multipart.auto_parsing_enabled {
                         if let Some(boundary) = multipart_boundary {
                             files = multipart::parse_multipart(&raw_request_body, &boundary)
@@ -629,9 +639,9 @@ async fn process_request(
                     }
                 }
                 Err(_) => {
-                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(Bytes::from(
-                        "Error reading request body",
-                    ))));
+                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(
+                        Bytes::from("Error reading request body"),
+                    )));
                 }
             }
         }
