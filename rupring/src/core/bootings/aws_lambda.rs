@@ -46,6 +46,8 @@ pub struct LambdaRequestPayload {
     pub headers: HashMap<String, String>,
     #[serde(rename = "body")]
     pub body: Option<String>,
+    #[serde(rename = "isBase64Encoded")]
+    pub is_base64_encoded: Option<bool>,
     #[serde(rename = "rawPath")]
     pub raw_path: String,
     #[serde(rename = "rawQueryString")]
