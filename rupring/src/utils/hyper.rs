@@ -34,7 +34,7 @@ pub async fn send_http_request(
         }
     });
 
-    let mut hyper_request = hyper::Request::builder().method(method).uri(url);
+    let mut hyper_request = hyper::Request::builder().method(method).uri(&url);
 
     for (key, value) in headers.iter() {
         hyper_request = hyper_request.header(key, value);
@@ -55,6 +55,8 @@ pub async fn send_http_request(
             return Err(anyhow::anyhow!("Failed to read response body: {:?}", err));
         }
     };
+
+    println!("{url:?}, !!!, {}", response_body);
 
     Ok(HTTPResponse {
         status_code: response.status().as_u16(),
