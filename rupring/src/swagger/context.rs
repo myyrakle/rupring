@@ -138,7 +138,6 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
             match normalized_path.as_str() {
                 "/docs/swagger.json"
                 | "/docs"
-                | "/docs/index.css"
                 | "/docs/favicon-16x16.png"
                 | "/docs/favicon-32x32.png"
                 | "/docs/swagger-initializer.js"
