@@ -11,5 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        run: |
+          rustup component add clippy --toolchain 1.87.0
+
       - name: Run Clippy
-        run: cargo clippy
+        run: rustup run 1.87.0 cargo clippy
