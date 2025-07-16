@@ -94,7 +94,7 @@ pub struct SwaggerInfo {
 impl Default for SwaggerInfo {
     fn default() -> Self {
         SwaggerInfo {
-            title: "".to_string(),
+            title: "Rupring".to_string(),
             version: "".to_string(),
             description: "".to_string(),
             license: Default::default(),

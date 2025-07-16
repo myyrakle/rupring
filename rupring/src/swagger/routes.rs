@@ -2,62 +2,9 @@ use crate::{self as rupring, header, meme};
 
 #[rupring_macro::GetMapping(path = /)]
 pub fn get_docs(_: rupring::Request) -> rupring::Response {
-    let index_html = r#"<!-- HTML for static distribution bundle build -->
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <title>Swagger UI</title>
-        <link rel="stylesheet" type="text/css" href="/docs/swagger-ui.css" />
-        <link rel="stylesheet" type="text/css" href="/docs/index.css" />
-        <link rel="icon" type="image/png" href="/docs/favicon-32x32.png" sizes="32x32" />
-        <link rel="icon" type="image/png" href="/docs/favicon-16x16.png" sizes="16x16" />
-      </head>
-    
-      <body>
-        <div id="swagger-ui"></div>
-        <script src="/docs/swagger-ui-bundle.js" charset="UTF-8"> </script>
-        <script src="/docs/swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
-        <script src="/docs/swagger-initializer.js" charset="UTF-8"> </script>
-      </body>
-    </html>
-    "#;
-
     rupring::Response::new()
-        .text(index_html)
+        .text(super::html::DOCS_INDEX_HTML)
         .header(header::CONTENT_TYPE, meme::HTML)
-}
-
-#[rupring_macro::GetMapping(path = /index.css)]
-pub fn get_index_css(_: rupring::Request) -> rupring::Response {
-    let index_html = r#"html {
-        box-sizing: border-box;
-        overflow: -moz-scrollbars-vertical;
-        overflow-y: scroll;
-    }
-    
-    *,
-    *:before,
-    *:after {
-        box-sizing: inherit;
-    }
-    
-    body {
-        margin: 0;
-        background: #fafafa;
-    }
-    "#;
-
-    rupring::Response::new()
-        .text(index_html)
-        .header(header::CONTENT_TYPE, meme::CSS)
-}
-
-#[rupring_macro::GetMapping(path = /swagger-ui.css)]
-pub fn get_swagger_css(_: rupring::Request) -> rupring::Response {
-    rupring::Response::new()
-        .text(super::css::CSS)
-        .header(header::CONTENT_TYPE, meme::CSS)
 }
 
 #[rupring_macro::GetMapping(path = /favicon-32x32.png)]
@@ -76,44 +23,6 @@ pub fn get_favicon16(_: rupring::Request) -> rupring::Response {
     rupring::Response::new()
         .text(base64)
         .header(header::CONTENT_TYPE, meme::PNG)
-}
-
-#[rupring_macro::GetMapping(path = /swagger-ui-bundle.js)]
-pub fn get_jsbundle(_: rupring::Request) -> rupring::Response {
-    rupring::Response::new()
-        .text(super::js_bundle::JS_BUNDLE)
-        .header(header::CONTENT_TYPE, meme::JAVASCRIPT)
-}
-
-#[rupring_macro::GetMapping(path = /swagger-ui-standalone-preset.js)]
-pub fn get_jspreset(_: rupring::Request) -> rupring::Response {
-    rupring::Response::new()
-        .text(super::js_preset::JS_PRESET)
-        .header(header::CONTENT_TYPE, meme::JAVASCRIPT)
-}
-
-#[rupring_macro::GetMapping(path = /swagger-initializer.js)]
-pub fn get_jsinitializer(_: rupring::Request) -> rupring::Response {
-    let js = r###"window.onload = function() {
-        window.ui = SwaggerUIBundle({
-          url: "/docs/swagger.json",
-          dom_id: '#swagger-ui',
-          deepLinking: true,
-          presets: [
-            SwaggerUIBundle.presets.apis,
-            SwaggerUIStandalonePreset
-          ],
-          plugins: [
-            SwaggerUIBundle.plugins.DownloadUrl
-          ],
-          layout: "StandaloneLayout"
-        });
-      };
-      "###;
-
-    rupring::Response::new()
-        .text(js)
-        .header(header::CONTENT_TYPE, meme::JAVASCRIPT)
 }
 
 #[rupring_macro::GetMapping(path = /swagger.json)]
