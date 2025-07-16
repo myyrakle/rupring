@@ -6,7 +6,6 @@ use crate as rupring;
     prefix = /docs, 
     routes=[
         routes::get_docs, 
-        routes::get_index_css,
         routes::get_swagger_css,
         routes::get_favicon32,
         routes::get_favicon16,
