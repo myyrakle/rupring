@@ -192,9 +192,6 @@ pub struct Http1 {
     pub keep_alive: bool,
 }
 
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct Http2 {}
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct Multipart {
     pub auto_parsing_enabled: bool,
@@ -263,7 +260,6 @@ pub struct Server {
     pub thread_limit: Option<usize>,
     pub request_timeout: Option<Duration>,
     pub http1: Http1,
-    pub http2: Http2,
     pub ssl: SSL,
     pub multipart: Multipart,
     pub cookie: Cookie,
@@ -297,7 +293,6 @@ impl Default for Server {
             thread_limit: None,
             request_timeout: None,
             http1: Http1::default(),
-            http2: Http2::default(),
             ssl: Default::default(),
             multipart: Default::default(),
             cookie: Default::default(),
@@ -446,7 +441,7 @@ impl ApplicationProperties {
                 "server.request.body.max-length" => {
                     if let Some(value) = parse_byte_size(value.as_str()) {
                         server.request.body.max_length = value;
-                    } 
+                    }
                 }
                 "server.http1.keep-alive" => {
                     if let Ok(value) = value.parse::<bool>() {

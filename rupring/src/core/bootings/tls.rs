@@ -45,12 +45,7 @@ pub fn new_tls_acceptor(
         .with_single_cert(certs, key)
         .map_err(|e| error(e.to_string()))?;
 
-    if application_properties.server.http2.enabled {
-        server_config.alpn_protocols =
-            vec![b"h2".to_vec(), b"http/1.1".to_vec(), b"http/1.0".to_vec()];
-    } else {
-        server_config.alpn_protocols = vec![b"http/1.1".to_vec(), b"http/1.0".to_vec()];
-    }
+    server_config.alpn_protocols = vec![b"http/1.1".to_vec(), b"http/1.0".to_vec()];
 
     let tls_acceptor = TlsAcceptor::from(Arc::new(server_config));
 
