@@ -97,7 +97,6 @@ pub async fn run_server(
         );
     }
 
-    #[cfg(not(feature = "http2"))]
     let keep_alive = application_properties.server.http1.keep_alive.to_owned();
 
     #[cfg(feature = "tls")]
@@ -106,11 +105,6 @@ pub async fn run_server(
 
         tls::new_tls_acceptor(&application_properties)?
     };
-
-    #[cfg(feature = "http2")]
-    {
-        print_system_log(Level::Info, "HTTP/2 Enabled");
-    }
 
     // 5. Main Server Loop
     // Spawns a new async Task for each request.
@@ -269,28 +263,6 @@ pub async fn run_server(
             #[cfg(not(feature = "tls"))]
             let io = TokioIo::new(tcp_stream);
 
-            #[cfg(feature = "http2")]
-            {
-                use hyper_util::rt::TokioExecutor;
-
-                let mut http_builder =
-                    hyper_util::server::conn::auto::Builder::new(TokioExecutor::new());
-
-                http_builder.http2().enable_connect_protocol();
-
-                if let Some(max_number_of_headers) = max_number_of_headers {
-                    http_builder.http1().max_headers(max_number_of_headers);
-                }
-
-                if let Err(err) = http_builder
-                    .serve_connection_with_upgrades(io, service)
-                    .await
-                {
-                    log::debug!("Error serving connection: {:?}", err);
-                }
-            }
-
-            #[cfg(not(feature = "http2"))]
             {
                 let mut http_builder = hyper::server::conn::http1::Builder::new();
 

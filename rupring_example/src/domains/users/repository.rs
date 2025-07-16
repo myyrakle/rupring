@@ -95,7 +95,7 @@ impl IUserRepository for UserInMemoryRepository {
         let mut start = params.offset as usize;
         let mut end = start + params.limit as usize;
 
-        if users.len() == 0 {
+        if users.is_empty() {
             return Ok(vec![]);
         }
 

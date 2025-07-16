@@ -102,14 +102,14 @@ use crate::{
 #[derive(Debug, Clone)]
 pub enum Protocol {
     HTTP1,
-    HTTP2,
+    // HTTP2,
 }
 
 impl From<Version> for Protocol {
     fn from(version: Version) -> Self {
         match version {
             Version::HTTP_10 | Version::HTTP_11 => Protocol::HTTP1,
-            Version::HTTP_2 => Protocol::HTTP2,
+            // Version::HTTP_2 => Protocol::HTTP2,
             _ => Protocol::HTTP1,
         }
     }

@@ -58,14 +58,14 @@ pub fn parse_multipart(raw_body: &[u8], boundary: &str) -> anyhow::Result<Vec<Mu
                         if part.starts_with("name=") {
                             name = part
                                 .split('=')
-                                .last()
+                                .next_back()
                                 .unwrap_or_default()
                                 .trim_matches('"')
                                 .to_owned();
                         } else if part.starts_with("filename=") {
                             filename = part
                                 .split('=')
-                                .last()
+                                .next_back()
                                 .unwrap_or_default()
                                 .trim_matches('"')
                                 .to_owned();
