@@ -43,3 +43,6 @@ pub const WEBM: &str = "video/webm";
 pub const MP3: &str = "audio/mpeg";
 pub const WAV: &str = "audio/x-wav";
 pub const OGG: &str = "audio/ogg";
+
+// special MEME 타입
+pub const EVENT_STREAM: &str = "text/event-stream"; // for Server-Sent Events (SSE)
