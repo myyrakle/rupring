@@ -5,7 +5,6 @@ mod compression;
 pub(crate) mod cookie;
 mod error_handler;
 mod graceful;
-pub(crate) mod multipart;
 mod parse;
 
 #[cfg(feature = "aws-lambda")]
@@ -27,6 +26,7 @@ use crate::application_properties;
 use crate::application_properties::CompressionAlgorithm;
 use crate::di;
 use crate::header;
+use crate::http::multipart;
 use crate::request::Metadata;
 pub(crate) mod route;
 

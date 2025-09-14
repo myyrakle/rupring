@@ -95,7 +95,7 @@ use std::{
 use hyper::{header, Version};
 
 use crate::{
-    core::multipart::{parse_multipart, parse_multipart_boundary},
+    http::multipart::{parse_multipart, parse_multipart_boundary},
     Method,
 };
 
