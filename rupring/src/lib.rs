@@ -223,10 +223,11 @@ pub use core::boot::run_on_aws_lambda;
 
 pub mod di;
 
-/// header constants
-pub mod header;
 /// http protocol related module
 pub mod http;
+
+pub use http::header;
+
 mod logger;
 /// HTTP request module
 pub mod request;
