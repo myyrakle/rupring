@@ -66,7 +66,7 @@ This method automatically sets status to 302 unless you set it to 300-308.
 
 use std::{collections::HashMap, panic::UnwindSafe};
 
-use crate::{header, meme, HeaderName, Request};
+use crate::{header, http::meme, HeaderName, Request};
 use http_body_util::Full;
 use hyper::body::Bytes;
 

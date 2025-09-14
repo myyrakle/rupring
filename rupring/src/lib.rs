@@ -225,9 +225,9 @@ pub mod di;
 
 /// header constants
 pub mod header;
+/// http protocol related module
+pub mod http;
 mod logger;
-/// MEME type constants
-pub mod meme;
 /// HTTP request module
 pub mod request;
 /// HTTP response module

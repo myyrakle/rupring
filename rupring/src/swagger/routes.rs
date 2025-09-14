@@ -1,4 +1,4 @@
-use crate::{self as rupring, header, meme};
+use crate::{self as rupring, header, http::meme};
 
 #[rupring_macro::GetMapping(path = /)]
 pub fn get_docs(_: rupring::Request) -> rupring::Response {
