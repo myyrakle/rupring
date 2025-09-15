@@ -280,7 +280,7 @@ impl Response {
     /// ```
     /// use rupring::HeaderName;
     ///
-    /// let response = rupring::Response::new().cache_control(rupring::response::CacheControl {
+    /// let response = rupring::Response::new().cache_control(rupring::http::cache::CacheControl {
     ///   max_age: Some(3600),
     ///  s_max_age: Some(3800),
     ///  ..Default::default()
