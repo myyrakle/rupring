@@ -1,4 +1,10 @@
-use crate::request::MultipartFile;
+#[derive(Debug, Clone, PartialEq)]
+pub struct MultipartFile {
+    pub name: String,
+    pub filename: String,
+    pub content_type: String,
+    pub data: Vec<u8>,
+}
 
 /*
 Content-Type: multipart/form-data에 붙어있는 bounary 값을 추출합니다.

@@ -95,7 +95,7 @@ use std::{
 use hyper::{header, Version};
 
 use crate::{
-    http::multipart::{parse_multipart, parse_multipart_boundary},
+    http::multipart::{parse_multipart, parse_multipart_boundary, MultipartFile},
     Method,
 };
 
@@ -149,14 +149,6 @@ pub struct Request {
     pub path_parameters: HashMap<String, String>,
     pub metadata: Metadata,
     pub(crate) di_context: Arc<crate::DIContext>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct MultipartFile {
-    pub name: String,
-    pub filename: String,
-    pub content_type: String,
-    pub data: Vec<u8>,
 }
 
 impl Request {
