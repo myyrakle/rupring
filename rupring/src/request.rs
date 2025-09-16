@@ -95,7 +95,7 @@ use std::{
 use hyper::{header, Version};
 
 use crate::{
-    http::multipart::{parse_multipart, parse_multipart_boundary},
+    http::multipart::{parse_multipart, parse_multipart_boundary, MultipartFile},
     Method,
 };
 
@@ -151,14 +151,6 @@ pub struct Request {
     pub(crate) di_context: Arc<crate::DIContext>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct MultipartFile {
-    pub name: String,
-    pub filename: String,
-    pub content_type: String,
-    pub data: Vec<u8>,
-}
-
 impl Request {
     /*
     Parse the header value and save the file information in `Request::cookies`.
@@ -166,7 +158,7 @@ impl Request {
     */
     pub fn parse_cookies(&mut self) {
         if let Some(cookie_header) = self.headers.get(header::COOKIE.as_str()) {
-            self.cookies = crate::core::cookie::parse_cookie_header(cookie_header);
+            self.cookies = crate::http::cookie::parse_cookie_header(cookie_header);
         }
     }
 
