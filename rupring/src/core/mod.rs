@@ -23,6 +23,7 @@ use http_body_util::{BodyExt, Full, Limited};
 use tokio::time::Instant;
 
 use crate::application_properties;
+use crate::application_properties::ApplicationProperties;
 use crate::application_properties::CompressionAlgorithm;
 use crate::di;
 use crate::header;
@@ -145,106 +146,15 @@ pub async fn run_server(
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
             let service = service_fn(move |request: Request<hyper::body::Incoming>| {
-                let request_additional_data = RequestAdditionalData {
+                handle_http_connection(
+                    Arc::clone(&application_properties),
+                    Arc::clone(&di_context),
+                    root_module.clone(),
+                    request,
                     ip,
-                    request_body_on_aws_lambda: None,
-                };
-
-                let di_context = Arc::clone(&di_context);
-                let application_properties = Arc::clone(&application_properties);
-
-                let running_task_count = Arc::clone(&running_task_count);
-                let root_module = root_module.clone();
-
-                async move {
-                    if let Some(max_length) = application_properties.server.request.uri.max_length {
-                        let incoming_url_length = request
-                            .uri()
-                            .path_and_query()
-                            .map(|e| e.as_str().len())
-                            .unwrap_or_default();
-
-                        if incoming_url_length > max_length {
-                            return default_uri_too_long_handler();
-                        }
-                    }
-
-                    if let Some(timeout_duration) = application_properties.server.request_timeout {
-                        let now = Instant::now();
-
-                        let handle = tokio::time::timeout_at(
-                            now + timeout_duration,
-                            tokio::task::spawn(async move {
-                                if is_graceful_shutdown {
-                                    running_task_count
-                                        .fetch_add(1, std::sync::atomic::Ordering::Release);
-                                }
-
-                                let result = process_request(
-                                    application_properties,
-                                    di_context,
-                                    root_module,
-                                    request,
-                                    request_additional_data,
-                                    ProcessRequestOption {
-                                        boot_mode: BootMode::Normal,
-                                    },
-                                )
-                                .await;
-
-                                if is_graceful_shutdown {
-                                    running_task_count
-                                        .fetch_sub(1, std::sync::atomic::Ordering::Release);
-                                }
-
-                                result
-                            }),
-                        );
-
-                        match handle.await {
-                            Ok(Ok(response)) => response,
-                            Ok(Err(error)) => default_join_error_handler(error),
-                            Err(error) => default_timeout_handler(error),
-                        }
-                    } else {
-                        let _running_task_count = Arc::clone(&running_task_count);
-
-                        let handle = tokio::spawn(async move {
-                            let running_task_count = _running_task_count;
-
-                            if is_graceful_shutdown {
-                                running_task_count
-                                    .fetch_add(1, std::sync::atomic::Ordering::Release);
-                            }
-
-                            let result = process_request(
-                                application_properties,
-                                di_context,
-                                root_module,
-                                request,
-                                request_additional_data,
-                                ProcessRequestOption {
-                                    boot_mode: BootMode::Normal,
-                                },
-                            )
-                            .await;
-
-                            if is_graceful_shutdown {
-                                running_task_count
-                                    .fetch_sub(1, std::sync::atomic::Ordering::Release);
-                            }
-
-                            result
-                        });
-
-                        let result = handle.await;
-
-                        match result {
-                            Ok(response) => response,
-                            Err(error) => default_join_error_handler(error),
-                        }
-                    }
-                }
+                    is_graceful_shutdown,
+                    Arc::clone(&running_task_count),
+                )
             });
 
             #[cfg(feature = "tls")]
@@ -282,6 +192,111 @@ pub async fn run_server(
                 }
             }
         });
+    }
+}
+
+async fn handle_http_connection(
+    application_properties: Arc<ApplicationProperties>,
+    di_context: Arc<di::DIContext>,
+    root_module: impl IModule + Clone + Send + Sync + 'static,
+    request: Request<hyper::body::Incoming>,
+    ip: IpAddr,
+    is_graceful_shutdown: bool,
+    running_task_count: Arc<AtomicU64>,
+) -> Result<Response<Full<Bytes>>, Infallible> {
+    let request_additional_data = RequestAdditionalData {
+        ip,
+        request_body_on_aws_lambda: None,
+    };
+
+    let di_context = Arc::clone(&di_context);
+    let application_properties = Arc::clone(&application_properties);
+
+    let running_task_count = Arc::clone(&running_task_count);
+    let root_module = root_module.clone();
+
+    if let Some(max_length) = application_properties.server.request.uri.max_length {
+        let incoming_url_length = request
+            .uri()
+            .path_and_query()
+            .map(|e| e.as_str().len())
+            .unwrap_or_default();
+
+        if incoming_url_length > max_length {
+            return default_uri_too_long_handler();
+        }
+    }
+
+    if let Some(timeout_duration) = application_properties.server.request_timeout {
+        let now = Instant::now();
+
+        let handle = tokio::time::timeout_at(
+            now + timeout_duration,
+            tokio::task::spawn(async move {
+                if is_graceful_shutdown {
+                    running_task_count.fetch_add(1, std::sync::atomic::Ordering::Release);
+                }
+
+                let result = execute_request_pipeline(
+                    application_properties,
+                    di_context,
+                    root_module,
+                    request,
+                    request_additional_data,
+                    ProcessRequestOption {
+                        boot_mode: BootMode::Normal,
+                    },
+                )
+                .await;
+
+                if is_graceful_shutdown {
+                    running_task_count.fetch_sub(1, std::sync::atomic::Ordering::Release);
+                }
+
+                result
+            }),
+        );
+
+        match handle.await {
+            Ok(Ok(response)) => response,
+            Ok(Err(error)) => default_join_error_handler(error),
+            Err(error) => default_timeout_handler(error),
+        }
+    } else {
+        let _running_task_count = Arc::clone(&running_task_count);
+
+        let handle = tokio::spawn(async move {
+            let running_task_count = _running_task_count;
+
+            if is_graceful_shutdown {
+                running_task_count.fetch_add(1, std::sync::atomic::Ordering::Release);
+            }
+
+            let result = execute_request_pipeline(
+                application_properties,
+                di_context,
+                root_module,
+                request,
+                request_additional_data,
+                ProcessRequestOption {
+                    boot_mode: BootMode::Normal,
+                },
+            )
+            .await;
+
+            if is_graceful_shutdown {
+                running_task_count.fetch_sub(1, std::sync::atomic::Ordering::Release);
+            }
+
+            result
+        });
+
+        let result = handle.await;
+
+        match result {
+            Ok(response) => response,
+            Err(error) => default_join_error_handler(error),
+        }
     }
 }
 
@@ -402,7 +417,7 @@ pub async fn handle_event_on_aws_lambda(
     };
 
     // 5. process request
-    let mut response = process_request(
+    let mut response = execute_request_pipeline(
         application_properties,
         di_context,
         root_module,
@@ -469,7 +484,7 @@ impl Default for ProcessRequestOption {
     }
 }
 
-async fn process_request(
+async fn execute_request_pipeline(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
