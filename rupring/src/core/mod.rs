@@ -18,7 +18,8 @@ use error_handler::default_join_error_handler;
 use error_handler::default_payload_too_large_handler;
 use error_handler::default_timeout_handler;
 use error_handler::default_uri_too_long_handler;
-use http_body_util::{BodyExt, Full, Limited};
+use http_body_util::combinators::BoxBody;
+use http_body_util::{BodyExt, Limited};
 use tokio::time::Instant;
 
 use crate::application_properties;
@@ -42,7 +43,6 @@ use std::vec;
 use hyper::body::Bytes;
 use hyper::service::service_fn;
 use hyper::StatusCode;
-use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use log::Level;
 use tokio::net::TcpListener;
@@ -145,7 +145,7 @@ pub async fn run_server(
 
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
-            let service = service_fn(move |request: Request<hyper::body::Incoming>| {
+            let service = service_fn(move |request: hyper::Request<hyper::body::Incoming>| {
                 handle_http_connection(
                     Arc::clone(&application_properties),
                     Arc::clone(&di_context),
@@ -195,6 +195,8 @@ pub async fn run_server(
     }
 }
 
+pub(crate) type ResponseBytesBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
+
 // Handles each HTTP connection
 // 1. Request Timeout Handling
 // 2. Request URI Length Check, etc.
@@ -203,11 +205,11 @@ async fn handle_http_connection(
     application_properties: Arc<ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
-    request: Request<hyper::body::Incoming>,
+    request: hyper::Request<hyper::body::Incoming>,
     ip: IpAddr,
     is_graceful_shutdown: bool,
     running_task_count: Arc<AtomicU64>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
+) -> Result<hyper::Response<ResponseBytesBody>, Infallible> {
     let request_additional_data = RequestAdditionalData {
         ip,
         request_body_on_aws_lambda: None,
@@ -499,10 +501,10 @@ async fn execute_request_pipeline(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
-    request: Request<hyper::body::Incoming>,
+    request: hyper::Request<hyper::body::Incoming>,
     request_additional_data: RequestAdditionalData,
     option: ProcessRequestOption,
-) -> Result<Response<Full<Bytes>>, Infallible> {
+) -> Result<hyper::Response<ResponseBytesBody>, Infallible> {
     // 1. Prepare URI matching
     let di_context = Arc::clone(&di_context);
 
@@ -637,9 +639,13 @@ async fn execute_request_pipeline(
                     }
                 }
                 Err(_) => {
-                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(
-                        Bytes::from("Error reading request body"),
-                    )));
+                    let response: hyper::Response<ResponseBytesBody> = hyper::Response::builder()
+                        .body(BodyExt::boxed(BoxBody::new(
+                            "Error reading request body".to_string(),
+                        )))
+                        .unwrap();
+
+                    return Ok(response);
                 }
             }
         }
@@ -709,8 +715,10 @@ async fn execute_request_pipeline(
     let headers = response.headers.clone();
 
     // 6. Convert to hyper::Response, and return
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(response.body)))
+    let mut response: hyper::Response<ResponseBytesBody> = hyper::Response::builder()
+        .body(BodyExt::boxed(BoxBody::new(
+            String::from_utf8_lossy(&response.body).to_string(),
+        )))
         .unwrap();
 
     if let Ok(status) = StatusCode::from_u16(status) {
@@ -725,7 +733,7 @@ async fn execute_request_pipeline(
         }
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok(response)
 }
 
 fn post_process_response(
