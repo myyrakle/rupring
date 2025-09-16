@@ -166,7 +166,7 @@ impl Request {
     */
     pub fn parse_cookies(&mut self) {
         if let Some(cookie_header) = self.headers.get(header::COOKIE.as_str()) {
-            self.cookies = crate::core::cookie::parse_cookie_header(cookie_header);
+            self.cookies = crate::http::cookie::parse_cookie_header(cookie_header);
         }
     }
 

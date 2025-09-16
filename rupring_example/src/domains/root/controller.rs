@@ -1,4 +1,4 @@
-use rupring::response::Cookie;
+use rupring::http::cookie::Cookie;
 
 #[derive(Debug, Clone)]
 #[rupring::Controller(prefix=/, routes=[index, slow, download, multipart, multipart_page], tags=["root"])]
