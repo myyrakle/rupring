@@ -195,6 +195,10 @@ pub async fn run_server(
     }
 }
 
+// Handles each HTTP connection
+// 1. Request Timeout Handling
+// 2. Request URI Length Check, etc.
+// 3. Call Request Pipeline Execution
 async fn handle_http_connection(
     application_properties: Arc<ApplicationProperties>,
     di_context: Arc<di::DIContext>,
@@ -484,6 +488,13 @@ impl Default for ProcessRequestOption {
     }
 }
 
+// The main request processing pipeline
+// 1. Route Find
+// 2. Request Parsing
+// 3. Handler Execution
+// 4. Middleware Chain Processing
+// 5. Unhandled Error Handling
+// 6. Convert to hyper::Response
 async fn execute_request_pipeline(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
