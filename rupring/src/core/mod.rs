@@ -775,7 +775,7 @@ fn post_process_response(
         match application_properties.server.compression.algorithm {
             CompressionAlgorithm::Gzip => {
                 // compression
-                let compressed_bytes = compression::compress_with_gzip(&bytes);
+                let compressed_bytes = compression::compress_with_gzip(bytes);
 
                 let compressed_bytes = match compressed_bytes {
                     Ok(compressed_bytes) => compressed_bytes,
@@ -799,7 +799,7 @@ fn post_process_response(
             }
             CompressionAlgorithm::Deflate => {
                 // compression
-                let compressed_bytes = compression::compress_with_deflate(&bytes);
+                let compressed_bytes = compression::compress_with_deflate(bytes);
 
                 let compressed_bytes = match compressed_bytes {
                     Ok(compressed_bytes) => compressed_bytes,
