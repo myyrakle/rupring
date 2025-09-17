@@ -82,6 +82,15 @@ pub enum ResponseData {
     Stream(StreamResponse),
 }
 
+impl ResponseData {
+    pub fn into_bytes(self) -> Vec<u8> {
+        match self {
+            ResponseData::Immediate(bytes) => bytes,
+            _ => vec![],
+        }
+    }
+}
+
 impl Default for ResponseData {
     fn default() -> Self {
         ResponseData::Immediate(Vec::new())
@@ -132,7 +141,7 @@ impl Response {
     /// let response = rupring::Response::new().json(User {
     ///    name: "John".to_string(),
     /// });
-    /// assert_eq!(response.body, r#"{"name":"John"}"#.to_string().into_bytes());
+    /// assert_eq!(response.data.into_bytes(), r#"{"name":"John"}"#.to_string().into_bytes());
     /// // ...
     /// ```
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
@@ -158,7 +167,7 @@ impl Response {
     /// Set to return a text value.
     /// ```
     /// let response = rupring::Response::new().text("Hello World".to_string());
-    /// assert_eq!(response.body, "Hello World".to_string().into_bytes());
+    /// assert_eq!(response.data.into_bytes(), "Hello World".to_string().into_bytes());
     pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static(header::CONTENT_TYPE),
@@ -173,7 +182,7 @@ impl Response {
     /// set to return a html value.
     /// ```
     /// let response = rupring::Response::new().html("<h1>Hello World</h1>".to_string());
-    /// assert_eq!(response.body, "<h1>Hello World</h1>".to_string().into_bytes());
+    /// assert_eq!(response.data.into_bytes(), "<h1>Hello World</h1>".to_string().into_bytes());
     /// ```
     pub fn html(mut self, body: impl ToString) -> Self {
         self.headers.insert(
@@ -192,7 +201,7 @@ impl Response {
     ///
     /// let response = rupring::Response::new().download("hello.txt", "Hello World");
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-disposition")).unwrap(), &vec!["attachment; filename=\"hello.txt\"".to_string()]);
-    /// assert_eq!(response.body, "Hello World".to_string().into_bytes());
+    /// assert_eq!(response.data.into_bytes(), "Hello World".to_string().into_bytes());
     /// ```
     pub fn download(mut self, filename: impl ToString, file: impl Into<Vec<u8>>) -> Self {
         self.headers.insert(
