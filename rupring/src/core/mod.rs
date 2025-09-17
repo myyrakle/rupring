@@ -30,6 +30,7 @@ use crate::header;
 use crate::http::cookie;
 use crate::http::multipart;
 use crate::request::Metadata;
+use crate::response::ResponseData;
 pub(crate) mod route;
 
 use std::collections::HashMap;
@@ -715,11 +716,7 @@ async fn execute_request_pipeline(
     let headers = response.headers.clone();
 
     // 6. Convert to hyper::Response, and return
-    let mut response: hyper::Response<ResponseBytesBody> = hyper::Response::builder()
-        .body(BodyExt::boxed(BoxBody::new(
-            String::from_utf8_lossy(&response.body).to_string(),
-        )))
-        .unwrap();
+    let mut response: hyper::Response<ResponseBytesBody> = response.into();
 
     if let Ok(status) = StatusCode::from_u16(status) {
         *response.status_mut() = status;
@@ -770,60 +767,62 @@ fn post_process_response(
         return response;
     }
 
-    if response.body.len() < application_properties.server.compression.min_response_size {
-        return response;
-    }
-
-    match application_properties.server.compression.algorithm {
-        CompressionAlgorithm::Gzip => {
-            // compression
-            let compressed_bytes = compression::compress_with_gzip(&response.body);
-
-            let compressed_bytes = match compressed_bytes {
-                Ok(compressed_bytes) => compressed_bytes,
-                Err(err) => {
-                    eprintln!("Error compressing response body: {:?}", err);
-                    return response;
-                }
-            };
-
-            response.body = compressed_bytes;
-
-            // add header for compression
-            response.headers.insert(
-                crate::HeaderName::from_static(header::CONTENT_ENCODING),
-                vec![application_properties
-                    .server
-                    .compression
-                    .algorithm
-                    .to_string()],
-            );
+    if let ResponseData::Immediate(bytes) = &response.data {
+        if bytes.len() < application_properties.server.compression.min_response_size {
+            return response;
         }
-        CompressionAlgorithm::Deflate => {
-            // compression
-            let compressed_bytes = compression::compress_with_deflate(&response.body);
 
-            let compressed_bytes = match compressed_bytes {
-                Ok(compressed_bytes) => compressed_bytes,
-                Err(err) => {
-                    eprintln!("Error compressing response body: {:?}", err);
-                    return response;
-                }
-            };
+        match application_properties.server.compression.algorithm {
+            CompressionAlgorithm::Gzip => {
+                // compression
+                let compressed_bytes = compression::compress_with_gzip(&bytes);
 
-            response.body = compressed_bytes;
+                let compressed_bytes = match compressed_bytes {
+                    Ok(compressed_bytes) => compressed_bytes,
+                    Err(err) => {
+                        eprintln!("Error compressing response body: {:?}", err);
+                        return response;
+                    }
+                };
 
-            // add header for compression
-            response.headers.insert(
-                crate::HeaderName::from_static(header::CONTENT_ENCODING),
-                vec![application_properties
-                    .server
-                    .compression
-                    .algorithm
-                    .to_string()],
-            );
+                response.data = ResponseData::Immediate(compressed_bytes);
+
+                // add header for compression
+                response.headers.insert(
+                    crate::HeaderName::from_static(header::CONTENT_ENCODING),
+                    vec![application_properties
+                        .server
+                        .compression
+                        .algorithm
+                        .to_string()],
+                );
+            }
+            CompressionAlgorithm::Deflate => {
+                // compression
+                let compressed_bytes = compression::compress_with_deflate(&bytes);
+
+                let compressed_bytes = match compressed_bytes {
+                    Ok(compressed_bytes) => compressed_bytes,
+                    Err(err) => {
+                        eprintln!("Error compressing response body: {:?}", err);
+                        return response;
+                    }
+                };
+
+                response.data = ResponseData::Immediate(compressed_bytes);
+
+                // add header for compression
+                response.headers.insert(
+                    crate::HeaderName::from_static(header::CONTENT_ENCODING),
+                    vec![application_properties
+                        .server
+                        .compression
+                        .algorithm
+                        .to_string()],
+                );
+            }
+            _ => {}
         }
-        _ => {}
     }
 
     response
