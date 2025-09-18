@@ -53,9 +53,11 @@ use crate::logger::print_system_log;
 use crate::swagger::context::SwaggerContext;
 use crate::IModule;
 
-struct RequestAdditionalData {
+#[derive(Clone, Debug)]
+pub(crate) struct ConnectionContext {
+    pub closed: Arc<AtomicBool>,
     pub ip: IpAddr,
-    pub(crate) request_body_on_aws_lambda: Option<String>, // in AWS Lambda mode
+    pub running_task_count: Arc<AtomicU64>,
 }
 
 pub async fn run_server(
@@ -146,17 +148,25 @@ pub async fn run_server(
 
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
+            let _connection_context = ConnectionContext {
+                closed: Arc::new(AtomicBool::new(false)),
+                ip,
+                running_task_count: Arc::clone(&running_task_count),
+            };
+
+            let connection_context = _connection_context.clone();
+
             let service = service_fn(move |request: hyper::Request<hyper::body::Incoming>| {
                 handle_http_connection(
                     Arc::clone(&application_properties),
                     Arc::clone(&di_context),
                     root_module.clone(),
                     request,
-                    ip,
-                    is_graceful_shutdown,
-                    Arc::clone(&running_task_count),
+                    connection_context.clone(),
                 )
             });
+
+            let connection_context = _connection_context;
 
             #[cfg(feature = "tls")]
             let io = {
@@ -191,6 +201,10 @@ pub async fn run_server(
                     }
                     log::debug!("Error serving connection: {:?}", err);
                 }
+
+                connection_context
+                    .closed
+                    .store(true, std::sync::atomic::Ordering::Release);
             }
         });
     }
@@ -207,20 +221,15 @@ async fn handle_http_connection(
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
     request: hyper::Request<hyper::body::Incoming>,
-    ip: IpAddr,
-    is_graceful_shutdown: bool,
-    running_task_count: Arc<AtomicU64>,
+    connection_context: ConnectionContext,
 ) -> Result<hyper::Response<ResponseBytesBody>, Infallible> {
-    let request_additional_data = RequestAdditionalData {
-        ip,
-        request_body_on_aws_lambda: None,
-    };
-
     let di_context = Arc::clone(&di_context);
     let application_properties = Arc::clone(&application_properties);
 
-    let running_task_count = Arc::clone(&running_task_count);
+    let running_task_count = Arc::clone(&connection_context.running_task_count);
     let root_module = root_module.clone();
+
+    let is_graceful_shutdown = application_properties.server.is_graceful_shutdown();
 
     if let Some(max_length) = application_properties.server.request.uri.max_length {
         let incoming_url_length = request
@@ -249,7 +258,7 @@ async fn handle_http_connection(
                     di_context,
                     root_module,
                     request,
-                    request_additional_data,
+                    connection_context,
                     ProcessRequestOption {
                         boot_mode: BootMode::Normal,
                     },
@@ -284,7 +293,7 @@ async fn handle_http_connection(
                 di_context,
                 root_module,
                 request,
-                request_additional_data,
+                connection_context,
                 ProcessRequestOption {
                     boot_mode: BootMode::Normal,
                 },
@@ -412,15 +421,18 @@ pub async fn handle_event_on_aws_lambda(
 
     *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
 
-    let request_additional_data = RequestAdditionalData {
-        ip: lambda_request_context
-            .event_payload
-            .request_context
-            .http
-            .source_ip
-            .parse()
-            .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0))),
-        request_body_on_aws_lambda: Some(body),
+    let ip = lambda_request_context
+        .event_payload
+        .request_context
+        .http
+        .source_ip
+        .parse()
+        .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0)));
+
+    let connection_context = ConnectionContext {
+        closed: Arc::new(AtomicBool::new(false)),
+        ip,
+        running_task_count: Arc::new(AtomicU64::new(0)),
     };
 
     // 5. process request
@@ -429,9 +441,9 @@ pub async fn handle_event_on_aws_lambda(
         di_context,
         root_module,
         hyper_request,
-        request_additional_data,
+        connection_context,
         ProcessRequestOption {
-            boot_mode: BootMode::AWSLambda,
+            boot_mode: BootMode::AWSLambda(AWSLambdaRequestContext { request_body: body }),
         },
     )
     .await?;
@@ -476,7 +488,11 @@ pub async fn handle_event_on_aws_lambda(
 
 enum BootMode {
     Normal,
-    AWSLambda,
+    AWSLambda(AWSLambdaRequestContext),
+}
+
+struct AWSLambdaRequestContext {
+    pub request_body: String,
 }
 
 struct ProcessRequestOption {
@@ -503,7 +519,7 @@ async fn execute_request_pipeline(
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
     request: hyper::Request<hyper::body::Incoming>,
-    request_additional_data: RequestAdditionalData,
+    connection_context: ConnectionContext,
     option: ProcessRequestOption,
 ) -> Result<hyper::Response<ResponseBytesBody>, Infallible> {
     // 1. Prepare URI matching
@@ -513,7 +529,7 @@ async fn execute_request_pipeline(
     let request_path = uri.path();
     let request_method = request.method();
     let mut request_metadata = Metadata {
-        ip: request_additional_data.ip,
+        ip: connection_context.ip,
         protocol: request.version().into(),
         ..Default::default()
     };
@@ -606,17 +622,11 @@ async fn execute_request_pipeline(
     let body_limit = application_properties.server.request.body.max_length;
 
     match option.boot_mode {
-        BootMode::AWSLambda => {
-            if let Some(request_body_on_aws_lambda) =
-                request_additional_data.request_body_on_aws_lambda
-            {
-                if request_body_on_aws_lambda.len()
-                    > application_properties.server.request.body.max_length
-                {
-                    return default_payload_too_large_handler();
-                }
+        BootMode::AWSLambda(aws_request_body) => {
+            let request_body = aws_request_body.request_body;
 
-                request_body = request_body_on_aws_lambda;
+            if request_body.len() > application_properties.server.request.body.max_length {
+                return default_payload_too_large_handler();
             }
 
             // TODO: 멀티파트 파싱 로직 추가
