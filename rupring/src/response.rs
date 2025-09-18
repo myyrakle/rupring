@@ -64,20 +64,52 @@ pub fn hello(_request: rupring::Request) -> rupring::Response {
 This method automatically sets status to 302 unless you set it to 300-308.
 */
 
-use std::{collections::HashMap, panic::UnwindSafe};
+use std::{collections::HashMap, convert::Infallible, panic::UnwindSafe};
 
 use crate::{
     header,
     http::{cookie::Cookie, meme},
     HeaderName, Request,
 };
-use http_body_util::Full;
+use http_body_util::BodyExt;
 use hyper::body::Bytes;
+
+pub(crate) type BoxedResponseBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
+
+#[derive(Debug, Clone)]
+pub enum ResponseData {
+    Immediate(Vec<u8>),
+    Stream(StreamResponse),
+}
+
+impl ResponseData {
+    pub fn into_bytes(self) -> Vec<u8> {
+        match self {
+            ResponseData::Immediate(bytes) => bytes,
+            _ => vec![],
+        }
+    }
+}
+
+impl Default for ResponseData {
+    fn default() -> Self {
+        ResponseData::Immediate(Vec::new())
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct StreamResponse {}
+
+impl ResponseData {
+    pub fn is_immediate(&self) -> bool {
+        matches!(self, ResponseData::Immediate(_))
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct Response {
     pub status: u16,
-    pub body: Vec<u8>,
+    pub data: ResponseData,
     pub headers: HashMap<HeaderName, Vec<String>>,
     pub(crate) next: Option<Box<(Request, Response)>>,
 }
@@ -93,7 +125,7 @@ impl Response {
     pub fn new() -> Self {
         Self {
             status: 200,
-            body: Vec::new(),
+            data: Default::default(),
             headers: Default::default(),
             next: None,
         }
@@ -109,7 +141,7 @@ impl Response {
     /// let response = rupring::Response::new().json(User {
     ///    name: "John".to_string(),
     /// });
-    /// assert_eq!(response.body, r#"{"name":"John"}"#.to_string().into_bytes());
+    /// assert_eq!(response.data.into_bytes(), r#"{"name":"John"}"#.to_string().into_bytes());
     /// // ...
     /// ```
     pub fn json(mut self, body: impl serde::Serialize) -> Self {
@@ -118,7 +150,7 @@ impl Response {
             vec![meme::JSON.into()],
         );
 
-        self.body = match serde_json::to_string(&body) {
+        let response_body = match serde_json::to_string(&body) {
             Ok(body) => body,
             Err(err) => {
                 self.status = 500;
@@ -127,20 +159,22 @@ impl Response {
         }
         .into();
 
+        self.data = ResponseData::Immediate(response_body);
+
         self
     }
 
     /// Set to return a text value.
     /// ```
     /// let response = rupring::Response::new().text("Hello World".to_string());
-    /// assert_eq!(response.body, "Hello World".to_string().into_bytes());
+    /// assert_eq!(response.data.into_bytes(), "Hello World".to_string().into_bytes());
     pub fn text(mut self, body: impl ToString) -> Self {
         self.headers.insert(
             crate::HeaderName::from_static(header::CONTENT_TYPE),
             vec![meme::TEXT.to_string()],
         );
 
-        self.body = body.to_string().into();
+        self.data = ResponseData::Immediate(body.to_string().into());
 
         self
     }
@@ -148,7 +182,7 @@ impl Response {
     /// set to return a html value.
     /// ```
     /// let response = rupring::Response::new().html("<h1>Hello World</h1>".to_string());
-    /// assert_eq!(response.body, "<h1>Hello World</h1>".to_string().into_bytes());
+    /// assert_eq!(response.data.into_bytes(), "<h1>Hello World</h1>".to_string().into_bytes());
     /// ```
     pub fn html(mut self, body: impl ToString) -> Self {
         self.headers.insert(
@@ -156,7 +190,7 @@ impl Response {
             vec![meme::HTML.to_string()],
         );
 
-        self.body = body.to_string().into();
+        self.data = ResponseData::Immediate(body.to_string().into());
 
         self
     }
@@ -167,7 +201,7 @@ impl Response {
     ///
     /// let response = rupring::Response::new().download("hello.txt", "Hello World");
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-disposition")).unwrap(), &vec!["attachment; filename=\"hello.txt\"".to_string()]);
-    /// assert_eq!(response.body, "Hello World".to_string().into_bytes());
+    /// assert_eq!(response.data.into_bytes(), "Hello World".to_string().into_bytes());
     /// ```
     pub fn download(mut self, filename: impl ToString, file: impl Into<Vec<u8>>) -> Self {
         self.headers.insert(
@@ -175,7 +209,7 @@ impl Response {
             vec![format!("attachment; filename=\"{}\"", filename.to_string())],
         );
 
-        self.body = file.into();
+        self.data = ResponseData::Immediate(file.into());
 
         self
     }
@@ -392,7 +426,7 @@ pub trait IntoResponse {
     fn into_response(self) -> Response;
 }
 
-impl From<Response> for hyper::Response<Full<Bytes>> {
+impl From<Response> for hyper::Response<BoxedResponseBody> {
     fn from(response: Response) -> Self {
         let mut builder = hyper::Response::builder();
 
@@ -404,6 +438,13 @@ impl From<Response> for hyper::Response<Full<Bytes>> {
             }
         }
 
-        builder.body(Full::new(Bytes::from(response.body))).unwrap()
+        match response.data {
+            ResponseData::Immediate(body) => builder
+                .body(BodyExt::boxed(http_body_util::Full::from(body)))
+                .unwrap(),
+            ResponseData::Stream(_stream) => {
+                unimplemented!("Stream response is not implemented yet")
+            }
+        }
     }
 }

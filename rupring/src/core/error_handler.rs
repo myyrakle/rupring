@@ -1,95 +1,109 @@
-use bytes::Bytes;
-use http_body_util::Full;
-use hyper::{Response, StatusCode};
+use http_body_util::combinators::BoxBody;
+use http_body_util::BodyExt;
 use std::convert::Infallible;
 use std::error::Error;
 use tokio::time::error::Elapsed;
 
-pub(crate) fn default_404_handler() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Not Found")))
+use crate::response::BoxedResponseBody;
+
+pub(crate) fn default_404_handler() -> Result<hyper::Response<BoxedResponseBody>, Infallible> {
+    let mut response: hyper::Response<BoxedResponseBody> = hyper::Response::builder()
+        .body(BodyExt::boxed(BoxBody::new("Not Found".to_string())))
         .unwrap();
 
-    if let Ok(status) = StatusCode::from_u16(404) {
+    if let Ok(status) = hyper::StatusCode::from_u16(404) {
         *response.status_mut() = status;
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok::<hyper::Response<BoxedResponseBody>, Infallible>(response)
 }
 
-pub(crate) fn default_payload_too_large_handler() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Payload Too Large")))
+pub(crate) fn default_payload_too_large_handler(
+) -> Result<hyper::Response<BoxedResponseBody>, Infallible> {
+    let mut response: hyper::Response<BoxedResponseBody> = hyper::Response::builder()
+        .body(BodyExt::boxed(BoxBody::new(
+            "Payload Too Large".to_string(),
+        )))
         .unwrap();
 
-    if let Ok(status) = StatusCode::from_u16(413) {
+    if let Ok(status) = hyper::StatusCode::from_u16(413) {
         *response.status_mut() = status;
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok(response)
 }
 
-pub(crate) fn default_uri_too_long_handler() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("URI Too Long")))
+pub(crate) fn default_uri_too_long_handler(
+) -> Result<hyper::Response<BoxedResponseBody>, Infallible> {
+    let mut response: hyper::Response<BoxedResponseBody> = hyper::Response::builder()
+        .body(BodyExt::boxed(BoxBody::new("URI Too Long".to_string())))
         .unwrap();
 
-    if let Ok(status) = StatusCode::from_u16(414) {
+    if let Ok(status) = hyper::StatusCode::from_u16(414) {
         *response.status_mut() = status;
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok(response)
 }
 
-pub(crate) fn default_header_size_too_big() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Header Size Too Big")))
+pub(crate) fn default_header_size_too_big() -> Result<hyper::Response<BoxedResponseBody>, Infallible>
+{
+    let mut response: hyper::Response<BoxedResponseBody> = hyper::Response::builder()
+        .body(BodyExt::boxed(BoxBody::new(
+            "Header Size Too Big".to_string(),
+        )))
         .unwrap();
 
-    if let Ok(status) = StatusCode::from_u16(400) {
+    if let Ok(status) = hyper::StatusCode::from_u16(400) {
         *response.status_mut() = status;
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok(response)
 }
 
-pub(crate) fn default_header_fields_to_large() -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from("Request Header Fields Too Large")))
+pub(crate) fn default_header_fields_to_large(
+) -> Result<hyper::Response<BoxedResponseBody>, Infallible> {
+    let mut response: hyper::Response<BoxedResponseBody> = hyper::Response::builder()
+        .body(BodyExt::boxed(BoxBody::new(
+            "Request Header Fields Too Large".to_string(),
+        )))
         .unwrap();
 
-    if let Ok(status) = StatusCode::from_u16(431) {
+    if let Ok(status) = hyper::StatusCode::from_u16(431) {
         *response.status_mut() = status;
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok(response)
 }
 
-pub(crate) fn default_timeout_handler(error: Elapsed) -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(format!("Request Timeout: {error}",))))
+pub(crate) fn default_timeout_handler(
+    error: Elapsed,
+) -> Result<hyper::Response<BoxedResponseBody>, Infallible> {
+    let mut response: hyper::Response<BoxedResponseBody> = hyper::Response::builder()
+        .body(BodyExt::boxed(BoxBody::new(format!(
+            "Request Timeout: {error}",
+        ))))
         .unwrap();
 
-    if let Ok(status) = StatusCode::from_u16(500) {
+    if let Ok(status) = hyper::StatusCode::from_u16(500) {
         *response.status_mut() = status;
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok::<hyper::Response<BoxedResponseBody>, Infallible>(response)
 }
 
 pub(crate) fn default_join_error_handler(
     error: impl Error,
-) -> Result<Response<Full<Bytes>>, Infallible> {
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(format!(
-            "Internal Server Error: {:?}",
-            error
+) -> Result<hyper::Response<BoxedResponseBody>, Infallible> {
+    let mut response: hyper::Response<BoxedResponseBody> = hyper::Response::builder()
+        .body(BodyExt::boxed(BoxBody::new(format!(
+            "Internal Server Error: {error:?}",
         ))))
         .unwrap();
 
-    if let Ok(status) = StatusCode::from_u16(500) {
+    if let Ok(status) = hyper::StatusCode::from_u16(500) {
         *response.status_mut() = status;
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok::<hyper::Response<BoxedResponseBody>, Infallible>(response)
 }

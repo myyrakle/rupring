@@ -18,7 +18,8 @@ use error_handler::default_join_error_handler;
 use error_handler::default_payload_too_large_handler;
 use error_handler::default_timeout_handler;
 use error_handler::default_uri_too_long_handler;
-use http_body_util::{BodyExt, Full, Limited};
+use http_body_util::combinators::BoxBody;
+use http_body_util::{BodyExt, Limited};
 use tokio::time::Instant;
 
 use crate::application_properties;
@@ -29,6 +30,7 @@ use crate::header;
 use crate::http::cookie;
 use crate::http::multipart;
 use crate::request::Metadata;
+use crate::response::ResponseData;
 pub(crate) mod route;
 
 use std::collections::HashMap;
@@ -42,7 +44,6 @@ use std::vec;
 use hyper::body::Bytes;
 use hyper::service::service_fn;
 use hyper::StatusCode;
-use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use log::Level;
 use tokio::net::TcpListener;
@@ -52,9 +53,11 @@ use crate::logger::print_system_log;
 use crate::swagger::context::SwaggerContext;
 use crate::IModule;
 
-struct RequestAdditionalData {
+#[derive(Clone, Debug)]
+pub(crate) struct ConnectionContext {
+    pub closed: Arc<AtomicBool>,
     pub ip: IpAddr,
-    pub(crate) request_body_on_aws_lambda: Option<String>, // in AWS Lambda mode
+    pub running_task_count: Arc<AtomicU64>,
 }
 
 pub async fn run_server(
@@ -145,17 +148,25 @@ pub async fn run_server(
 
         // 6. create tokio task per HTTP request
         tokio::task::spawn(async move {
-            let service = service_fn(move |request: Request<hyper::body::Incoming>| {
+            let _connection_context = ConnectionContext {
+                closed: Arc::new(AtomicBool::new(false)),
+                ip,
+                running_task_count: Arc::clone(&running_task_count),
+            };
+
+            let connection_context = _connection_context.clone();
+
+            let service = service_fn(move |request: hyper::Request<hyper::body::Incoming>| {
                 handle_http_connection(
                     Arc::clone(&application_properties),
                     Arc::clone(&di_context),
                     root_module.clone(),
                     request,
-                    ip,
-                    is_graceful_shutdown,
-                    Arc::clone(&running_task_count),
+                    connection_context.clone(),
                 )
             });
+
+            let connection_context = _connection_context;
 
             #[cfg(feature = "tls")]
             let io = {
@@ -190,30 +201,35 @@ pub async fn run_server(
                     }
                     log::debug!("Error serving connection: {:?}", err);
                 }
+
+                connection_context
+                    .closed
+                    .store(true, std::sync::atomic::Ordering::Release);
             }
         });
     }
 }
 
+pub(crate) type ResponseBytesBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
+
+// Handles each HTTP connection
+// 1. Request Timeout Handling
+// 2. Request URI Length Check, etc.
+// 3. Call Request Pipeline Execution
 async fn handle_http_connection(
     application_properties: Arc<ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
-    request: Request<hyper::body::Incoming>,
-    ip: IpAddr,
-    is_graceful_shutdown: bool,
-    running_task_count: Arc<AtomicU64>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
-    let request_additional_data = RequestAdditionalData {
-        ip,
-        request_body_on_aws_lambda: None,
-    };
-
+    request: hyper::Request<hyper::body::Incoming>,
+    connection_context: ConnectionContext,
+) -> Result<hyper::Response<ResponseBytesBody>, Infallible> {
     let di_context = Arc::clone(&di_context);
     let application_properties = Arc::clone(&application_properties);
 
-    let running_task_count = Arc::clone(&running_task_count);
+    let running_task_count = Arc::clone(&connection_context.running_task_count);
     let root_module = root_module.clone();
+
+    let is_graceful_shutdown = application_properties.server.is_graceful_shutdown();
 
     if let Some(max_length) = application_properties.server.request.uri.max_length {
         let incoming_url_length = request
@@ -242,7 +258,7 @@ async fn handle_http_connection(
                     di_context,
                     root_module,
                     request,
-                    request_additional_data,
+                    connection_context,
                     ProcessRequestOption {
                         boot_mode: BootMode::Normal,
                     },
@@ -277,7 +293,7 @@ async fn handle_http_connection(
                 di_context,
                 root_module,
                 request,
-                request_additional_data,
+                connection_context,
                 ProcessRequestOption {
                     boot_mode: BootMode::Normal,
                 },
@@ -405,15 +421,18 @@ pub async fn handle_event_on_aws_lambda(
 
     *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
 
-    let request_additional_data = RequestAdditionalData {
-        ip: lambda_request_context
-            .event_payload
-            .request_context
-            .http
-            .source_ip
-            .parse()
-            .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0))),
-        request_body_on_aws_lambda: Some(body),
+    let ip = lambda_request_context
+        .event_payload
+        .request_context
+        .http
+        .source_ip
+        .parse()
+        .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0)));
+
+    let connection_context = ConnectionContext {
+        closed: Arc::new(AtomicBool::new(false)),
+        ip,
+        running_task_count: Arc::new(AtomicU64::new(0)),
     };
 
     // 5. process request
@@ -422,9 +441,9 @@ pub async fn handle_event_on_aws_lambda(
         di_context,
         root_module,
         hyper_request,
-        request_additional_data,
+        connection_context,
         ProcessRequestOption {
-            boot_mode: BootMode::AWSLambda,
+            boot_mode: BootMode::AWSLambda(AWSLambdaRequestContext { request_body: body }),
         },
     )
     .await?;
@@ -469,7 +488,11 @@ pub async fn handle_event_on_aws_lambda(
 
 enum BootMode {
     Normal,
-    AWSLambda,
+    AWSLambda(AWSLambdaRequestContext),
+}
+
+struct AWSLambdaRequestContext {
+    pub request_body: String,
 }
 
 struct ProcessRequestOption {
@@ -484,14 +507,21 @@ impl Default for ProcessRequestOption {
     }
 }
 
+// The main request processing pipeline
+// 1. Route Find
+// 2. Request Parsing
+// 3. Handler Execution
+// 4. Middleware Chain Processing
+// 5. Unhandled Error Handling
+// 6. Convert to hyper::Response
 async fn execute_request_pipeline(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
-    request: Request<hyper::body::Incoming>,
-    request_additional_data: RequestAdditionalData,
+    request: hyper::Request<hyper::body::Incoming>,
+    connection_context: ConnectionContext,
     option: ProcessRequestOption,
-) -> Result<Response<Full<Bytes>>, Infallible> {
+) -> Result<hyper::Response<ResponseBytesBody>, Infallible> {
     // 1. Prepare URI matching
     let di_context = Arc::clone(&di_context);
 
@@ -499,7 +529,7 @@ async fn execute_request_pipeline(
     let request_path = uri.path();
     let request_method = request.method();
     let mut request_metadata = Metadata {
-        ip: request_additional_data.ip,
+        ip: connection_context.ip,
         protocol: request.version().into(),
         ..Default::default()
     };
@@ -592,17 +622,11 @@ async fn execute_request_pipeline(
     let body_limit = application_properties.server.request.body.max_length;
 
     match option.boot_mode {
-        BootMode::AWSLambda => {
-            if let Some(request_body_on_aws_lambda) =
-                request_additional_data.request_body_on_aws_lambda
-            {
-                if request_body_on_aws_lambda.len()
-                    > application_properties.server.request.body.max_length
-                {
-                    return default_payload_too_large_handler();
-                }
+        BootMode::AWSLambda(aws_request_body) => {
+            let request_body = aws_request_body.request_body;
 
-                request_body = request_body_on_aws_lambda;
+            if request_body.len() > application_properties.server.request.body.max_length {
+                return default_payload_too_large_handler();
             }
 
             // TODO: 멀티파트 파싱 로직 추가
@@ -626,9 +650,13 @@ async fn execute_request_pipeline(
                     }
                 }
                 Err(_) => {
-                    return Ok::<Response<Full<Bytes>>, Infallible>(Response::new(Full::new(
-                        Bytes::from("Error reading request body"),
-                    )));
+                    let response: hyper::Response<ResponseBytesBody> = hyper::Response::builder()
+                        .body(BodyExt::boxed(BoxBody::new(
+                            "Error reading request body".to_string(),
+                        )))
+                        .unwrap();
+
+                    return Ok(response);
                 }
             }
         }
@@ -698,9 +726,7 @@ async fn execute_request_pipeline(
     let headers = response.headers.clone();
 
     // 6. Convert to hyper::Response, and return
-    let mut response: hyper::Response<Full<Bytes>> = Response::builder()
-        .body(Full::new(Bytes::from(response.body)))
-        .unwrap();
+    let mut response: hyper::Response<ResponseBytesBody> = response.into();
 
     if let Ok(status) = StatusCode::from_u16(status) {
         *response.status_mut() = status;
@@ -714,7 +740,7 @@ async fn execute_request_pipeline(
         }
     }
 
-    Ok::<Response<Full<Bytes>>, Infallible>(response)
+    Ok(response)
 }
 
 fn post_process_response(
@@ -751,60 +777,62 @@ fn post_process_response(
         return response;
     }
 
-    if response.body.len() < application_properties.server.compression.min_response_size {
-        return response;
-    }
-
-    match application_properties.server.compression.algorithm {
-        CompressionAlgorithm::Gzip => {
-            // compression
-            let compressed_bytes = compression::compress_with_gzip(&response.body);
-
-            let compressed_bytes = match compressed_bytes {
-                Ok(compressed_bytes) => compressed_bytes,
-                Err(err) => {
-                    eprintln!("Error compressing response body: {:?}", err);
-                    return response;
-                }
-            };
-
-            response.body = compressed_bytes;
-
-            // add header for compression
-            response.headers.insert(
-                crate::HeaderName::from_static(header::CONTENT_ENCODING),
-                vec![application_properties
-                    .server
-                    .compression
-                    .algorithm
-                    .to_string()],
-            );
+    if let ResponseData::Immediate(bytes) = &response.data {
+        if bytes.len() < application_properties.server.compression.min_response_size {
+            return response;
         }
-        CompressionAlgorithm::Deflate => {
-            // compression
-            let compressed_bytes = compression::compress_with_deflate(&response.body);
 
-            let compressed_bytes = match compressed_bytes {
-                Ok(compressed_bytes) => compressed_bytes,
-                Err(err) => {
-                    eprintln!("Error compressing response body: {:?}", err);
-                    return response;
-                }
-            };
+        match application_properties.server.compression.algorithm {
+            CompressionAlgorithm::Gzip => {
+                // compression
+                let compressed_bytes = compression::compress_with_gzip(bytes);
 
-            response.body = compressed_bytes;
+                let compressed_bytes = match compressed_bytes {
+                    Ok(compressed_bytes) => compressed_bytes,
+                    Err(err) => {
+                        eprintln!("Error compressing response body: {:?}", err);
+                        return response;
+                    }
+                };
 
-            // add header for compression
-            response.headers.insert(
-                crate::HeaderName::from_static(header::CONTENT_ENCODING),
-                vec![application_properties
-                    .server
-                    .compression
-                    .algorithm
-                    .to_string()],
-            );
+                response.data = ResponseData::Immediate(compressed_bytes);
+
+                // add header for compression
+                response.headers.insert(
+                    crate::HeaderName::from_static(header::CONTENT_ENCODING),
+                    vec![application_properties
+                        .server
+                        .compression
+                        .algorithm
+                        .to_string()],
+                );
+            }
+            CompressionAlgorithm::Deflate => {
+                // compression
+                let compressed_bytes = compression::compress_with_deflate(bytes);
+
+                let compressed_bytes = match compressed_bytes {
+                    Ok(compressed_bytes) => compressed_bytes,
+                    Err(err) => {
+                        eprintln!("Error compressing response body: {:?}", err);
+                        return response;
+                    }
+                };
+
+                response.data = ResponseData::Immediate(compressed_bytes);
+
+                // add header for compression
+                response.headers.insert(
+                    crate::HeaderName::from_static(header::CONTENT_ENCODING),
+                    vec![application_properties
+                        .server
+                        .compression
+                        .algorithm
+                        .to_string()],
+                );
+            }
+            _ => {}
         }
-        _ => {}
     }
 
     response
