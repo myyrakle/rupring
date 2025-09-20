@@ -1,3 +1,4 @@
+pub(crate) mod adapter;
 mod banner;
 pub mod boot;
 pub(crate) mod bootings;
@@ -5,6 +6,7 @@ mod compression;
 mod error_handler;
 mod graceful;
 mod parse;
+pub(crate) mod stream;
 
 #[cfg(feature = "aws-lambda")]
 use bootings::aws_lambda::LambdaRequestEvent;
@@ -19,12 +21,14 @@ use error_handler::default_payload_too_large_handler;
 use error_handler::default_timeout_handler;
 use error_handler::default_uri_too_long_handler;
 use http_body_util::combinators::BoxBody;
-use http_body_util::{BodyExt, Limited};
+use http_body_util::BodyExt;
 use tokio::time::Instant;
 
 use crate::application_properties;
 use crate::application_properties::ApplicationProperties;
 use crate::application_properties::CompressionAlgorithm;
+use crate::core::adapter::HyperRequest;
+use crate::core::adapter::RequestAdapter;
 use crate::di;
 use crate::header;
 use crate::http::cookie;
@@ -243,6 +247,8 @@ async fn handle_http_connection(
         }
     }
 
+    let request = HyperRequest(request);
+
     if let Some(timeout_duration) = application_properties.server.request_timeout {
         let now = Instant::now();
 
@@ -381,7 +387,9 @@ pub async fn handle_event_on_aws_lambda(
     root_module: impl IModule + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     use bootings::aws_lambda::LambdaReponse;
-    use hyper::{body::Incoming, Version};
+    use hyper::Version;
+
+    use crate::core::adapter::AWSLambdaRequest;
 
     if lambda_request_context.status_code == 204 {
         // Ignore the event if the status code is 204.
@@ -403,23 +411,20 @@ pub async fn handle_event_on_aws_lambda(
         _ => Version::HTTP_11,
     };
 
-    let hyper_request_builder = hyper::Request::builder()
-        .version(version)
-        .method(
-            lambda_request_context
-                .event_payload
-                .request_context
-                .http
-                .method
-                .as_str(),
-        )
-        .uri(lambda_request_context.event_payload.to_full_url());
-
     let body = std::mem::take(&mut lambda_request_context.event_payload.body).unwrap_or_default();
 
-    let mut hyper_request = hyper_request_builder.body(Incoming::empty())?;
-
-    *hyper_request.headers_mut() = lambda_request_context.event_payload.to_hyper_headermap();
+    let request = AWSLambdaRequest {
+        uri: lambda_request_context.event_payload.to_full_url().parse()?,
+        method: lambda_request_context
+            .event_payload
+            .request_context
+            .http
+            .method
+            .parse()?,
+        http_version: version,
+        headers: lambda_request_context.event_payload.to_hyper_headermap(),
+        body: body.as_bytes().to_vec(),
+    };
 
     let ip = lambda_request_context
         .event_payload
@@ -440,7 +445,7 @@ pub async fn handle_event_on_aws_lambda(
         application_properties,
         di_context,
         root_module,
-        hyper_request,
+        request,
         connection_context,
         ProcessRequestOption {
             boot_mode: BootMode::AWSLambda(AWSLambdaRequestContext { request_body: body }),
@@ -518,7 +523,7 @@ async fn execute_request_pipeline(
     application_properties: Arc<application_properties::ApplicationProperties>,
     di_context: Arc<di::DIContext>,
     root_module: impl IModule + Clone + Send + Sync + 'static,
-    request: hyper::Request<hyper::body::Incoming>,
+    request: impl RequestAdapter,
     connection_context: ConnectionContext,
     option: ProcessRequestOption,
 ) -> Result<hyper::Response<ResponseBytesBody>, Infallible> {
@@ -530,7 +535,7 @@ async fn execute_request_pipeline(
     let request_method = request.method();
     let mut request_metadata = Metadata {
         ip: connection_context.ip,
-        protocol: request.version().into(),
+        protocol: request.http_version().into(),
         ..Default::default()
     };
 
@@ -632,11 +637,11 @@ async fn execute_request_pipeline(
             // TODO: 멀티파트 파싱 로직 추가
         }
         BootMode::Normal => {
-            let limited_request_body_stream = Limited::new(request, body_limit);
+            let request_body_result = request.body(body_limit).await;
 
-            match limited_request_body_stream.collect().await {
+            match request_body_result {
                 Ok(body) => {
-                    raw_request_body = body.to_bytes().to_vec();
+                    raw_request_body = body;
 
                     if application_properties.server.multipart.auto_parsing_enabled {
                         if let Some(boundary) = multipart_boundary {
