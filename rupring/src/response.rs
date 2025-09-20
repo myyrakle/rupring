@@ -64,14 +64,17 @@ pub fn hello(_request: rupring::Request) -> rupring::Response {
 This method automatically sets status to 302 unless you set it to 300-308.
 */
 
-use std::{collections::HashMap, convert::Infallible, panic::UnwindSafe};
+use std::{
+    collections::HashMap, convert::Infallible, fmt::Debug, future::Future, panic::UnwindSafe,
+    pin::Pin, process::Output, sync::Arc,
+};
 
 use crate::{
     header,
     http::{cookie::Cookie, meme},
     HeaderName, Request,
 };
-use http_body_util::BodyExt;
+use http_body_util::{combinators::Frame, BodyExt, StreamBody};
 use hyper::body::Bytes;
 
 pub(crate) type BoxedResponseBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
@@ -97,8 +100,24 @@ impl Default for ResponseData {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct StreamResponse {}
+type OnCloseFn = dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync;
+
+type StreamFn =
+    dyn Fn() -> Pin<Box<dyn Future<Output = Result<Bytes, Infallible>> + Send>> + Send + Sync;
+
+#[derive(Default, Clone)]
+pub struct StreamResponse {
+    pub on_close: Option<Arc<OnCloseFn>>,
+    pub stream: Option<Arc<StreamFn>>,
+}
+
+impl Debug for StreamResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StreamResponse")
+            .field("on_close", &self.on_close.is_some())
+            .finish()
+    }
+}
 
 impl ResponseData {
     pub fn is_immediate(&self) -> bool {
@@ -442,8 +461,18 @@ impl From<Response> for hyper::Response<BoxedResponseBody> {
             ResponseData::Immediate(body) => builder
                 .body(BodyExt::boxed(http_body_util::Full::from(body)))
                 .unwrap(),
-            ResponseData::Stream(_stream) => {
-                unimplemented!("Stream response is not implemented yet")
+            ResponseData::Stream(_stream_response) => {
+                // type Error = Box<dyn std::error::Error + Send + Sync>;
+
+                // let (sender, receiver) =
+                //     tokio::sync::mpsc::unbounded_channel::<Result<Frame<Bytes>, Error>>();
+
+                // let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(receiver);
+
+                // builder
+                //     .body(BodyExt::boxed(StreamBody::new(stream)))
+                //     .unwrap()
+                unimplemented!()
             }
         }
     }
