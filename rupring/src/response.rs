@@ -66,7 +66,7 @@ This method automatically sets status to 302 unless you set it to 300-308.
 
 use std::{
     collections::HashMap, convert::Infallible, fmt::Debug, future::Future, panic::UnwindSafe,
-    pin::Pin, process::Output, sync::Arc,
+    pin::Pin, sync::Arc,
 };
 
 use crate::{
@@ -74,7 +74,7 @@ use crate::{
     http::{cookie::Cookie, meme},
     HeaderName, Request,
 };
-use http_body_util::{combinators::Frame, BodyExt, StreamBody};
+use http_body_util::BodyExt;
 use hyper::body::Bytes;
 
 pub(crate) type BoxedResponseBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
