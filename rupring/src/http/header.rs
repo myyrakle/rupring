@@ -16,6 +16,8 @@ pub const SET_COOKIE: &str = "set-cookie";
 pub const CONTENT_DISPOSITION: &str = "content-disposition";
 pub const CACHE_CONTROL: &str = "cache-control";
 pub const COOKIE: &str = "cookie";
+pub const ACCESS_CONTROL_ALLOW_ORIGIN: &str = "access-control-allow-origin";
+pub const KEEP_ALIVE: &str = "keep-alive";
 
 // response only headers
 pub const LOCATION: &str = "location";

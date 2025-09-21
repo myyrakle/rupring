@@ -222,11 +222,7 @@ pub fn serve_sse_page(request: rupring::Request) -> rupring::Response {
 #[summary = "SSE 페이지"]
 pub fn serve_sse(request: rupring::Request) -> rupring::Response {
     rupring::Response::new()
-        .header("content-type", "text/event-stream")
-        .header("cache-control", "no-cache")
-        .header("connection", "keep-alive")
-        .header("access-control-allow-origin", "*")
-        .stream(async move |stream_handler|  {
+        .sse_stream(async move |stream_handler|  {
             let mut count = 0;
             loop {
                 if stream_handler.is_closed() {
@@ -236,7 +232,7 @@ pub fn serve_sse(request: rupring::Request) -> rupring::Response {
 
                 let message = format!("data: Message number {}\n\n", count);
                 println!("Sending: {}", message.trim());
-                if let Err(e) = stream_handler.send(message.as_bytes()).await {
+                if let Err(e) = stream_handler.send_bytes(message.as_bytes()).await {
                     eprintln!("Error sending message: {}", e);
                 }
                 count += 1;

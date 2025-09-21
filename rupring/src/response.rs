@@ -72,7 +72,10 @@ use std::{
 use crate::{
     core::stream::StreamHandler,
     header,
-    http::{cookie::Cookie, meme},
+    http::{
+        cookie::Cookie,
+        meme::{self, EVENT_STREAM},
+    },
     HeaderName, Request,
 };
 use hyper::body::Bytes;
@@ -481,6 +484,82 @@ impl Response {
         });
 
         self
+    }
+
+    /// Set a SSE callback function. a shortcut of `Response::stream`.
+    /// ```rust,ignore
+    /// rupring::Response::new()
+    ///    .sse_stream(async move |stream_handler| {
+    ///       let mut count = 0;
+    ///       loop {
+    ///          if stream_handler.is_closed() {
+    ///              println!("Client disconnected, stopping SSE");
+    ///              break;
+    ///          }
+    ///       }
+    ///       let message = format!("data: Message number {}\n\n", count);
+    ///       println!("Sending: {}", message.trim());
+    ///       if let Err(e) = stream_handler.send(message.as_bytes()).await {
+    ///           eprintln!("Error sending message: {}", e);
+    ///       }
+    ///       count += 1;
+    ///       tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    ///   })
+    /// ```
+    pub fn sse_stream<F, Fut>(mut self, stream_fn: F) -> Self
+    where
+        F: Fn(StreamHandler) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        self.headers.insert(
+            crate::HeaderName::from_static(header::CONTENT_TYPE),
+            vec![EVENT_STREAM.into()],
+        );
+
+        // Cache-Control: no-cache is required for SSE
+        if !self
+            .headers
+            .contains_key(&crate::HeaderName::from_static(header::CACHE_CONTROL))
+        {
+            self.headers.insert(
+                crate::HeaderName::from_static(header::CACHE_CONTROL),
+                vec!["no-cache".to_string()],
+            );
+        }
+
+        // Connection: keep-alive is required for SSE
+        if !self
+            .headers
+            .contains_key(&crate::HeaderName::from_static(header::CONNECTION))
+        {
+            self.headers.insert(
+                crate::HeaderName::from_static(header::CONNECTION),
+                vec!["keep-alive".to_string()],
+            );
+        }
+
+        // Keep-Alive: timeout=... is recommended for SSE
+        if !self
+            .headers
+            .contains_key(&crate::HeaderName::from_static(header::KEEP_ALIVE))
+        {
+            self.headers.insert(
+                crate::HeaderName::from_static(header::KEEP_ALIVE),
+                vec!["timeout=15".to_string()],
+            );
+        }
+
+        // Access-Control-Allow-Origin: * is required for SSE
+        if !self.headers.contains_key(&crate::HeaderName::from_static(
+            header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        )) {
+            self.headers.insert(
+                crate::HeaderName::from_static(header::ACCESS_CONTROL_ALLOW_ORIGIN),
+                vec!["*".to_string()],
+            );
+        }
+
+        self.stream(stream_fn)
     }
 }
 
