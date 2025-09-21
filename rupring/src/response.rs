@@ -497,9 +497,12 @@ impl Response {
     ///              break;
     ///          }
     ///       }
-    ///       let message = format!("data: Message number {}\n\n", count);
-    ///       println!("Sending: {}", message.trim());
-    ///       if let Err(e) = stream_handler.send(message.as_bytes()).await {
+    ///       
+    ///       let event = rupring::http::sse::Event::new()
+    ///           .event("custom-event")
+    ///           .data(format!("This is custom event number {}", count));
+    ///
+    ///       if let Err(e) = stream_handler.send_event(event).await {
     ///           eprintln!("Error sending message: {}", e);
     ///       }
     ///       count += 1;
