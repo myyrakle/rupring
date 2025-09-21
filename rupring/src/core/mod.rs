@@ -22,6 +22,7 @@ use error_handler::default_timeout_handler;
 use error_handler::default_uri_too_long_handler;
 use http_body_util::combinators::BoxBody;
 use http_body_util::BodyExt;
+use http_body_util::StreamBody;
 use tokio::time::Instant;
 
 use crate::application_properties;
@@ -29,12 +30,16 @@ use crate::application_properties::ApplicationProperties;
 use crate::application_properties::CompressionAlgorithm;
 use crate::core::adapter::HyperRequest;
 use crate::core::adapter::RequestAdapter;
+use crate::core::stream::StreamChannelType;
+use crate::core::stream::StreamHandler;
 use crate::di;
 use crate::header;
 use crate::http::cookie;
 use crate::http::multipart;
 use crate::request::Metadata;
+use crate::response::BoxedResponseBody;
 use crate::response::ResponseData;
+use crate::Response;
 pub(crate) mod route;
 
 use std::collections::HashMap;
@@ -47,7 +52,7 @@ use std::vec;
 
 use hyper::body::Bytes;
 use hyper::service::service_fn;
-use hyper::StatusCode;
+
 use hyper_util::rt::TokioIo;
 use log::Level;
 use tokio::net::TcpListener;
@@ -727,23 +732,9 @@ async fn execute_request_pipeline(
     // ex) Compression, etc.
     let response = post_process_response(application_properties, response);
 
-    let status = response.status;
-    let headers = response.headers.clone();
-
     // 6. Convert to hyper::Response, and return
-    let mut response: hyper::Response<ResponseBytesBody> = response.into();
-
-    if let Ok(status) = StatusCode::from_u16(status) {
-        *response.status_mut() = status;
-    }
-
-    for (key, values) in headers.iter() {
-        for value in values.iter() {
-            if let Ok(value) = value.parse() {
-                response.headers_mut().append(key, value);
-            }
-        }
-    }
+    let response: hyper::Response<ResponseBytesBody> =
+        response.into_hyper_response(&connection_context);
 
     Ok(response)
 }
@@ -779,6 +770,11 @@ fn post_process_response(
     }
 
     if !is_compression_content_type {
+        return response;
+    }
+
+    // Skip compression for streaming responses
+    if !matches!(response.data, ResponseData::Immediate(_)) {
         return response;
     }
 
@@ -824,7 +820,7 @@ fn post_process_response(
                     }
                 };
 
-                response.data = ResponseData::Immediate(compressed_bytes);
+                response.data = ResponseData::Immediate(compressed_bytes.clone());
 
                 // add header for compression
                 response.headers.insert(
@@ -841,4 +837,58 @@ fn post_process_response(
     }
 
     response
+}
+
+impl Response {
+    pub(crate) fn into_hyper_response(
+        self,
+        connection_context: &ConnectionContext,
+    ) -> hyper::Response<BoxedResponseBody> {
+        let mut builder = hyper::Response::builder();
+
+        // Set status code
+        if let Ok(status) = hyper::StatusCode::from_u16(self.status) {
+            builder = builder.status(status);
+        }
+
+        // Set headers
+        for (header_name, header_values) in &self.headers {
+            for header_value in header_values {
+                if let Ok(header_value) = header_value.parse::<hyper::header::HeaderValue>() {
+                    builder = builder.header(header_name.as_str(), header_value);
+                }
+            }
+        }
+
+        match self.data {
+            ResponseData::Immediate(body) => builder
+                .body(BodyExt::boxed(http_body_util::Full::from(body)))
+                .unwrap(),
+            ResponseData::Stream(stream_response) => {
+                let (sender, receiver) =
+                    tokio::sync::mpsc::unbounded_channel::<StreamChannelType>();
+
+                let receiver_stream =
+                    tokio_stream::wrappers::UnboundedReceiverStream::new(receiver);
+
+                let stream_handler = StreamHandler::new(sender, connection_context.closed.clone());
+
+                let (abortable_stream, _abort_handle) =
+                    futures_util::future::abortable(async move {
+                        stream_response.stream.unwrap()(stream_handler).await;
+                    });
+
+                tokio::spawn(async move {
+                    match abortable_stream.await {
+                        Ok(_) => println!("SSE 태스크 정상 종료"),
+                        Err(_) => println!("SSE 태스크 중단됨"),
+                    }
+                });
+
+                builder
+                    .body(BodyExt::boxed(StreamBody::new(receiver_stream)))
+                    .unwrap()
+            }
+        }
+    }
 }

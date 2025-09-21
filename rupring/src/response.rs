@@ -70,11 +70,11 @@ use std::{
 };
 
 use crate::{
+    core::stream::StreamHandler,
     header,
     http::{cookie::Cookie, meme},
     HeaderName, Request,
 };
-use http_body_util::BodyExt;
 use hyper::body::Bytes;
 
 pub(crate) type BoxedResponseBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
@@ -102,8 +102,7 @@ impl Default for ResponseData {
 
 type OnCloseFn = dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync;
 
-type StreamFn =
-    dyn Fn() -> Pin<Box<dyn Future<Output = Result<Bytes, Infallible>> + Send>> + Send + Sync;
+type StreamFn = dyn Fn(StreamHandler) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync;
 
 #[derive(Default, Clone)]
 pub struct StreamResponse {
@@ -358,6 +357,11 @@ impl Response {
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &vec!["application/json".to_string()]);
     pub fn header(mut self, name: &'static str, value: impl ToString) -> Self {
         if let Some(values) = self.headers.get_mut(&HeaderName::from_static(name)) {
+            // if content-type already exists, overwrite it.
+            if name == header::CONTENT_TYPE {
+                values.clear();
+            }
+
             values.push(value.to_string());
         } else {
             self.headers
@@ -439,41 +443,47 @@ impl Response {
 
         self
     }
+
+    /// Set a callback function for processing stream responses.
+    /// ```rust,ignore
+    /// rupring::Response::new()
+    ///     .header("content-type", "text/event-stream")
+    ///     .header("cache-control", "no-cache")
+    ///     .header("connection", "keep-alive")
+    ///     .header("access-control-allow-origin", "*")
+    ///     .stream(async move |stream_handler| {
+    ///         let mut count = 0;
+    ///         loop {
+    ///             if stream_handler.is_closed() {
+    ///                 println!("Client disconnected, stopping SSE");
+    ///                 break;
+    ///         }
+    ///
+    ///         let message = format!("data: Message number {}\n\n", count);
+    ///         println!("Sending: {}", message.trim());
+    ///         if let Err(e) = stream_handler.send(message.as_bytes()).await {
+    ///             eprintln!("Error sending message: {}", e);
+    ///         }
+    ///         count += 1;
+    ///         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    ///     })
+    /// ```
+    pub fn stream<F, Fut>(mut self, stream_fn: F) -> Self
+    where
+        F: Fn(StreamHandler) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        self.data = ResponseData::Stream(StreamResponse {
+            stream: Some(Arc::new(move |handler: StreamHandler| {
+                Box::pin(stream_fn(handler))
+            })),
+            on_close: None,
+        });
+
+        self
+    }
 }
 
 pub trait IntoResponse {
     fn into_response(self) -> Response;
-}
-
-impl From<Response> for hyper::Response<BoxedResponseBody> {
-    fn from(response: Response) -> Self {
-        let mut builder = hyper::Response::builder();
-
-        builder = builder.status(response.status);
-
-        for (header_name, header_values) in response.headers {
-            for header_value in header_values {
-                builder = builder.header(header_name.clone(), header_value);
-            }
-        }
-
-        match response.data {
-            ResponseData::Immediate(body) => builder
-                .body(BodyExt::boxed(http_body_util::Full::from(body)))
-                .unwrap(),
-            ResponseData::Stream(_stream_response) => {
-                // type Error = Box<dyn std::error::Error + Send + Sync>;
-
-                // let (sender, receiver) =
-                //     tokio::sync::mpsc::unbounded_channel::<Result<Frame<Bytes>, Error>>();
-
-                // let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(receiver);
-
-                // builder
-                //     .body(BodyExt::boxed(StreamBody::new(stream)))
-                //     .unwrap()
-                unimplemented!()
-            }
-        }
-    }
 }

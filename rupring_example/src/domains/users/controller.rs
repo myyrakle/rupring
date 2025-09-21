@@ -10,7 +10,7 @@ use super::{
 #[derive(Debug, Clone)]
 #[rupring::Controller(
     prefix=/, 
-    routes=[get_user, create_user, update_user, delete_user, list_users], 
+    routes=[get_user, create_user, update_user, delete_user, list_users, serve_sse_page, serve_sse], 
     middlewares=[],
 )]
 pub struct UserController {}
@@ -143,3 +143,106 @@ pub fn list_users(request: rupring::Request) -> rupring::Response {
         Err(error) => rupring::Response::new().status(500).text(error.to_string())
     }
 }
+
+const SERVE_SSE_HTML: &str = r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        #messages { 
+            border: 1px solid #ccc; 
+            padding: 20px; 
+            height: 400px; 
+            overflow-y: auto; 
+            background: #f9f9f9;
+        }
+        .message { 
+            margin: 5px 0; 
+            padding: 5px; 
+            background: white; 
+            border-radius: 3px;
+        }
+        .timestamp { color: #666; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+    <h1>Server-Sent Events Demo</h1>
+    <div id="messages"></div>
+    
+    <script>
+        const eventSource = new EventSource('/sse');
+        const messages = document.getElementById('messages');
+        
+        eventSource.onmessage = function(event) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = `
+                <div class="timestamp">${new Date().toLocaleTimeString()}</div>
+                <div>${event.data}</div>
+            `;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        };
+        
+        eventSource.addEventListener('custom-event', function(event) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.style.backgroundColor = '#e3f2fd';
+            messageDiv.innerHTML = `
+                <div class="timestamp">${new Date().toLocaleTimeString()}</div>
+                <div><strong>Custom Event:</strong> ${event.data}</div>
+            `;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        });
+        
+        eventSource.onerror = function(event) {
+            console.error('SSE error:', event);
+        };
+    </script>
+</body>
+</html>
+    "#;
+
+
+#[rupring::Get(path = /sse-page)]
+#[tags = [user]]
+#[summary = "SSE 페이지"]
+pub fn serve_sse_page(request: rupring::Request) -> rupring::Response {
+    rupring::Response::new()
+        .html(SERVE_SSE_HTML)
+}
+
+
+
+#[rupring::Get(path = /sse)]
+#[tags = [user]]
+#[summary = "SSE 페이지"]
+pub fn serve_sse(request: rupring::Request) -> rupring::Response {
+    rupring::Response::new()
+        .header("content-type", "text/event-stream")
+        .header("cache-control", "no-cache")
+        .header("connection", "keep-alive")
+        .header("access-control-allow-origin", "*")
+        .stream(async move |stream_handler|  {
+            let mut count = 0;
+            loop {
+                if stream_handler.is_closed() {
+                    println!("Client disconnected, stopping SSE");
+                    break;
+                }
+
+                let message = format!("data: Message number {}\n\n", count);
+                println!("Sending: {}", message.trim());
+                if let Err(e) = stream_handler.send(message.as_bytes()).await {
+                    eprintln!("Error sending message: {}", e);
+                }
+                count += 1;
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            }
+        })
+}
+
+
