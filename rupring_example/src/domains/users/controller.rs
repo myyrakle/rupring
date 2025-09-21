@@ -231,6 +231,8 @@ pub fn serve_sse(request: rupring::Request) -> rupring::Response {
                 }
                 let event = rupring::http::sse::Event::new()
                     .event("custom-event")
+                    .id("event-id-1")
+                    .retry(300)
                     .data(format!("This is custom event number {}", count));
                 if let Err(e) = stream_handler.send_event(event).await {
                     eprintln!("Error sending message: {}", e);
