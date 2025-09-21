@@ -102,7 +102,7 @@ impl Default for ResponseData {
 
 type OnCloseFn = dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync;
 
-type StreamFn = dyn Fn(StreamHandler) -> Pin<Box<dyn Future<Output = Bytes> + Send>> + Send + Sync;
+type StreamFn = dyn Fn(StreamHandler) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync;
 
 #[derive(Default, Clone)]
 pub struct StreamResponse {
@@ -357,6 +357,11 @@ impl Response {
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &vec!["application/json".to_string()]);
     pub fn header(mut self, name: &'static str, value: impl ToString) -> Self {
         if let Some(values) = self.headers.get_mut(&HeaderName::from_static(name)) {
+            // if content-type already exists, overwrite it.
+            if name == header::CONTENT_TYPE {
+                values.clear();
+            }
+
             values.push(value.to_string());
         } else {
             self.headers
@@ -443,7 +448,7 @@ impl Response {
     pub fn stream<F, Fut>(mut self, stream_fn: F) -> Self
     where
         F: Fn(StreamHandler) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Bytes> + Send + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
     {
         self.data = ResponseData::Stream(StreamResponse {
             stream: Some(Arc::new(move |handler: StreamHandler| {

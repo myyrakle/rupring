@@ -10,7 +10,7 @@ use super::{
 #[derive(Debug, Clone)]
 #[rupring::Controller(
     prefix=/, 
-    routes=[get_user, create_user, update_user, delete_user, list_users, serve_sse_page], 
+    routes=[get_user, create_user, update_user, delete_user, list_users, serve_sse_page, serve_sse], 
     middlewares=[],
 )]
 pub struct UserController {}
@@ -212,8 +212,32 @@ pub fn list_users(request: rupring::Request) -> rupring::Response {
 #[summary = "SSE 페이지"]
 pub fn serve_sse_page(request: rupring::Request) -> rupring::Response {
     rupring::Response::new()
-        .header("Content-Type", "text/html")
-        .body(SERVE_SSE_HTML)
+        .html(SERVE_SSE_HTML)
+}
+
+
+
+#[rupring::Get(path = /sse)]
+#[tags = [user]]
+#[summary = "SSE 페이지"]
+pub fn serve_sse(request: rupring::Request) -> rupring::Response {
+    rupring::Response::new()
+        .header("content-type", "text/event-stream")
+        .header("cache-control", "no-cache")
+        .header("connection", "keep-alive")
+        .header("access-control-allow-origin", "*")
+        .stream(|stream_handler| async move {
+            let mut count = 0;
+            loop {
+                let message = format!("data: Message number {}\n\n", count);
+                if let Err(e) = stream_handler.send(message.as_bytes()).await {
+                    eprintln!("Error sending message: {}", e);
+                    break;
+                }
+                count += 1;
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            }
+        })
 }
 
 

@@ -8,6 +8,7 @@ default-run = "example"
 mockall = "0.13.1"
 rupring={ path="../rupring", features=["full"] }
 serde = { version="1.0.193", features=["derive"] }
+tokio = "1.47.1"
 
 [[bin]]
 name = "example" 
