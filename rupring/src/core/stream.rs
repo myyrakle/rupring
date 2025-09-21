@@ -32,4 +32,8 @@ impl StreamHandler {
 
         Ok(())
     }
+
+    pub fn is_closed(&self) -> bool {
+        self.closed.load(std::sync::atomic::Ordering::SeqCst)
+    }
 }

@@ -445,6 +445,29 @@ impl Response {
     }
 
     /// Set a callback function for processing stream responses.
+    /// ```rust,ignore
+    /// rupring::Response::new()
+    ///     .header("content-type", "text/event-stream")
+    ///     .header("cache-control", "no-cache")
+    ///     .header("connection", "keep-alive")
+    ///     .header("access-control-allow-origin", "*")
+    ///     .stream(async move |stream_handler| {
+    ///         let mut count = 0;
+    ///         loop {
+    ///             if stream_handler.is_closed() {
+    ///                 println!("Client disconnected, stopping SSE");
+    ///                 break;
+    ///         }
+    ///
+    ///         let message = format!("data: Message number {}\n\n", count);
+    ///         println!("Sending: {}", message.trim());
+    ///         if let Err(e) = stream_handler.send(message.as_bytes()).await {
+    ///             eprintln!("Error sending message: {}", e);
+    ///         }
+    ///         count += 1;
+    ///         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    ///     })
+    /// ```
     pub fn stream<F, Fut>(mut self, stream_fn: F) -> Self
     where
         F: Fn(StreamHandler) -> Fut + Send + Sync + 'static,

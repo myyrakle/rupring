@@ -226,16 +226,21 @@ pub fn serve_sse(request: rupring::Request) -> rupring::Response {
         .header("cache-control", "no-cache")
         .header("connection", "keep-alive")
         .header("access-control-allow-origin", "*")
-        .stream(|stream_handler| async move {
+        .stream(async move |stream_handler|  {
             let mut count = 0;
             loop {
-                let message = format!("data: Message number {}\n\n", count);
-                if let Err(e) = stream_handler.send(message.as_bytes()).await {
-                    eprintln!("Error sending message: {}", e);
+                if stream_handler.is_closed() {
+                    println!("Client disconnected, stopping SSE");
                     break;
                 }
+
+                let message = format!("data: Message number {}\n\n", count);
+                println!("Sending: {}", message.trim());
+                if let Err(e) = stream_handler.send(message.as_bytes()).await {
+                    eprintln!("Error sending message: {}", e);
+                }
                 count += 1;
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             }
         })
 }
