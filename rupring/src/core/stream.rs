@@ -6,6 +6,8 @@ use std::{
 use bytes::Bytes;
 use hyper::body::Frame;
 
+use crate::http::sse::Event;
+
 pub type StreamChannelType = Result<Frame<Bytes>, Infallible>;
 
 /// Handler for managing streams.
@@ -37,12 +39,11 @@ impl StreamHandler {
         Ok(())
     }
 
-    pub async fn send_event(
-        &self,
-        event: &str,
-        data: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let sse_data = format!("event: {}\ndata: {}\n\n", event, data);
+    /// Send an SSE event to the stream.
+    /// Returns an error if the stream is closed or if sending fails.
+    /// The event is built using the `Event` struct from the `sse` module.
+    pub async fn send_event(&self, event: Event) -> Result<(), Box<dyn std::error::Error>> {
+        let sse_data = event.build();
         self.send_bytes(sse_data.as_bytes()).await
     }
 
