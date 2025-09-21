@@ -82,7 +82,6 @@ pub fn update_user(
         Err(_) => return rupring::Response::new().status(400).text("bad request"),
     };
 
-
     let response = user_service.update_user(request);
 
     match response {
@@ -212,10 +211,8 @@ const SERVE_SSE_HTML: &str = r#"
 #[summary = "SSE 페이지"]
 pub fn serve_sse_page(request: rupring::Request) -> rupring::Response {
     rupring::Response::new()
-        .html(SERVE_SSE_HTML)
+        .html(SERVE_SSE_HTML).header("Content-Type", "text/html")
 }
-
-
 
 #[rupring::Get(path = /sse)]
 #[tags = [user]]
