@@ -438,6 +438,22 @@ impl Response {
 
         self
     }
+
+    /// Set a callback function for processing stream responses.
+    pub fn stream<F, Fut>(mut self, stream_fn: F) -> Self
+    where
+        F: Fn(StreamHandler) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Bytes> + Send + 'static,
+    {
+        self.data = ResponseData::Stream(StreamResponse {
+            stream: Some(Arc::new(move |handler: StreamHandler| {
+                Box::pin(stream_fn(handler))
+            })),
+            on_close: None,
+        });
+
+        self
+    }
 }
 
 pub trait IntoResponse {
