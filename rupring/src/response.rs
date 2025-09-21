@@ -358,17 +358,18 @@ impl Response {
     /// use rupring::HeaderName;
     /// let response = rupring::Response::new().header("content-type", "application/json".to_string());
     /// assert_eq!(response.headers.get(&HeaderName::from_static("content-type")).unwrap(), &vec!["application/json".to_string()]);
-    pub fn header(mut self, name: &'static str, value: impl ToString) -> Self {
-        if let Some(values) = self.headers.get_mut(&HeaderName::from_static(name)) {
-            // if content-type already exists, overwrite it.
-            if name == header::CONTENT_TYPE {
-                values.clear();
-            }
+    pub fn header(mut self, name: &str, value: impl ToString) -> Self {
+        if let Ok(header_name) = HeaderName::from_bytes(name.as_bytes()) {
+            if let Some(values) = self.headers.get_mut(&header_name) {
+                // if content-type already exists, overwrite it.
+                if header_name.as_str() == header::CONTENT_TYPE {
+                    values.clear();
+                }
 
-            values.push(value.to_string());
-        } else {
-            self.headers
-                .insert(HeaderName::from_static(name), vec![value.to_string()]);
+                values.push(value.to_string());
+            } else {
+                self.headers.insert(header_name, vec![value.to_string()]);
+            }
         }
 
         self
