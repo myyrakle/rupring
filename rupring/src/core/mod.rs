@@ -880,8 +880,8 @@ impl Response {
 
                 tokio::spawn(async move {
                     match abortable_stream.await {
-                        Ok(_) => println!("SSE 태스크 정상 종료"),
-                        Err(_) => println!("SSE 태스크 중단됨"),
+                        Ok(_) => {}  //println!("SSE 태스크 정상 종료"),
+                        Err(_) => {} // println!("SSE 태스크 중단됨"),
                     }
                 });
 
