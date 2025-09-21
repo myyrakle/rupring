@@ -232,7 +232,7 @@ pub fn serve_sse(request: rupring::Request) -> rupring::Response {
 
                 let message = format!("data: Message number {}\n\n", count);
                 println!("Sending: {}", message.trim());
-                if let Err(e) = stream_handler.send(message.as_bytes()).await {
+                if let Err(e) = stream_handler.send_bytes(message.as_bytes()).await {
                     eprintln!("Error sending message: {}", e);
                 }
                 count += 1;
