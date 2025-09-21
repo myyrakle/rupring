@@ -75,6 +75,10 @@ pub fn hello(_request: rupring::Request) -> rupring::Response {
 ```
 - Please refer to the corresponding [document](crate::response) for more details.
 
+# Server Sent Event (SSE)
+- rupring provides Server Sent Event (SSE) features.
+- You can use SSE streaming directly through [crate::response::Response::sse_stream] method.
+
 # Middleware
 rupring provides middleware features for common logic processing.
 
