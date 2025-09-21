@@ -143,3 +143,4 @@ pub fn list_users(request: rupring::Request) -> rupring::Response {
         Err(error) => rupring::Response::new().status(500).text(error.to_string())
     }
 }
+

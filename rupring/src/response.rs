@@ -70,11 +70,11 @@ use std::{
 };
 
 use crate::{
+    core::stream::StreamHandler,
     header,
     http::{cookie::Cookie, meme},
     HeaderName, Request,
 };
-use http_body_util::BodyExt;
 use hyper::body::Bytes;
 
 pub(crate) type BoxedResponseBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
@@ -102,8 +102,7 @@ impl Default for ResponseData {
 
 type OnCloseFn = dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync;
 
-type StreamFn =
-    dyn Fn() -> Pin<Box<dyn Future<Output = Result<Bytes, Infallible>> + Send>> + Send + Sync;
+type StreamFn = dyn Fn(StreamHandler) -> Pin<Box<dyn Future<Output = Bytes> + Send>> + Send + Sync;
 
 #[derive(Default, Clone)]
 pub struct StreamResponse {
@@ -443,37 +442,4 @@ impl Response {
 
 pub trait IntoResponse {
     fn into_response(self) -> Response;
-}
-
-impl From<Response> for hyper::Response<BoxedResponseBody> {
-    fn from(response: Response) -> Self {
-        let mut builder = hyper::Response::builder();
-
-        builder = builder.status(response.status);
-
-        for (header_name, header_values) in response.headers {
-            for header_value in header_values {
-                builder = builder.header(header_name.clone(), header_value);
-            }
-        }
-
-        match response.data {
-            ResponseData::Immediate(body) => builder
-                .body(BodyExt::boxed(http_body_util::Full::from(body)))
-                .unwrap(),
-            ResponseData::Stream(_stream_response) => {
-                // type Error = Box<dyn std::error::Error + Send + Sync>;
-
-                // let (sender, receiver) =
-                //     tokio::sync::mpsc::unbounded_channel::<Result<Frame<Bytes>, Error>>();
-
-                // let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(receiver);
-
-                // builder
-                //     .body(BodyExt::boxed(StreamBody::new(stream)))
-                //     .unwrap()
-                unimplemented!()
-            }
-        }
-    }
 }
