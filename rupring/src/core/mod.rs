@@ -52,7 +52,7 @@ use std::vec;
 
 use hyper::body::Bytes;
 use hyper::service::service_fn;
-use hyper::StatusCode;
+
 use hyper_util::rt::TokioIo;
 use log::Level;
 use tokio::net::TcpListener;
@@ -732,24 +732,9 @@ async fn execute_request_pipeline(
     // ex) Compression, etc.
     let response = post_process_response(application_properties, response);
 
-    let status = response.status;
-    let headers = response.headers.clone();
-
     // 6. Convert to hyper::Response, and return
-    let mut response: hyper::Response<ResponseBytesBody> =
+    let response: hyper::Response<ResponseBytesBody> =
         response.into_hyper_response(&connection_context);
-
-    if let Ok(status) = StatusCode::from_u16(status) {
-        *response.status_mut() = status;
-    }
-
-    for (key, values) in headers.iter() {
-        for value in values.iter() {
-            if let Ok(value) = value.parse() {
-                response.headers_mut().append(key, value);
-            }
-        }
-    }
 
     Ok(response)
 }
@@ -785,6 +770,11 @@ fn post_process_response(
     }
 
     if !is_compression_content_type {
+        return response;
+    }
+
+    // Skip compression for streaming responses
+    if !matches!(response.data, ResponseData::Immediate(_)) {
         return response;
     }
 
@@ -830,7 +820,7 @@ fn post_process_response(
                     }
                 };
 
-                response.data = ResponseData::Immediate(compressed_bytes);
+                response.data = ResponseData::Immediate(compressed_bytes.clone());
 
                 // add header for compression
                 response.headers.insert(
@@ -856,11 +846,17 @@ impl Response {
     ) -> hyper::Response<BoxedResponseBody> {
         let mut builder = hyper::Response::builder();
 
-        builder = builder.status(self.status);
+        // Set status code
+        if let Ok(status) = hyper::StatusCode::from_u16(self.status) {
+            builder = builder.status(status);
+        }
 
-        for (header_name, header_values) in self.headers {
+        // Set headers
+        for (header_name, header_values) in &self.headers {
             for header_value in header_values {
-                builder = builder.header(header_name.clone(), header_value);
+                if let Ok(header_value) = header_value.parse::<hyper::header::HeaderValue>() {
+                    builder = builder.header(header_name.as_str(), header_value);
+                }
             }
         }
 

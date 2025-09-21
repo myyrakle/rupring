@@ -144,7 +144,7 @@ pub fn list_users(request: rupring::Request) -> rupring::Response {
     }
 }
 
- const SERVE_SSE_HTML: &str = r#"
+const SERVE_SSE_HTML: &str = r#"
 <!DOCTYPE html>
 <html>
 <head>
@@ -172,7 +172,7 @@ pub fn list_users(request: rupring::Request) -> rupring::Response {
     <div id="messages"></div>
     
     <script>
-        const eventSource = new EventSource('/events');
+        const eventSource = new EventSource('/sse');
         const messages = document.getElementById('messages');
         
         eventSource.onmessage = function(event) {
