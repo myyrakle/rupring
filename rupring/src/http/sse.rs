@@ -40,7 +40,7 @@ impl Event {
             event_string.push_str(&format!("data: {}\n", data));
         }
 
-        event_string.push_str("\n");
+        event_string.push('\n');
 
         event_string
     }

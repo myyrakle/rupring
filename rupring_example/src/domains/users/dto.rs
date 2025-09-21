@@ -2,13 +2,13 @@ use rupring::RupringDto;
 use serde::{Deserialize, Serialize};
 
 pub mod foo {
-    use rupring::RupringDto;
-    use serde::{Deserialize, Serialize};
-    #[derive(Debug, Serialize, Deserialize, RupringDto)]
-    pub struct Bar {
-        pub a: i32,
-        pub b: String,
-    }
+    // use rupring::RupringDto;
+    // use serde::{Deserialize, Serialize};
+    // #[derive(Debug, Serialize, Deserialize, RupringDto)]
+    // pub struct Bar {
+    //     pub a: i32,
+    //     pub b: String,
+    // }
 }
 
 #[derive(Debug, Serialize, Deserialize, RupringDto)]
