@@ -222,7 +222,7 @@ pub fn serve_sse_page(request: rupring::Request) -> rupring::Response {
 #[summary = "SSE 페이지"]
 pub fn serve_sse(request: rupring::Request) -> rupring::Response {
     rupring::Response::new()
-        .sse(async move |stream_handler|  {
+        .sse_stream(async move |stream_handler|  {
             let mut count = 0;
             loop {
                 if stream_handler.is_closed() {
