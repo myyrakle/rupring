@@ -240,6 +240,9 @@ pub mod response;
 /// swagger module
 pub mod swagger;
 
+/// error module
+pub mod error;
+
 use std::panic::UnwindSafe;
 
 use application_properties::load_application_properties_from_all;
