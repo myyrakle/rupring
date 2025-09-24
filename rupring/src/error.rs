@@ -1,9 +1,15 @@
 #[derive(Debug)]
-pub enum Errors {}
+pub enum Errors {
+    StreamClosed,
+    StreamSendError(String),
+}
 
 impl std::fmt::Display for Errors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "An error occurred")
+        match self {
+            Errors::StreamClosed => write!(f, "Stream is closed"),
+            Errors::StreamSendError(msg) => write!(f, "Failed to send to stream: {}", msg),
+        }
     }
 }
 
