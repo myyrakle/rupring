@@ -2,14 +2,14 @@ pub const DOCS_INDEX_HTML: &str = r###"
     <!DOCTYPE html>
     <html>
     <head>
-    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+    <link type="text/css" rel="stylesheet" href="/docs/swagger-ui.css">
     <!--<link rel="shortcut icon" href="https://fastapi.tiangolo.com/img/favicon.png">-->
     <title>Rupring - Swagger UI</title>
     </head>
     <body>
     <div id="swagger-ui">
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="/docs/swagger-ui-bundle.js"></script>
     <!-- `SwaggerUIBundle` is now available on the page -->
     <script>
     const ui = SwaggerUIBundle({

@@ -1,4 +1,8 @@
-use crate::{self as rupring, header, http::meme};
+use crate::{
+    self as rupring, header,
+    http::meme,
+    swagger::{swagger_ui_bundle, swagger_ui_css},
+};
 
 #[rupring_macro::GetMapping(path = /)]
 pub fn get_docs(_: rupring::Request) -> rupring::Response {
@@ -37,4 +41,30 @@ pub fn get_json(request: rupring::Request) -> rupring::Response {
     rupring::Response::new()
         .text(json)
         .header(header::CONTENT_TYPE, meme::JAVASCRIPT)
+}
+
+#[rupring_macro::GetMapping(path = /swagger-ui-bundle.js)]
+pub fn get_swagger_ui_bundle(request: rupring::Request) -> rupring::Response {
+    let json = swagger_ui_bundle::SWAGGER_UI_BUNDLE_JS;
+
+    rupring::Response::new()
+        .text(json)
+        .header(
+            header::CONTENT_TYPE,
+            format!("{}; charset=utf-8", meme::JAVASCRIPT),
+        )
+        .header("access-control-allow-origin", "*")
+}
+
+#[rupring_macro::GetMapping(path = /swagger-ui.css)]
+pub fn get_swagger_ui_css(request: rupring::Request) -> rupring::Response {
+    let css = swagger_ui_css::SWAGGER_UI_CSS;
+
+    rupring::Response::new()
+        .text(css)
+        .header(
+            header::CONTENT_TYPE,
+            format!("{}; charset=utf-8", meme::CSS),
+        )
+        .header("access-control-allow-origin", "*")
 }
