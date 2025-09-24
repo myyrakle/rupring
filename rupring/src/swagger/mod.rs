@@ -123,6 +123,8 @@ pub mod html;
 pub mod json;
 pub mod module;
 pub mod routes;
+pub mod swagger_ui_bundle;
+pub mod swagger_ui_css;
 
 pub mod macros;
 

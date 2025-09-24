@@ -9,6 +9,8 @@ use crate as rupring;
         routes::get_favicon32,
         routes::get_favicon16,
         routes::get_json,
+        routes::get_swagger_ui_bundle,
+        routes::get_swagger_ui_css,
     ]
 )]
 pub struct SwaggerController {}
