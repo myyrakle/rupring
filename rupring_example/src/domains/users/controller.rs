@@ -9,8 +9,8 @@ use super::{
 
 #[derive(Debug, Clone)]
 #[rupring::Controller(
-    prefix=/, 
-    routes=[get_user, create_user, update_user, delete_user, list_users, serve_sse_page, serve_sse], 
+    prefix=/,
+    routes=[get_user, create_user, update_user, delete_user, list_users, serve_sse_page, serve_sse],
     middlewares=[],
 )]
 pub struct UserController {}
@@ -33,11 +33,10 @@ pub fn get_user(
 
     let response = user_service.get_user(request);
 
-    match  response {
-        Ok(response) =>
-        rupring::Response::new().json(response), 
-        Err(error) => rupring::Response::new().status(500).text(error.to_string())
-    } 
+    match response {
+        Ok(response) => rupring::Response::new().json(response),
+        Err(error) => rupring::Response::new().status(500).text(error.to_string()),
+    }
 }
 
 #[rupring::Post(path = /users)]
@@ -46,23 +45,26 @@ pub fn get_user(
 #[params = crate::domains::users::dto::CreateUserRequest]
 #[auth]
 pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::Response {
-    let user_service = request.get_provider::<Arc<dyn IUserService>>().cloned().unwrap();
+    let user_service = request
+        .get_provider::<Arc<dyn IUserService>>()
+        .cloned()
+        .unwrap();
 
     let request = match request::BindFromRequest::bind(request) {
         Ok(request) => request,
         Err(err) => {
-            println!("error: {:?}", err); 
+            println!("error: {:?}", err);
             return rupring::Response::new().status(400).text("bad request");
-        },
+        }
     };
-    
+
     println!("{:?}", request);
 
     let response = user_service.create_user(request);
 
     match response {
         Ok(response) => rupring::Response::new().json(response),
-        Err(error) => rupring::Response::new().status(500).text(error.to_string())
+        Err(error) => rupring::Response::new().status(500).text(error.to_string()),
     }
 }
 
@@ -70,9 +72,7 @@ pub fn create_user(request: rupring::Request, _: rupring::Response) -> rupring::
 #[tags = [user]]
 #[summary = "user 정보 수정"]
 #[params = crate::domains::users::dto::UpdateUserRequest]
-pub fn update_user(
-    request: rupring::Request,
-) -> rupring::Response {
+pub fn update_user(request: rupring::Request) -> rupring::Response {
     let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
     let request = rupring::serde_json::from_str(&request.body);
@@ -86,7 +86,7 @@ pub fn update_user(
 
     match response {
         Ok(response) => rupring::Response::new().json(response),
-        Err(error) => rupring::Response::new().status(500).text(error.to_string())
+        Err(error) => rupring::Response::new().status(500).text(error.to_string()),
     }
 }
 
@@ -108,7 +108,7 @@ pub fn delete_user(
 
     match response {
         Ok(response) => rupring::Response::new().json(response),
-        Err(error) => rupring::Response::new().status(500).text(error.to_string())
+        Err(error) => rupring::Response::new().status(500).text(error.to_string()),
     }
 }
 
@@ -120,8 +120,16 @@ pub fn delete_user(
 pub fn list_users(request: rupring::Request) -> rupring::Response {
     let user_service = request.get_provider::<Arc<dyn IUserService>>().unwrap();
 
-    let limit = request.query_parameters.get("limit").map(|e|e.to_owned()).unwrap_or(vec!["10".to_owned()]);
-    let offset = request.query_parameters.get("offset").map(|e|e.to_owned()).unwrap_or(vec!["1".to_owned()]);
+    let limit = request
+        .query_parameters
+        .get("limit")
+        .map(|e| e.to_owned())
+        .unwrap_or(vec!["10".to_owned()]);
+    let offset = request
+        .query_parameters
+        .get("offset")
+        .map(|e| e.to_owned())
+        .unwrap_or(vec!["1".to_owned()]);
 
     let limit = match limit.first().map(|x| x.parse::<i32>()) {
         Some(Ok(limit)) => limit,
@@ -133,13 +141,13 @@ pub fn list_users(request: rupring::Request) -> rupring::Response {
         _ => return rupring::Response::new().status(400).text("bad request"),
     };
 
-    let request = ListUsersRequest {  offset, limit };
+    let request = ListUsersRequest { offset, limit };
 
     let response = user_service.list_users(request);
 
     match response {
         Ok(response) => rupring::Response::new().json(response),
-        Err(error) => rupring::Response::new().status(500).text(error.to_string())
+        Err(error) => rupring::Response::new().status(500).text(error.to_string()),
     }
 }
 
@@ -150,17 +158,17 @@ const SERVE_SSE_HTML: &str = r#"
     <title>SSE Demo</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
-        #messages { 
-            border: 1px solid #ccc; 
-            padding: 20px; 
-            height: 400px; 
-            overflow-y: auto; 
+        #messages {
+            border: 1px solid #ccc;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
             background: #f9f9f9;
         }
-        .message { 
-            margin: 5px 0; 
-            padding: 5px; 
-            background: white; 
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            background: white;
             border-radius: 3px;
         }
         .timestamp { color: #666; font-size: 0.8em; }
@@ -169,11 +177,11 @@ const SERVE_SSE_HTML: &str = r#"
 <body>
     <h1>Server-Sent Events Demo</h1>
     <div id="messages"></div>
-    
+
     <script>
         const eventSource = new EventSource('/sse');
         const messages = document.getElementById('messages');
-        
+
         eventSource.onmessage = function(event) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
@@ -184,7 +192,7 @@ const SERVE_SSE_HTML: &str = r#"
             messages.appendChild(messageDiv);
             messages.scrollTop = messages.scrollHeight;
         };
-        
+
         eventSource.addEventListener('custom-event', function(event) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
@@ -196,7 +204,7 @@ const SERVE_SSE_HTML: &str = r#"
             messages.appendChild(messageDiv);
             messages.scrollTop = messages.scrollHeight;
         });
-        
+
         eventSource.onerror = function(event) {
             console.error('SSE error:', event);
         };
@@ -205,39 +213,36 @@ const SERVE_SSE_HTML: &str = r#"
 </html>
     "#;
 
-
 #[rupring::Get(path = /sse-page)]
 #[tags = [user]]
 #[summary = "SSE 페이지"]
 pub fn serve_sse_page(request: rupring::Request) -> rupring::Response {
     rupring::Response::new()
-        .html(SERVE_SSE_HTML).header("Content-Type", "text/html")
+        .html(SERVE_SSE_HTML)
+        .header("Content-Type", "text/html")
 }
 
 #[rupring::Get(path = /sse)]
 #[tags = [user]]
 #[summary = "SSE 페이지"]
 pub fn serve_sse(request: rupring::Request) -> rupring::Response {
-    rupring::Response::new()
-        .sse_stream(async move |stream_handler|  {
-            let mut count = 0;
-            loop {
-                if stream_handler.is_closed() {
-                    println!("Client disconnected, stopping SSE");
-                    break;
-                }
-                let event = rupring::http::sse::Event::new()
-                    .event("custom-event")
-                    .id("event-id-1")
-                    .retry(300)
-                    .data(format!("This is custom event number {}", count));
-                if let Err(e) = stream_handler.send_event(event).await {
-                    eprintln!("Error sending message: {}", e);
-                }
-                count += 1;
-                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    rupring::Response::new().sse_stream(async move |stream_handler| {
+        let mut count = 0;
+        loop {
+            if stream_handler.is_closed() {
+                println!("Client disconnected, stopping SSE");
+                break;
             }
-        })
+            let event = rupring::http::sse::Event::new()
+                .event("custom-event")
+                .id("event-id-1")
+                .retry(300)
+                .data(format!("This is custom event number {}", count));
+            if let Err(e) = stream_handler.send_event(event).await {
+                eprintln!("Error sending message: {}", e);
+            }
+            count += 1;
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        }
+    })
 }
-
-

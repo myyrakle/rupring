@@ -21,7 +21,7 @@ pub(crate) fn is_route_matching_request(route_path: String, request_path: &str) 
         }
     }
 
-     true
+    true
 }
 
 pub(crate) fn normalize_path(prefix: String, path: String) -> String {
@@ -47,7 +47,7 @@ pub(crate) fn normalize_path(prefix: String, path: String) -> String {
         normalized_path.pop();
     }
 
-     normalized_path
+    normalized_path
 }
 
 // return (route, route_path, middlewares)
@@ -99,7 +99,16 @@ pub(crate) fn find_route(
         }
     }
 
-     None
+    None
+}
+
+pub(crate) fn find_preflight_route(
+    root_module: Box<dyn crate::IModule>,
+    request_path: &str,
+    requested_method: &Method,
+) -> Option<(String, Vec<crate::MiddlewareFunction>)> {
+    find_route(root_module, request_path, requested_method)
+        .map(|(_, route_path, middlewares)| (route_path, middlewares))
 }
 
 #[cfg(test)]
@@ -227,32 +236,32 @@ mod tests {
 
         #[derive(Debug, Clone, Copy)]
         #[rupring::Module(
-            controllers=[HomeController{}], 
-            modules=[UserModule{}], 
-            providers=[], 
+            controllers=[HomeController{}],
+            modules=[UserModule{}],
+            providers=[],
             middlewares=[]
         )]
         pub struct RootModule {}
-        
+
         #[derive(Debug, Clone)]
         #[rupring::Controller(prefix=/, routes=[hello, echo])]
         pub struct HomeController {}
-        
+
         #[rupring::Get(path = /)]
         pub fn hello(_request: rupring::Request) -> rupring::Response {
             rupring::Response::new().redirect("https://naver.com")
         }
-        
+
         #[rupring::Get(path = /user)]
         pub fn get_user(_: rupring::Request, _: rupring::Response) -> rupring::Response {
             rupring::Response::new().text("asdf")
         }
-        
+
         #[rupring::Get(path = /echo)]
         pub fn echo(request: rupring::Request, _: rupring::Response) -> rupring::Response {
             rupring::Response::new().text(request.body)
         }
-      
+
         #[derive(Debug, Clone, Copy)]
         #[rupring::Module(
             controllers=[UserController{}],
@@ -262,7 +271,7 @@ mod tests {
             middlewares=[]
         )]
         pub struct UserModule {}
-        
+
         #[derive(Debug, Clone)]
         #[crate::Controller(prefix=/, routes=[get_user], middlewares=[])]
         pub struct UserController {}
@@ -323,5 +332,43 @@ mod tests {
 
             assert_eq!(result, test_case.expected, "TC name: {}", test_case.name,);
         }
+    }
+
+    #[test]
+    fn test_find_preflight_route() {
+        use crate as rupring;
+
+        fn test_middleware(
+            request: rupring::Request,
+            response: rupring::Response,
+            next: rupring::NextFunction,
+        ) -> rupring::Response {
+            next(request, response)
+        }
+
+        #[derive(Debug, Clone, Copy)]
+        #[rupring::Module(
+            controllers=[HomeController{}],
+            modules=[],
+            providers=[],
+            middlewares=[test_middleware]
+        )]
+        pub struct RootModule {}
+
+        #[derive(Debug, Clone)]
+        #[rupring::Controller(prefix=/, routes=[hello], middlewares=[])]
+        pub struct HomeController {}
+
+        #[rupring::Get(path = /hello)]
+        pub fn hello(_request: rupring::Request) -> rupring::Response {
+            rupring::Response::new().text("hello")
+        }
+
+        let middlewares = find_preflight_route(Box::new(RootModule {}), "/hello", &Method::GET);
+
+        assert_eq!(
+            middlewares.map(|(route_path, middlewares)| (route_path, middlewares.len())),
+            Some(("/hello".to_string(), 1))
+        );
     }
 }

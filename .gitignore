@@ -27,3 +27,5 @@ test.json
 *.http
 
 *.pem
+
+docs
