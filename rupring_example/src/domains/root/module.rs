@@ -1,6 +1,7 @@
 use super::controller::RootController;
 use crate::domains::users::module::UserModule;
 use crate::middlewares::logger::logger_middleware;
+use rupring::middleware::cors::default_cors_middleware;
 use rupring::swagger::module::SwaggerModule;
 
 #[derive(Debug, Clone, Copy)]
@@ -8,6 +9,6 @@ use rupring::swagger::module::SwaggerModule;
     controllers=[RootController{}],
     modules=[UserModule{}, SwaggerModule{}],
     providers=[],
-    middlewares=[logger_middleware],
+    middlewares=[logger_middleware, default_cors_middleware],
 )]
 pub struct RootModule {}

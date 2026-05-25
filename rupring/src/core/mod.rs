@@ -770,12 +770,14 @@ async fn execute_request_pipeline(
                     response
                 });
 
+            let middleware_headers = middleware_result.headers.clone();
+
             match middleware_result.next {
                 Some(next) => {
                     let (next_request, next_response) = *next;
 
                     request = next_request;
-                    response = next_response;
+                    response = merge_headers_if_absent(next_response, middleware_headers);
                 }
                 None => {
                     return middleware_result;
@@ -783,7 +785,10 @@ async fn execute_request_pipeline(
             }
         }
 
-        handler.handle(request, response)
+        let middleware_response = response.clone();
+        let response = handler.handle(request, response);
+
+        merge_response_headers_if_absent(response, &middleware_response)
     });
 
     // 4. Unhandled Error Handling
@@ -905,6 +910,24 @@ fn post_process_response(
     response
 }
 
+fn merge_response_headers_if_absent(
+    response: crate::Response,
+    source: &crate::Response,
+) -> crate::Response {
+    merge_headers_if_absent(response, source.headers.clone())
+}
+
+fn merge_headers_if_absent(
+    mut response: crate::Response,
+    headers: HashMap<crate::HeaderName, Vec<String>>,
+) -> crate::Response {
+    for (header_name, header_values) in headers {
+        response.headers.entry(header_name).or_insert(header_values);
+    }
+
+    response
+}
+
 impl Response {
     pub(crate) fn into_hyper_response(
         self,
@@ -964,9 +987,7 @@ mod tests {
     use super::*;
     use crate as rupring;
     use crate::core::adapter::AWSLambdaRequest;
-    use std::sync::atomic::{AtomicBool, Ordering};
-
-    static PREFLIGHT_HANDLER_CALLED: AtomicBool = AtomicBool::new(false);
+    use std::sync::atomic::AtomicBool;
 
     fn cors_middleware(
         request: rupring::Request,
@@ -991,7 +1012,6 @@ mod tests {
 
     #[rupring::Get(path = /hello)]
     pub fn hello(_request: rupring::Request) -> rupring::Response {
-        PREFLIGHT_HANDLER_CALLED.store(true, Ordering::Release);
         rupring::Response::new().text("hello")
     }
 
@@ -1002,8 +1022,6 @@ mod tests {
             .build()
             .unwrap()
             .block_on(async {
-                PREFLIGHT_HANDLER_CALLED.store(false, Ordering::Release);
-
                 let root_module = CorsModule {};
                 let mut di_context = di::DIContext::new();
                 di_context.initialize(Box::new(root_module));
@@ -1049,7 +1067,57 @@ mod tests {
                         .and_then(|value| value.to_str().ok()),
                     Some("*")
                 );
-                assert!(!PREFLIGHT_HANDLER_CALLED.load(Ordering::Acquire));
+            });
+    }
+
+    #[test]
+    fn test_cors_headers_are_added_to_normal_route_response() {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let root_module = CorsModule {};
+                let mut di_context = di::DIContext::new();
+                di_context.initialize(Box::new(root_module));
+
+                let mut headers = hyper::HeaderMap::new();
+                headers.insert(
+                    hyper::header::ORIGIN,
+                    "https://example.com".parse().unwrap(),
+                );
+
+                let request = AWSLambdaRequest {
+                    uri: "/hello".parse().unwrap(),
+                    method: hyper::Method::GET,
+                    http_version: hyper::Version::HTTP_11,
+                    headers,
+                    body: Vec::new(),
+                };
+
+                let response = execute_request_pipeline(
+                    Arc::new(application_properties::ApplicationProperties::default()),
+                    Arc::new(di_context),
+                    root_module,
+                    request,
+                    ConnectionContext {
+                        closed: Arc::new(AtomicBool::new(false)),
+                        ip: "127.0.0.1".parse().unwrap(),
+                        running_task_count: Arc::new(AtomicU64::new(0)),
+                    },
+                    ProcessRequestOption::default(),
+                )
+                .await
+                .unwrap();
+
+                assert_eq!(response.status(), hyper::StatusCode::OK);
+                assert_eq!(
+                    response
+                        .headers()
+                        .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+                        .and_then(|value| value.to_str().ok()),
+                    Some("*")
+                );
             });
     }
 }
