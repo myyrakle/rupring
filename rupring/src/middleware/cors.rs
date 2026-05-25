@@ -1,5 +1,57 @@
+//! Cross-Origin Resource Sharing (CORS) middleware.
+//!
+//! This module provides a small, dependency-free CORS middleware for Rupring.
+//! It can be registered like any other middleware on a module or controller.
+//!
+//! For the common "allow every origin" case, register
+//! [`default_cors_middleware`] directly:
+//!
+//! ```rust,ignore
+//! #[derive(Debug, Clone, Copy)]
+//! #[rupring::Module(
+//!     controllers=[RootController{}],
+//!     modules=[],
+//!     providers=[],
+//!     middlewares=[rupring::middleware::cors::default_cors_middleware],
+//! )]
+//! pub struct RootModule {}
+//! ```
+//!
+//! For custom policy, build a [`Cors`] value and expose it from your own
+//! middleware function:
+//!
+//! ```rust,ignore
+//! pub fn cors_middleware(
+//!     request: rupring::Request,
+//!     response: rupring::Response,
+//!     next: rupring::NextFunction,
+//! ) -> rupring::Response {
+//!     rupring::middleware::cors::Cors::new()
+//!         .allow_origin("https://example.com")
+//!         .allow_methods(["GET", "POST"])
+//!         .allow_headers(["content-type", "authorization"])
+//!         .max_age(3600)
+//!         .middleware()(request, response, next)
+//! }
+//! ```
+//!
+//! Rupring handles browser preflight requests automatically when this
+//! middleware is present in the matching route's middleware chain. A valid
+//! preflight request is an `OPTIONS` request with `Origin` and
+//! `Access-Control-Request-Method` headers.
+
 use crate::{header, MiddlewareFunction, Request, Response};
 
+/// Builder for configuring CORS response headers.
+///
+/// `Cors` is cloneable and can be used to create middleware with
+/// [`Cors::middleware`]. The default policy allows any origin, common HTTP
+/// methods, and reflects requested headers on preflight requests when allowed
+/// headers are not explicitly configured.
+///
+/// The default policy is intentionally permissive for quick development and
+/// examples. Production applications should usually set explicit origins and
+/// headers.
 #[derive(Debug, Clone)]
 pub struct Cors {
     allow_any_origin: bool,
@@ -12,6 +64,17 @@ pub struct Cors {
 }
 
 impl Default for Cors {
+    /// Creates a permissive CORS policy.
+    ///
+    /// Defaults:
+    ///
+    /// - `Access-Control-Allow-Origin: *`
+    /// - allowed methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`,
+    ///   `HEAD`
+    /// - requested preflight headers are reflected when no explicit allowed
+    ///   headers are configured
+    /// - credentials are disabled
+    /// - no `Access-Control-Max-Age`
     fn default() -> Self {
         Self {
             allow_any_origin: true,
@@ -34,22 +97,39 @@ impl Default for Cors {
 }
 
 impl Cors {
+    /// Creates a new CORS builder with the same values as [`Cors::default`].
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Allows requests from any origin.
+    ///
+    /// This sets `Access-Control-Allow-Origin` to `*` unless credentials are
+    /// enabled with [`Cors::allow_credentials`]. Browsers reject
+    /// `Access-Control-Allow-Origin: *` when credentials are allowed, so in
+    /// that case this middleware echoes the request `Origin` value instead.
     pub fn allow_any_origin(mut self) -> Self {
         self.allow_any_origin = true;
         self.allowed_origins.clear();
         self
     }
 
+    /// Allows a single origin.
+    ///
+    /// When configured, CORS headers are only added if the request `Origin`
+    /// exactly matches this value. Non-matching origins receive the unchanged
+    /// response, leaving the browser to block cross-origin access.
     pub fn allow_origin(mut self, origin: impl ToString) -> Self {
         self.allow_any_origin = false;
         self.allowed_origins.push(origin.to_string());
         self
     }
 
+    /// Allows a list of origins.
+    ///
+    /// Each origin is compared exactly against the request `Origin` header.
+    /// This replaces any origins configured by earlier calls to
+    /// [`Cors::allow_origin`] or [`Cors::allow_origins`].
     pub fn allow_origins<I, S>(mut self, origins: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -63,6 +143,11 @@ impl Cors {
         self
     }
 
+    /// Sets methods allowed for preflight requests.
+    ///
+    /// Values are uppercased and emitted as `Access-Control-Allow-Methods`
+    /// when handling preflight requests. This method replaces the default
+    /// method list.
     pub fn allow_methods<I, S>(mut self, methods: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -75,6 +160,11 @@ impl Cors {
         self
     }
 
+    /// Sets request headers allowed for preflight requests.
+    ///
+    /// Values are emitted as `Access-Control-Allow-Headers`. If this method is
+    /// not called, the middleware reflects the browser's
+    /// `Access-Control-Request-Headers` value during preflight.
     pub fn allow_headers<I, S>(mut self, headers: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -89,6 +179,11 @@ impl Cors {
         self
     }
 
+    /// Sets response headers exposed to browser JavaScript.
+    ///
+    /// Values are emitted as `Access-Control-Expose-Headers` on non-preflight
+    /// responses. This is useful for custom response headers that browser code
+    /// needs to read.
     pub fn expose_headers<I, S>(mut self, headers: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -101,16 +196,31 @@ impl Cors {
         self
     }
 
+    /// Enables or disables credentialed cross-origin requests.
+    ///
+    /// When `true`, the middleware emits
+    /// `Access-Control-Allow-Credentials: true`. If any origin is allowed, the
+    /// middleware echoes the request `Origin` instead of returning `*`, because
+    /// credentialed browser requests cannot use wildcard origins.
     pub fn allow_credentials(mut self, allow_credentials: bool) -> Self {
         self.allow_credentials = allow_credentials;
         self
     }
 
+    /// Sets the preflight cache duration in seconds.
+    ///
+    /// When configured, preflight responses include
+    /// `Access-Control-Max-Age: <seconds>`.
     pub fn max_age(mut self, seconds: u64) -> Self {
         self.max_age = Some(seconds);
         self
     }
 
+    /// Converts this policy into a Rupring middleware function.
+    ///
+    /// Normal requests are forwarded with `next` and receive CORS headers on
+    /// the returned response. Preflight requests short-circuit with status
+    /// `204` and CORS preflight headers.
     pub fn middleware(self) -> MiddlewareFunction {
         Box::new(move |request, response, next| {
             if is_preflight_request(&request) {
@@ -122,6 +232,11 @@ impl Cors {
         })
     }
 
+    /// Applies preflight headers to a response.
+    ///
+    /// This helper is public for framework internals and focused tests. Most
+    /// applications should use [`Cors::middleware`] or
+    /// [`default_cors_middleware`] instead.
     pub fn apply_preflight_headers(&self, request: Request, response: Response) -> Response {
         self.apply_headers(&request, response.status(204), true)
     }
@@ -208,6 +323,10 @@ impl Cors {
     }
 }
 
+/// Returns `true` when a request is a CORS preflight request.
+///
+/// A request is treated as preflight when it uses the `OPTIONS` method and has
+/// both `Origin` and `Access-Control-Request-Method` headers.
 pub fn is_preflight_request(request: &Request) -> bool {
     request.method == crate::Method::OPTIONS
         && request.headers.contains_key(header::ORIGIN)
@@ -216,6 +335,22 @@ pub fn is_preflight_request(request: &Request) -> bool {
             .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD)
 }
 
+/// Default CORS middleware function for direct registration.
+///
+/// This is a convenience wrapper around `Cors::default().middleware()`. It is
+/// useful in Rupring macro attributes because middleware registration expects a
+/// function path.
+///
+/// ```rust,ignore
+/// #[derive(Debug, Clone, Copy)]
+/// #[rupring::Module(
+///     controllers=[RootController{}],
+///     modules=[],
+///     providers=[],
+///     middlewares=[rupring::middleware::cors::default_cors_middleware],
+/// )]
+/// pub struct RootModule {}
+/// ```
 pub fn default_cors_middleware(
     request: Request,
     response: Response,
