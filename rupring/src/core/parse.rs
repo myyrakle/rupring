@@ -56,7 +56,7 @@ mod tests {
             expected: HashMap<String, Vec<String>>,
         }
 
-        let test_cases = vec![
+        let test_cases = [
             TestCase {
                 name: "query string is empty".to_string(),
                 raw_querystring: "",
@@ -99,7 +99,7 @@ mod tests {
             expected: HashMap<String, String>,
         }
 
-        let test_cases = vec![
+        let test_cases = [
             TestCase {
                 name: "route_path is empty".to_string(),
                 route_path: "".to_string(),

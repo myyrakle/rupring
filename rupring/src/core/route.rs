@@ -124,7 +124,7 @@ mod tests {
             expected: bool,
         }
 
-        let test_cases = vec![
+        let test_cases = [
             TestCase {
                 name: "route_path is empty".to_string(),
                 route_path: "".to_string(),
@@ -186,7 +186,7 @@ mod tests {
             expected: String,
         }
 
-        let test_cases = vec![
+        let test_cases = [
             TestCase {
                 name: "prefix and path are empty".to_string(),
                 prefix: "".to_string(),

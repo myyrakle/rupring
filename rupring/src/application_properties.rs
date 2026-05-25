@@ -491,6 +491,29 @@ impl ApplicationProperties {
     }
 }
 
+// 알아서 모든 대상에 대해 application.properties를 읽어서 ApplicationProperties를 반환하는 함수
+pub fn load_application_properties_from_all() -> ApplicationProperties {
+    // 1. 현재 경로에 application.properties가 있는지 확인하고, 있다면 읽어서 반환합니다.
+    if let Ok(text) = std::fs::read_to_string("application.properties") {
+        return ApplicationProperties::from_properties(text);
+    }
+
+    // 2. 실행파일 경로에 application.properties가 있는지 확인하고, 있다면 읽어서 반환합니다.
+    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+    let exe_dir = exe_path
+        .parent()
+        .expect("Failed to get executable directory");
+
+    let exe_properties_path = exe_dir.join("application.properties");
+    if let Ok(text) = std::fs::read_to_string(exe_properties_path) {
+        return ApplicationProperties::from_properties(text);
+    }
+
+    println!("application.properties Not Found. Use default properties.");
+
+    ApplicationProperties::default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -674,27 +697,4 @@ mod tests {
             );
         }
     }
-}
-
-// 알아서 모든 대상에 대해 application.properties를 읽어서 ApplicationProperties를 반환하는 함수
-pub fn load_application_properties_from_all() -> ApplicationProperties {
-    // 1. 현재 경로에 application.properties가 있는지 확인하고, 있다면 읽어서 반환합니다.
-    if let Ok(text) = std::fs::read_to_string("application.properties") {
-        return ApplicationProperties::from_properties(text);
-    }
-
-    // 2. 실행파일 경로에 application.properties가 있는지 확인하고, 있다면 읽어서 반환합니다.
-    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
-    let exe_dir = exe_path
-        .parent()
-        .expect("Failed to get executable directory");
-
-    let exe_properties_path = exe_dir.join("application.properties");
-    if let Ok(text) = std::fs::read_to_string(exe_properties_path) {
-        return ApplicationProperties::from_properties(text);
-    }
-
-    println!("application.properties Not Found. Use default properties.");
-
-    ApplicationProperties::default()
 }
