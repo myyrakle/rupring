@@ -17,6 +17,15 @@ pub const CONTENT_DISPOSITION: &str = "content-disposition";
 pub const CACHE_CONTROL: &str = "cache-control";
 pub const COOKIE: &str = "cookie";
 pub const ACCESS_CONTROL_ALLOW_ORIGIN: &str = "access-control-allow-origin";
+pub const ACCESS_CONTROL_ALLOW_METHODS: &str = "access-control-allow-methods";
+pub const ACCESS_CONTROL_ALLOW_HEADERS: &str = "access-control-allow-headers";
+pub const ACCESS_CONTROL_ALLOW_CREDENTIALS: &str = "access-control-allow-credentials";
+pub const ACCESS_CONTROL_EXPOSE_HEADERS: &str = "access-control-expose-headers";
+pub const ACCESS_CONTROL_MAX_AGE: &str = "access-control-max-age";
+pub const ACCESS_CONTROL_REQUEST_METHOD: &str = "access-control-request-method";
+pub const ACCESS_CONTROL_REQUEST_HEADERS: &str = "access-control-request-headers";
+pub const ORIGIN: &str = "origin";
+pub const VARY: &str = "vary";
 pub const KEEP_ALIVE: &str = "keep-alive";
 
 // response only headers

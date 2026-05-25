@@ -549,32 +549,12 @@ async fn execute_request_pipeline(
         format!("[Request] {} {}", request_method, request_path).as_str(),
     );
 
-    // 2. Find the one that matches the current request among the routes included in the hierarchical module structure.
-    let found_route = route::find_route(Box::new(root_module), request_path, request_method);
-
-    let found_route = match found_route {
-        Some(route) => route,
-        // TODO: 404 Handler Customization
-        None => {
-            return default_404_handler();
-        }
-    };
-
-    // 3. Get the handler function for the matched route value,
-    // prepare the request context, and pass it to the handler function.
-    let (route, route_path, middlewares) = found_route;
-
-    let handler = route.handler();
-
     let raw_querystring = uri.query().unwrap_or_default();
     let mut cookies = HashMap::new();
-
-    // 3.1. Parse Query Parameters
     let query_parameters = parse::parse_query_parameter(raw_querystring);
-
     let mut multipart_boundary = None;
 
-    // 3.2. Parse Headers
+    // 2. Parse Headers
     let mut headers = HashMap::new();
     for (header_name, header_value) in request.headers() {
         let header_name = header_name.to_string();
@@ -616,6 +596,92 @@ async fn execute_request_pipeline(
         headers.insert(header_name, header_value);
     }
     preprocess_headers(&mut headers);
+
+    if request_method == hyper::Method::OPTIONS
+        && headers.contains_key(header::ORIGIN)
+        && headers.contains_key(header::ACCESS_CONTROL_REQUEST_METHOD)
+    {
+        if let Some(requested_method) = headers
+            .get(header::ACCESS_CONTROL_REQUEST_METHOD)
+            .and_then(|method| hyper::Method::from_bytes(method.as_bytes()).ok())
+        {
+            if let Some((route_path, middlewares)) = route::find_preflight_route(
+                Box::new(root_module.clone()),
+                request_path,
+                &requested_method,
+            ) {
+                let path_parameters = parse::parse_path_parameter(route_path, request_path);
+                let mut request = crate::Request {
+                    method: request_method.to_owned(),
+                    path: request_path.to_owned(),
+                    body: String::new(),
+                    raw_body: Vec::new(),
+                    query_parameters: query_parameters.clone(),
+                    headers: headers.clone(),
+                    path_parameters,
+                    cookies: cookies.clone(),
+                    files: Vec::new(),
+                    metadata: request_metadata.clone(),
+                    di_context: Arc::clone(&di_context),
+                };
+
+                let mut response = crate::Response::new().status(204);
+
+                for middleware in middlewares {
+                    let middleware_result =
+                        middleware(request, response.clone(), move |request, response| {
+                            let next = Some(Box::new((request, response)));
+
+                            let mut response = crate::Response::new();
+                            response.next = next;
+
+                            response
+                        });
+
+                    match middleware_result.next {
+                        Some(next) => {
+                            let (next_request, next_response) = *next;
+
+                            request = next_request;
+                            response = next_response;
+                        }
+                        None => {
+                            if middleware_result.headers.contains_key(
+                                &crate::HeaderName::from_static(
+                                    header::ACCESS_CONTROL_ALLOW_ORIGIN,
+                                ),
+                            ) {
+                                let response =
+                                    middleware_result.into_hyper_response(&connection_context);
+                                return Ok(response);
+                            }
+
+                            return default_404_handler();
+                        }
+                    }
+                }
+
+                return default_404_handler();
+            }
+        }
+    }
+
+    // 3. Find the one that matches the current request among the routes included in the hierarchical module structure.
+    let found_route = route::find_route(Box::new(root_module), request_path, request_method);
+
+    let found_route = match found_route {
+        Some(route) => route,
+        // TODO: 404 Handler Customization
+        None => {
+            return default_404_handler();
+        }
+    };
+
+    // 4. Get the handler function for the matched route value,
+    // prepare the request context, and pass it to the handler function.
+    let (route, route_path, middlewares) = found_route;
+
+    let handler = route.handler();
 
     // 3.3. Parse Path Parameters
     let path_parameters = parse::parse_path_parameter(route_path, request_path);
@@ -704,12 +770,14 @@ async fn execute_request_pipeline(
                     response
                 });
 
+            let middleware_headers = middleware_result.headers.clone();
+
             match middleware_result.next {
                 Some(next) => {
                     let (next_request, next_response) = *next;
 
                     request = next_request;
-                    response = next_response;
+                    response = merge_headers_if_absent(next_response, middleware_headers);
                 }
                 None => {
                     return middleware_result;
@@ -717,7 +785,10 @@ async fn execute_request_pipeline(
             }
         }
 
-        handler.handle(request, response)
+        let middleware_response = response.clone();
+        let response = handler.handle(request, response);
+
+        merge_response_headers_if_absent(response, &middleware_response)
     });
 
     // 4. Unhandled Error Handling
@@ -839,6 +910,24 @@ fn post_process_response(
     response
 }
 
+fn merge_response_headers_if_absent(
+    response: crate::Response,
+    source: &crate::Response,
+) -> crate::Response {
+    merge_headers_if_absent(response, source.headers.clone())
+}
+
+fn merge_headers_if_absent(
+    mut response: crate::Response,
+    headers: HashMap<crate::HeaderName, Vec<String>>,
+) -> crate::Response {
+    for (header_name, header_values) in headers {
+        response.headers.entry(header_name).or_insert(header_values);
+    }
+
+    response
+}
+
 impl Response {
     pub(crate) fn into_hyper_response(
         self,
@@ -890,5 +979,145 @@ impl Response {
                     .unwrap()
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate as rupring;
+    use crate::core::adapter::AWSLambdaRequest;
+    use std::sync::atomic::AtomicBool;
+
+    fn cors_middleware(
+        request: rupring::Request,
+        response: rupring::Response,
+        next: rupring::NextFunction,
+    ) -> rupring::Response {
+        rupring::middleware::cors::Cors::default().middleware()(request, response, next)
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    #[rupring::Module(
+        controllers=[CorsController{}],
+        modules=[],
+        providers=[],
+        middlewares=[cors_middleware]
+    )]
+    pub struct CorsModule {}
+
+    #[derive(Debug, Clone)]
+    #[rupring::Controller(prefix=/, routes=[hello], middlewares=[])]
+    pub struct CorsController {}
+
+    #[rupring::Get(path = /hello)]
+    pub fn hello(_request: rupring::Request) -> rupring::Response {
+        rupring::Response::new().text("hello")
+    }
+
+    #[test]
+    fn test_cors_preflight_returns_204() {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let root_module = CorsModule {};
+                let mut di_context = di::DIContext::new();
+                di_context.initialize(Box::new(root_module));
+
+                let mut headers = hyper::HeaderMap::new();
+                headers.insert(
+                    hyper::header::ORIGIN,
+                    "https://example.com".parse().unwrap(),
+                );
+                headers.insert(
+                    hyper::header::ACCESS_CONTROL_REQUEST_METHOD,
+                    "GET".parse().unwrap(),
+                );
+
+                let request = AWSLambdaRequest {
+                    uri: "/hello".parse().unwrap(),
+                    method: hyper::Method::OPTIONS,
+                    http_version: hyper::Version::HTTP_11,
+                    headers,
+                    body: Vec::new(),
+                };
+
+                let response = execute_request_pipeline(
+                    Arc::new(application_properties::ApplicationProperties::default()),
+                    Arc::new(di_context),
+                    root_module,
+                    request,
+                    ConnectionContext {
+                        closed: Arc::new(AtomicBool::new(false)),
+                        ip: "127.0.0.1".parse().unwrap(),
+                        running_task_count: Arc::new(AtomicU64::new(0)),
+                    },
+                    ProcessRequestOption::default(),
+                )
+                .await
+                .unwrap();
+
+                assert_eq!(response.status(), hyper::StatusCode::NO_CONTENT);
+                assert_eq!(
+                    response
+                        .headers()
+                        .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+                        .and_then(|value| value.to_str().ok()),
+                    Some("*")
+                );
+            });
+    }
+
+    #[test]
+    fn test_cors_headers_are_added_to_normal_route_response() {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let root_module = CorsModule {};
+                let mut di_context = di::DIContext::new();
+                di_context.initialize(Box::new(root_module));
+
+                let mut headers = hyper::HeaderMap::new();
+                headers.insert(
+                    hyper::header::ORIGIN,
+                    "https://example.com".parse().unwrap(),
+                );
+
+                let request = AWSLambdaRequest {
+                    uri: "/hello".parse().unwrap(),
+                    method: hyper::Method::GET,
+                    http_version: hyper::Version::HTTP_11,
+                    headers,
+                    body: Vec::new(),
+                };
+
+                let response = execute_request_pipeline(
+                    Arc::new(application_properties::ApplicationProperties::default()),
+                    Arc::new(di_context),
+                    root_module,
+                    request,
+                    ConnectionContext {
+                        closed: Arc::new(AtomicBool::new(false)),
+                        ip: "127.0.0.1".parse().unwrap(),
+                        running_task_count: Arc::new(AtomicU64::new(0)),
+                    },
+                    ProcessRequestOption::default(),
+                )
+                .await
+                .unwrap();
+
+                assert_eq!(response.status(), hyper::StatusCode::OK);
+                assert_eq!(
+                    response
+                        .headers()
+                        .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+                        .and_then(|value| value.to_str().ok()),
+                    Some("*")
+                );
+            });
     }
 }

@@ -232,6 +232,9 @@ pub mod http;
 
 pub use http::header;
 
+/// Built-in middleware modules.
+pub mod middleware;
+
 mod logger;
 /// HTTP request module
 pub mod request;

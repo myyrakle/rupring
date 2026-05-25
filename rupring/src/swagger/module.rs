@@ -5,7 +5,7 @@ use super::context::InjectSwaggerContext;
 
 #[derive(Debug, Clone)]
 #[rupring_macro::Module(
-    controllers = SwaggerController{}, 
+    controllers = SwaggerController{},
     providers = [InjectSwaggerContext{}]
 )]
 pub struct SwaggerModule {}
