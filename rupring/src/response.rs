@@ -429,11 +429,15 @@ impl Response {
         }
 
         if let Some(secure) = cookie.secure {
-            cookie_str.push_str(&format!("; Secure={}", secure));
+            if secure {
+                cookie_str.push_str("; Secure");
+            }
         }
 
         if let Some(http_only) = cookie.http_only {
-            cookie_str.push_str(&format!("; HttpOnly={}", http_only));
+            if http_only {
+                cookie_str.push_str("; HttpOnly");
+            }
         }
 
         if let Some(same_site) = cookie.same_site {
@@ -569,4 +573,26 @@ impl Response {
 
 pub trait IntoResponse {
     fn into_response(self) -> Response;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::http::cookie::Cookie;
+
+    #[test]
+    fn add_cookie_serializes_secure_and_http_only_as_flag_attributes() {
+        let response =
+            Response::new().add_cookie(Cookie::new("session", "abc").secure(true).http_only(true));
+
+        let set_cookie = response
+            .headers
+            .get(&HeaderName::from_static(header::SET_COOKIE))
+            .expect("set-cookie header");
+
+        assert_eq!(
+            set_cookie,
+            &vec!["session=abc; Secure; HttpOnly".to_string()]
+        );
+    }
 }
