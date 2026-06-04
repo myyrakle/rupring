@@ -1,8 +1,6 @@
-use crate::{
-    self as rupring, header,
-    http::meme,
-    swagger::{swagger_ui_bundle, swagger_ui_css},
-};
+use crate::{self as rupring, header, http::meme};
+
+use super::{swagger_ui_bundle, swagger_ui_css};
 
 #[rupring_macro::GetMapping(path = /)]
 pub fn get_docs(_: rupring::Request) -> rupring::Response {
@@ -31,12 +29,12 @@ pub fn get_favicon16(_: rupring::Request) -> rupring::Response {
 
 #[rupring_macro::GetMapping(path = /swagger.json)]
 pub fn get_json(request: rupring::Request) -> rupring::Response {
-    let swagger_context = request
+    let openapi_context = request
         .di_context
-        .get::<super::context::SwaggerContext>()
+        .get::<crate::openapi::context::OpenApiContext>()
         .unwrap();
 
-    let json = swagger_context.openapi_json.read().unwrap().to_owned();
+    let json = openapi_context.openapi_json.read().unwrap().to_owned();
 
     rupring::Response::new()
         .text(json)

@@ -13,27 +13,27 @@ use super::{
 };
 
 #[derive(Debug, Clone, Default)]
-pub struct SwaggerContext {
+pub struct OpenApiContext {
     pub openapi_json: Arc<RwLock<String>>,
 }
 
-impl SwaggerContext {
+impl OpenApiContext {
     pub fn initialize_from_module(&self, module: impl IModule + Clone + 'static) {
         let mut swagger = SwaggerSchema {
-            tags: { SWAGGER_TAGS.0.clone() },
+            tags: { OPENAPI_TAGS.0.clone() },
             ..Default::default()
         };
 
-        generate_swagger(&mut swagger, Box::new(module));
+        generate_openapi(&mut swagger, Box::new(module));
 
         let mut openapi_json = self.openapi_json.write().unwrap();
         *openapi_json = serde_json::to_string(&swagger).unwrap();
     }
 }
 
-#[rupring::Component(name=InjectSwaggerContext)]
-pub fn inject_swagger_context() -> SwaggerContext {
-    SwaggerContext::default()
+#[rupring::Component(name=InjectOpenApiContext)]
+pub fn inject_openapi_context() -> OpenApiContext {
+    OpenApiContext::default()
 }
 
 fn to_string(method: hyper::Method) -> String {
@@ -51,9 +51,24 @@ fn to_string(method: hyper::Method) -> String {
     }
 }
 
-static SWAGGER_TAGS: SwaggerTags = SwaggerTags::new();
+static OPENAPI_TAGS: SwaggerTags = SwaggerTags::new();
 
-fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IModule>) {
+fn should_skip_documentation_path(path: &str) -> bool {
+    matches!(
+        path,
+        "/openapi.json"
+            | "/docs/swagger.json"
+            | "/docs"
+            | "/docs/favicon-16x16.png"
+            | "/docs/favicon-32x32.png"
+            | "/docs/swagger-initializer.js"
+            | "/docs/swagger-ui.css"
+            | "/docs/swagger-ui-standalone-preset.js"
+            | "/docs/swagger-ui-bundle.js"
+    )
+}
+
+fn generate_openapi(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IModule>) {
     for controller in root_module.controllers() {
         let prefix = controller.prefix();
 
@@ -134,17 +149,8 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
                 }
             }
 
-            // TODO: 추후에는 swagger ignore 속성을 추가해서 그걸로 처리
-            match normalized_path.as_str() {
-                "/docs/swagger.json"
-                | "/docs"
-                | "/docs/favicon-16x16.png"
-                | "/docs/favicon-32x32.png"
-                | "/docs/swagger-initializer.js"
-                | "/docs/swagger-ui.css"
-                | "/docs/swagger-ui-standalone-preset.js"
-                | "/docs/swagger-ui-bundle.js" => continue,
-                _ => {}
+            if should_skip_documentation_path(&normalized_path) {
+                continue;
             }
 
             let method = to_string(route.method());
@@ -166,7 +172,7 @@ fn generate_swagger(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
     }
 
     for child_module in root_module.child_modules() {
-        generate_swagger(swagger, child_module);
+        generate_openapi(swagger, child_module);
     }
 }
 

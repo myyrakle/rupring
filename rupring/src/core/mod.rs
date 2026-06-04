@@ -59,7 +59,7 @@ use tokio::net::TcpListener;
 
 use crate::header::preprocess_headers;
 use crate::logger::print_system_log;
-use crate::swagger::context::SwaggerContext;
+use crate::openapi::context::OpenApiContext;
 use crate::IModule;
 
 #[derive(Clone, Debug)]
@@ -78,9 +78,9 @@ pub async fn run_server(
     di_context.initialize(Box::new(root_module.clone()));
     let di_context = Arc::new(di_context);
 
-    // 2. Prepare Swagger Serving, if enabled
-    if let Some(swagger_context) = di_context.get::<SwaggerContext>() {
-        swagger_context.initialize_from_module(root_module.clone());
+    // 2. Prepare OpenAPI document, if enabled
+    if let Some(openapi_context) = di_context.get::<OpenApiContext>() {
+        openapi_context.initialize_from_module(root_module.clone());
     }
 
     // 3. ready, set, go!
@@ -339,9 +339,9 @@ pub async fn run_server_on_aws_lambda(
     di_context.initialize(Box::new(root_module.clone()));
     let di_context = Arc::new(di_context);
 
-    // 2. Prepare Swagger Serving, if enabled
-    if let Some(swagger_context) = di_context.get::<SwaggerContext>() {
-        swagger_context.initialize_from_module(root_module.clone());
+    // 2. Prepare OpenAPI document, if enabled
+    if let Some(openapi_context) = di_context.get::<OpenApiContext>() {
+        openapi_context.initialize_from_module(root_module.clone());
     }
 
     // 3. ready, set, go!
