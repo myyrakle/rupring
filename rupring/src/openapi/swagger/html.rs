@@ -13,7 +13,7 @@ pub const DOCS_INDEX_HTML: &str = r###"
     <!-- `SwaggerUIBundle` is now available on the page -->
     <script>
     const ui = SwaggerUIBundle({
-        url: '/docs/swagger.json',
+        url: '/openapi.json',
     "dom_id": "#swagger-ui",
 "layout": "BaseLayout",
 "deepLinking": true,

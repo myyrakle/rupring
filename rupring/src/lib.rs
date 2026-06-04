@@ -236,12 +236,68 @@ pub use http::header;
 pub mod middleware;
 
 mod logger;
+/// OpenAPI document module.
+pub mod openapi;
 /// HTTP request module
 pub mod request;
 /// HTTP response module
 pub mod response;
-/// swagger module
-pub mod swagger;
+/// Compatibility re-exports for the previous `rupring::swagger` API.
+pub mod swagger {
+    pub mod context {
+        pub use crate::openapi::context::InjectOpenApiContext as InjectSwaggerContext;
+        pub use crate::openapi::context::OpenApiContext as SwaggerContext;
+    }
+
+    pub mod controller {
+        pub use crate::openapi::swagger::controller::*;
+    }
+
+    pub mod html {
+        pub use crate::openapi::swagger::html::*;
+    }
+
+    pub mod json {
+        pub use crate::openapi::json::*;
+    }
+
+    pub mod macros {
+        pub use crate::openapi::macros::*;
+    }
+
+    pub mod module {
+        pub use crate::openapi::swagger::module::*;
+    }
+
+    pub mod routes {
+        pub use crate::openapi::swagger::routes::*;
+    }
+
+    pub mod swagger_ui_bundle {
+        pub use crate::openapi::swagger::swagger_ui_bundle::*;
+    }
+
+    pub mod swagger_ui_css {
+        pub use crate::openapi::swagger::swagger_ui_css::*;
+    }
+
+    pub use json::*;
+
+    #[cfg(test)]
+    mod tests {
+        use crate::core::route;
+        use crate::swagger::{json::SwaggerSchema, module::SwaggerModule};
+        use hyper::Method;
+
+        #[test]
+        fn legacy_swagger_paths_reexport_openapi_implementation() {
+            let _schema = SwaggerSchema::default();
+            let found_route = route::find_route(Box::new(SwaggerModule {}), "/docs", &Method::GET);
+
+            assert!(found_route.is_some());
+        }
+    }
+}
 
 /// error module
 pub mod error;
