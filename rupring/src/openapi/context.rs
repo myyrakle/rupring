@@ -84,33 +84,38 @@ fn generate_openapi(swagger: &mut SwaggerSchema, root_module: Box<dyn crate::IMo
             let request_info = route.swagger_request_info();
 
             if let Some(swagger_request_body) = request_info {
-                operation.parameters.push(SwaggerParameter {
-                    name: swagger_request_body
-                        .definition_name
-                        .split("::")
-                        .last()
-                        .unwrap_or("Request Body")
-                        .to_string(),
-                    in_: SwaggerParameterCategory::Body,
-                    description: "Request Body".to_string(),
-                    required: true,
-                    schema: Some(SwaggerTypeOrReference::Reference(SwaggerReference {
-                        reference: "#/definitions/".to_string()
-                            + swagger_request_body.definition_name.as_str(),
-                    })),
-                    type_: None,
-                });
+                let has_body_properties =
+                    !swagger_request_body.definition_value.properties.is_empty();
 
-                swagger.definitions.insert(
-                    swagger_request_body.definition_name.clone(),
-                    swagger_request_body.definition_value,
-                );
+                if has_body_properties {
+                    operation.parameters.push(SwaggerParameter {
+                        name: swagger_request_body
+                            .definition_name
+                            .split("::")
+                            .last()
+                            .unwrap_or("Request Body")
+                            .to_string(),
+                        in_: SwaggerParameterCategory::Body,
+                        description: "Request Body".to_string(),
+                        required: true,
+                        schema: Some(SwaggerTypeOrReference::Reference(SwaggerReference {
+                            reference: "#/definitions/".to_string()
+                                + swagger_request_body.definition_name.as_str(),
+                        })),
+                        type_: None,
+                    });
 
-                for dependency in swagger_request_body.dependencies {
                     swagger.definitions.insert(
-                        dependency.definition_name.clone(),
-                        dependency.definition_value,
+                        swagger_request_body.definition_name.clone(),
+                        swagger_request_body.definition_value,
                     );
+
+                    for dependency in swagger_request_body.dependencies {
+                        swagger.definitions.insert(
+                            dependency.definition_name.clone(),
+                            dependency.definition_value,
+                        );
+                    }
                 }
 
                 for swagger_parameter in swagger_request_body.path_parameters {
@@ -220,6 +225,9 @@ fn swaggerize_url(url: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::openapi::json::SwaggerDefinitionObject;
+    use crate::{IController, IHandler, IModule, IProvider, IRoute, Method, Request, Response};
+    use std::collections::HashMap;
 
     #[test]
     fn test_swaggerize_url() {
@@ -237,5 +245,132 @@ mod tests {
             swaggerize_url("/users/:id/do-something/:id2/"),
             "/users/{id}/do-something/{id2}/"
         );
+    }
+
+    #[test]
+    fn get_route_with_query_only_request_info_does_not_generate_body_parameter() {
+        #[derive(Clone)]
+        struct TestModule;
+
+        impl IModule for TestModule {
+            fn child_modules(&self) -> Vec<Box<dyn IModule>> {
+                vec![]
+            }
+
+            fn controllers(&self) -> Vec<Box<dyn IController>> {
+                vec![Box::new(TestController)]
+            }
+
+            fn providers(&self) -> Vec<Box<dyn IProvider>> {
+                vec![]
+            }
+
+            fn middlewares(&self) -> Vec<crate::MiddlewareFunction> {
+                vec![]
+            }
+        }
+
+        struct TestController;
+
+        impl IController for TestController {
+            fn prefix(&self) -> String {
+                "/".to_string()
+            }
+
+            fn routes(&self) -> Vec<Box<dyn IRoute + Send + 'static>> {
+                vec![Box::new(TestRoute)]
+            }
+
+            fn middlewares(&self) -> Vec<crate::MiddlewareFunction> {
+                vec![]
+            }
+        }
+
+        struct TestRoute;
+
+        impl IRoute for TestRoute {
+            fn method(&self) -> Method {
+                Method::GET
+            }
+
+            fn path(&self) -> String {
+                "/users".to_string()
+            }
+
+            fn handler(&self) -> Box<dyn IHandler + Send + 'static> {
+                Box::new(TestHandler)
+            }
+
+            fn swagger_request_info(&self) -> Option<crate::openapi::macros::SwaggerRequestBody> {
+                Some(crate::openapi::macros::SwaggerRequestBody {
+                    definition_name: "ListUsersRequest".to_string(),
+                    definition_value: SwaggerDefinitionObject {
+                        type_: "object".to_string(),
+                        properties: HashMap::new(),
+                        required: vec![],
+                        path_parameters: vec![],
+                        query_parameters: vec![
+                            SwaggerParameter {
+                                name: "offset".to_string(),
+                                in_: SwaggerParameterCategory::Query,
+                                description: "".to_string(),
+                                required: false,
+                                type_: Some("number".to_string()),
+                                schema: None,
+                            },
+                            SwaggerParameter {
+                                name: "limit".to_string(),
+                                in_: SwaggerParameterCategory::Query,
+                                description: "".to_string(),
+                                required: false,
+                                type_: Some("number".to_string()),
+                                schema: None,
+                            },
+                        ],
+                    },
+                    dependencies: vec![],
+                    path_parameters: vec![],
+                    query_parameters: vec![
+                        SwaggerParameter {
+                            name: "offset".to_string(),
+                            in_: SwaggerParameterCategory::Query,
+                            description: "".to_string(),
+                            required: false,
+                            type_: Some("number".to_string()),
+                            schema: None,
+                        },
+                        SwaggerParameter {
+                            name: "limit".to_string(),
+                            in_: SwaggerParameterCategory::Query,
+                            description: "".to_string(),
+                            required: false,
+                            type_: Some("number".to_string()),
+                            schema: None,
+                        },
+                    ],
+                })
+            }
+        }
+
+        struct TestHandler;
+
+        impl IHandler for TestHandler {
+            fn handle(&self, _request: Request, response: Response) -> Response {
+                response
+            }
+        }
+
+        let openapi_context = OpenApiContext::default();
+        openapi_context.initialize_from_module(TestModule);
+        let json = openapi_context.openapi_json.read().unwrap().to_owned();
+        let schema: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let parameters = schema["paths"]["/users"]["get"]["parameters"]
+            .as_array()
+            .unwrap();
+
+        assert!(parameters
+            .iter()
+            .all(|parameter| parameter["in"] != serde_json::json!("body")));
+        assert_eq!(parameters.len(), 2);
     }
 }
