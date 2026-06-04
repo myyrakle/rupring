@@ -10,7 +10,7 @@ use super::{
     },
 };
 
-pub trait IUserService {
+pub trait IUserService: Send + Sync {
     fn create_user(&self, request: CreateUserRequest) -> rupring::Result<CreateUserResponse>;
     fn update_user(&self, request: UpdateUserRequest) -> rupring::Result<UpdateUserResponse>;
     fn delete_user(&self, request: DeleteUserRequest) -> rupring::Result<DeleteUserResponse>;
@@ -19,7 +19,7 @@ pub trait IUserService {
 }
 
 #[mockall::automock]
-pub trait IUserRepository {
+pub trait IUserRepository: Send + Sync {
     fn create_user(&self, params: CreateUserParams) -> rupring::Result<i32>;
     fn update_user(&self, params: UpdateUserParams) -> rupring::Result<()>;
     fn delete_user(&self, params: DeleteUserParams) -> rupring::Result<()>;
