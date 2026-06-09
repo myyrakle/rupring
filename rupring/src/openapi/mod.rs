@@ -10,6 +10,7 @@ pub mod json;
 pub mod macros;
 pub mod module;
 pub mod routes;
+pub mod scalar;
 pub mod swagger;
 
 pub use json::*;
@@ -17,12 +18,20 @@ pub use json::*;
 #[cfg(test)]
 mod tests {
     use crate::core::route;
+    use crate::openapi::scalar::module::ScalarModule;
     use crate::openapi::swagger::module::SwaggerModule;
     use hyper::Method;
 
     #[test]
     fn swagger_viewer_lives_under_openapi_module() {
         let found_route = route::find_route(Box::new(SwaggerModule {}), "/docs", &Method::GET);
+
+        assert!(found_route.is_some());
+    }
+
+    #[test]
+    fn scalar_viewer_lives_under_openapi_module() {
+        let found_route = route::find_route(Box::new(ScalarModule {}), "/docs", &Method::GET);
 
         assert!(found_route.is_some());
     }

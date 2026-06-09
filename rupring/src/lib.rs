@@ -176,9 +176,11 @@ impl rupring::IProvider for HomeService {
 ```
 - Please refer to the corresponding [document](crate::di) for more details.
 
-# Swagger
-- When rupring starts the server, it automatically serves swagger documents to the `/docs` path.
-- Please refer to the corresponding [document](crate::swagger) for more details.
+# API Documentation
+- Rupring provides Scalar API Reference and Swagger UI viewers for OpenAPI documents.
+- Scalar is the default recommended viewer and can be served at `/docs` with
+  [crate::scalar::module::ScalarModule].
+- Swagger UI is available as an optional viewer through [crate::swagger::module::SwaggerModule].
 
 # Application Properties
 - rupring provides various execution options through a special configuration file called application.properties.
@@ -242,6 +244,38 @@ pub mod openapi;
 pub mod request;
 /// HTTP response module
 pub mod response;
+/// Scalar API Reference viewer re-exports.
+pub mod scalar {
+    pub mod controller {
+        pub use crate::openapi::scalar::controller::*;
+    }
+
+    pub mod html {
+        pub use crate::openapi::scalar::html::*;
+    }
+
+    pub mod module {
+        pub use crate::openapi::scalar::module::*;
+    }
+
+    pub mod routes {
+        pub use crate::openapi::scalar::routes::*;
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::core::route;
+        use crate::scalar::module::ScalarModule;
+        use hyper::Method;
+
+        #[test]
+        fn scalar_paths_reexport_openapi_implementation() {
+            let found_route = route::find_route(Box::new(ScalarModule {}), "/docs", &Method::GET);
+
+            assert!(found_route.is_some());
+        }
+    }
+}
 /// Compatibility re-exports for the previous `rupring::swagger` API.
 pub mod swagger {
     pub mod context {
