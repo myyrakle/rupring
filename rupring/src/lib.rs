@@ -182,6 +182,36 @@ impl rupring::IProvider for HomeService {
   [crate::scalar::module::ScalarModule].
 - Swagger UI is available as an optional viewer through [crate::swagger::module::SwaggerModule].
 
+## Scalar API Reference
+```rust,ignore
+use rupring::scalar::module::ScalarModule;
+
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[HomeController{}],
+    modules=[ScalarModule{}],
+    providers=[],
+    middlewares=[],
+)]
+pub struct RootModule {}
+```
+
+## Swagger UI
+```rust,ignore
+use rupring::swagger::module::SwaggerModule;
+
+#[derive(Debug, Clone, Copy)]
+#[rupring::Module(
+    controllers=[HomeController{}],
+    modules=[SwaggerModule{}],
+    providers=[],
+    middlewares=[],
+)]
+pub struct RootModule {}
+```
+
+Both viewers use the same OpenAPI document served from `/openapi.json`.
+
 # Application Properties
 - rupring provides various execution options through a special configuration file called application.properties.
 - Please refer to the corresponding [document](crate::application_properties) for more details.
